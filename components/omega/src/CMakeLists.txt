@@ -37,7 +37,7 @@ target_link_options(
     ${OMEGA_LINK_OPTIONS}
 )
 
-target_link_libraries(${OMEGA_LIB_NAME} spdlog yakl pioc yaml-cpp parmetis metis)
+target_link_libraries(${OMEGA_LIB_NAME} spdlog Kokkos::kokkos pioc yaml-cpp parmetis metis)
 
 if(GKlib_FOUND)
     target_link_libraries(${OMEGA_LIB_NAME} gklib)

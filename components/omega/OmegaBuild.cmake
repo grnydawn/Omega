@@ -175,7 +175,7 @@ endmacro()
 
 
 ################################
-# Set cmake and YAKL variables #
+# Set cmake and Kokkos variables #
 ################################
 macro(update_variables)
 

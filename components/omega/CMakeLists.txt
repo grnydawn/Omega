@@ -14,6 +14,9 @@ cmake_policy(SET CMP0007 NEW)
 # Only interpret if() arguments as variables or keywords when unquoted
 cmake_policy(SET CMP0054 NEW)
 
+#find_package() uses <PackageName>_ROOT variables.
+cmake_policy(SET CMP0074 NEW)
+
 ###########################################################
 # STEP 1: Setup                                           #
 #                                                         #
@@ -34,11 +37,12 @@ if (NOT DEFINED PROJECT_NAME)
   preset()
 
   project(${OMEGA_PROJECT_NAME}
-          LANGUAGES CXX
+          LANGUAGES C CXX
          )
 
   set(CMAKE_CXX_STANDARD 17) # used in E3SM
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(LINKER_LANGUAGE C) # allows C language compiler wrapper if exists
 
   # update variables for standalone build
   setup_standalone_build()
@@ -61,11 +65,11 @@ endif()
 ###########################################################
 # STEP 2: Update                                          #
 #                                                         #
-# update cmake & yakl variables, and adjust               #
+# update cmake & kokkos variables, and adjust               #
 # build-controlling variables                             #
 ###########################################################
 
-# update CMake and YAKL variables from the build-controlling variables
+# update CMake and Kokkos variables from the build-controlling variables
 update_variables()
 
 ###########################################
