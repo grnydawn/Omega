@@ -1,39 +1,39 @@
 # Omega Unit Tests
 
-###################
-## Data type test
-###################
-#
-#set(_TestDataTypesName testDataTypes.exe)
-#
-#add_executable(${_TestDataTypesName} base/DataTypesTest.cpp)
-#
-#target_compile_options(
-#  ${_TestDataTypesName}
-#  PRIVATE
-#  "-I${OMEGA_SOURCE_DIR}/src/base"
-#  "-I${OMEGA_SOURCE_DIR}/src/infra"
-#  ${OMEGA_CXX_FLAGS}
-#)
-#
-#target_link_options(
-#  ${_TestDataTypesName}
-#  PRIVATE
-#  ${OMEGA_LINK_OPTIONS}
-#)
-#
-#target_link_libraries(${_TestDataTypesName} ${OMEGA_LIB_NAME} yakl parmetis metis)
-#
-#if(GKlib_FOUND)
-#  target_link_libraries(${_TestDataTypesName} gklib)
-#endif()
-#
-#add_test(
-#  NAME DATA_TYPES_TEST
-#  COMMAND ${MPI_EXEC} -n 1 -- ./${_TestDataTypesName}
-#)
-#
-#
+##################
+# Data type test
+##################
+
+set(_TestDataTypesName testDataTypes.exe)
+
+add_executable(${_TestDataTypesName} base/DataTypesTest.cpp)
+
+target_compile_options(
+  ${_TestDataTypesName}
+  PRIVATE
+  "-I${OMEGA_SOURCE_DIR}/src/base"
+  "-I${OMEGA_SOURCE_DIR}/src/infra"
+  ${OMEGA_CXX_FLAGS}
+)
+
+target_link_options(
+  ${_TestDataTypesName}
+  PRIVATE
+  ${OMEGA_LINK_OPTIONS}
+)
+
+target_link_libraries(${_TestDataTypesName} ${OMEGA_LIB_NAME} Kokkos::kokkos parmetis metis)
+
+if(GKlib_FOUND)
+  target_link_libraries(${_TestDataTypesName} gklib)
+endif()
+
+add_test(
+  NAME DATA_TYPES_TEST
+  COMMAND ${MPI_EXEC} -n 1 -- ./${_TestDataTypesName}
+)
+
+
 ###################
 ## Machine env test
 ###################
@@ -349,7 +349,7 @@ add_test(NAME LOGGING_TEST COMMAND ./${_TestLoggingName})
 ###################
 
 set_tests_properties(
-#  DATA_TYPES_TEST
+  DATA_TYPES_TEST
 #  MACHINE_ENV_TEST
 #  BROADCAST_TEST
   LOGGING_TEST

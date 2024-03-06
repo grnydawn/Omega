@@ -34,6 +34,11 @@ using Real = float;
 using Real = double;
 #endif
 
+// user-defined literal for generic reals
+KOKKOS_INLINE_FUNCTION constexpr Real operator""_Real(long double x) {
+   return x;
+}
+
 // Aliases for Kokkos arrays - by default, all arrays are on the device and
 // use C-ordering.
 /// Aliases for Kokkos device arrays of various dimensions and types
@@ -60,8 +65,18 @@ using Real = double;
 #define HostMemSpace Kokkos::HostSpace
 #define HostLayout   Kokkos::LayoutRight
 
-// using ExecSpace = DeviceMemSpace::execution_space;
-// using range_policy = Kokkos::RangePolicy<ExecSpace>;
+#define DeviceExecSpace DeviceMemSpace::execution_space
+
+#define DeviceRangePolicy   Kokkos::RangePolicy<DeviceExecSpace>
+#define Device1DRangePolicy Kokkos::RangePolicy<DeviceExecSpace>
+#define Device2DRangePolicy \
+   Kokkos::MDRangePolicy<Kokkos::Rank<2>, DeviceExecSpace>
+#define Device3DRangePolicy \
+   Kokkos::MDRangePolicy<Kokkos::Rank<3>, DeviceExecSpace>
+#define Device4DRangePolicy \
+   Kokkos::MDRangePolicy<Kokkos::Rank<4>, DeviceExecSpace>
+#define Device5DRangePolicy \
+   Kokkos::MDRangePolicy<Kokkos::Rank<5>, DeviceExecSpace>
 
 using Array1DI4   = Kokkos::View<I4 *, DeviceLayout, DeviceMemSpace>;
 using Array1DI8   = Kokkos::View<I8 *, DeviceLayout, DeviceMemSpace>;

@@ -324,7 +324,7 @@ macro(update_variables)
   else()
     set(OMEGA_ARCH "")
 
-    option(Kokkos_ENABLE_Serial "" ON)
+    option(Kokkos_ENABLE_SERIAL "" ON)
 
   endif()
 
