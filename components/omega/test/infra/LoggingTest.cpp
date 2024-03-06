@@ -12,7 +12,7 @@
 
 #include <iostream>
 
-#include "DataTypes.h"
+// #include "DataTypes.h"
 #include "Logging.h"
 
 #include "spdlog/sinks/basic_file_sink.h"
@@ -94,13 +94,13 @@ int testDefaultLogLevel() {
    return RetVal;
 }
 
-int testYaklDataTypes() {
+int testKokkosDataTypes() {
 
    int RetVal       = 0;
    int constexpr d1 = 2;
    int constexpr d2 = 3;
 
-   yakl::init();
+   Kokkos::initialize();
    {
       ArrayHost1DReal test1d("test1d", d1);
       ArrayHost2DReal test2d("test2d", d1, d2);
@@ -109,15 +109,15 @@ int testYaklDataTypes() {
 
       // check if ArrayHost1DReal is detected
       RetVal -=
-          outputTestResult("Yakl data type 1", "ArrayHost1DReal", Contains);
+          outputTestResult("Kokkos data type 1", "ArrayHost1DReal", Contains);
 
       LOG_INFO("2d var {}", test2d);
 
       // check if ArrayHost2DReal is detected
       RetVal -=
-          outputTestResult("Yakl data type 2", "ArrayHost2DReal", Contains);
+          outputTestResult("Kokkos data type 2", "ArrayHost2DReal", Contains);
    }
-   yakl::finalize();
+   Kokkos::finalize();
 
    return RetVal;
 }
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
       initLogging(logger);
 
       RetVal -= testDefaultLogLevel();
-      RetVal -= testYaklDataTypes();
+      RetVal -= testKokkosDataTypes();
 
       // std::remove(LogFilePath.c_str());
 

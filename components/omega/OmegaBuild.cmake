@@ -130,6 +130,7 @@ endmacro()
 # set build-control-variables for standalone build
 macro(setup_standalone_build)
 
+  # initialize compiler and linker flags
   setup_common_variables()
 
   if(NOT DEFINED OMEGA_BUILD_TYPE)
@@ -158,6 +159,7 @@ endmacro()
 # set build-control-variables for e3sm build
 macro(setup_e3sm_build)
 
+  # initialize compiler and linker flags
   setup_common_variables()
 
   set(OMEGA_BUILD_TYPE ${E3SM_DEFAULT_BUILD_TYPE})
@@ -166,7 +168,7 @@ macro(setup_e3sm_build)
   set(OMEGA_CXX_COMPILER ${CMAKE_CXX_COMPILER})
 
   #TODO: set OMEGA_ARCH according to E3SM variables
-  set(OMEGA_ARCH "NOT_DEFINED")
+  set(OMEGA_ARCH "")
   set(OMEGA_BUILD_MODE "E3SM")
 
   message(STATUS "OMEGA_CXX_COMPILER = ${OMEGA_CXX_COMPILER}")
@@ -243,7 +245,7 @@ macro(update_variables)
   endif()
 
   # Check if CUDA or HIP is supported
-  if((NOT DEFINED OMEGA_ARCH) OR (OMEGA_ARCH STREQUAL "NOT_DEFINED"))
+  if((NOT DEFINED OMEGA_ARCH) OR ("${OMEGA_ARCH}" STREQUAL ""))
 
     if(USE_CUDA)
       set(OMEGA_ARCH "CUDA")
@@ -290,6 +292,8 @@ macro(update_variables)
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     find_program(CMAKE_CUDA_COMPILER "nvcc")
 
+    option(Kokkos_ENABLE_CUDA "" ON)
+
     if(OMEGA_BUILD_TYPE STREQUAL "Debug")
       message(STATUS "CMAKE_CUDA_COMPILER = ${CMAKE_CUDA_COMPILER}")
       message(STATUS "CMAKE_CUDA_HOST_COMPILER = ${CMAKE_CUDA_HOST_COMPILER}")
@@ -299,21 +303,44 @@ macro(update_variables)
     set(CMAKE_HIP_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     find_program(CMAKE_HIP_COMPILER "hipcc")
 
+    option(Kokkos_ENABLE_HIP "" ON)
+
     if(OMEGA_BUILD_TYPE STREQUAL "Debug")
       message(STATUS "CMAKE_HIP_COMPILER = ${CMAKE_HIP_COMPILER}")
       message(STATUS "CMAKE_HIP_HOST_COMPILER = ${CMAKE_HIP_HOST_COMPILER}")
     endif()
 
+  elseif(OMEGA_ARCH STREQUAL "SYCL")
+    message(FATAL_ERROR "SYCL is not supported yet." )
+
+    option(Kokkos_ENABLE_SYCL "" ON)
+
+  elseif(OMEGA_ARCH STREQUAL "OpenMP")
+    message(FATAL_ERROR "OpenMP is not supported yet." )
+
+  elseif(OMEGA_ARCH STREQUAL "Pthreads")
+    message(FATAL_ERROR "Pthreads is not supported yet." )
+
+  else()
+    set(OMEGA_ARCH "")
+
+    option(Kokkos_ENABLE_Serial "" ON)
+
   endif()
 
-  set(YAKL_ARCH "${OMEGA_ARCH}")
+#  set(YAKL_ARCH "${OMEGA_ARCH}")
+#
+#  if(YAKL_ARCH)
+#
+#      if(OMEGA_${YAKL_ARCH}_FLAGS)
+#        set(YAKL_${YAKL_ARCH}_FLAGS ${OMEGA_${YAKL_ARCH}_FLAGS})
+#      endif()
+#
+#  endif()
 
-  if(YAKL_ARCH)
-
-      if(OMEGA_${YAKL_ARCH}_FLAGS)
-        set(YAKL_${YAKL_ARCH}_FLAGS ${OMEGA_${YAKL_ARCH}_FLAGS})
-      endif()
-
+  if(OMEGA_DEBUG)
+    list(APPEND OMEGA_CXX_FLAGS "-DOMEGA_DEBUG")
+    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
   endif()
 
   # Include the findParmetis script
@@ -350,9 +377,9 @@ macro(check_setup)
 
   endif()
 
-  if (NOT DEFINED YAKL_ARCH)
-    message(FATAL_ERROR "YAKL_ARCH is not defined.")
-  endif()
+#  if (NOT DEFINED YAKL_ARCH)
+#    message(FATAL_ERROR "YAKL_ARCH is not defined.")
+#  endif()
 
 endmacro()
 
