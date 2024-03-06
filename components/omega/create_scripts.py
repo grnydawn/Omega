@@ -357,8 +357,12 @@ class OmegaMachines(Machines):
             f.write("#!/usr/bin/env bash\n\n")
 
             f.write("source ./omega_env.sh\n")
-            nthreads_build = self.get_value("GMAKE_J")
-            f.write(f"make -j{nthreads_build}\n")
+
+            if self.debug:
+                f.write(f"make\n")
+            else:
+                nthreads_build = self.get_value("GMAKE_J")
+                f.write(f"make -j{nthreads_build}\n")
 
         with open(omega_run, "w") as f:
             f.write("#!/usr/bin/env bash\n\n")

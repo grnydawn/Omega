@@ -290,7 +290,7 @@ macro(update_variables)
 
   if(OMEGA_ARCH STREQUAL "CUDA")
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
-    find_program(CMAKE_CUDA_COMPILER "nvcc")
+    find_program(CMAKE_CUDA_COMPILER "nvcc_wrapper" PATHS ${OMEGA_SOURCE_DIR}/../../externals/ekat/extern/kokkos/bin)
 
     option(Kokkos_ENABLE_CUDA "" ON)
 
