@@ -358,8 +358,9 @@ class OmegaMachines(Machines):
 
             f.write("source ./omega_env.sh\n")
 
-            if self.debug:
+            if self.debug == "TRUE":
                 f.write(f"make\n")
+
             else:
                 nthreads_build = self.get_value("GMAKE_J")
                 f.write(f"make -j{nthreads_build}\n")
