@@ -5,12 +5,13 @@
 set(OMEGA_PROJECT_NAME            "OmegaOceanModel")
 set(OMEGA_EXE_NAME                "omega.exe")
 set(OMEGA_LIB_NAME                "OmegaLib")
+set(OMEGA_SOURCE_DIR              ${CMAKE_CURRENT_LIST_DIR})
 
 set(OMEGA_BUILD_MODES             "E3SM" "STANDALONE" "NOT_DEFINED")
 set(OMEGA_BUILD_MODE              NOT_DEFINED CACHE STRING "Omega build mode")
 set_property(CACHE OMEGA_BUILD_MODE PROPERTY STRINGS ${OMEGA_BUILD_MODES})
+set(OMEGA_BUILD_DIR               ${CMAKE_CURRENT_BINARY_DIR})
 
-set(OMEGA_SOURCE_DIR              ${CMAKE_CURRENT_LIST_DIR})
 set(OMEGA_DEFAULT_BUILD_TYPE      Release) # Debug or Release
 
 set(E3SM_CIME_ROOT ${OMEGA_SOURCE_DIR}/../../cime)
@@ -288,11 +289,20 @@ macro(update_variables)
     message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
   endif()
 
+  if(DEFINED OMEGA_CUDA_FLAGS)
+    set(CMAKE_CUDA_FLAGS ${OMEGA_CUDA_FLAGS})
+  endif()
+
+  if(DEFINED OMEGA_HIP_FLAGS)
+    set(CMAKE_HIP_FLAGS ${OMEGA_HIP_FLAGS})
+  endif()
+
   if(OMEGA_ARCH STREQUAL "CUDA")
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
     find_program(CMAKE_CUDA_COMPILER "nvcc_wrapper" PATHS ${OMEGA_SOURCE_DIR}/../../externals/ekat/extern/kokkos/bin)
 
     option(Kokkos_ENABLE_CUDA "" ON)
+    set(OMEGA_DEVICE_COMPILER ${CMAKE_CUDA_COMPILER})
 
     if(OMEGA_BUILD_TYPE STREQUAL "Debug")
       message(STATUS "CMAKE_CUDA_COMPILER = ${CMAKE_CUDA_COMPILER}")
@@ -304,6 +314,7 @@ macro(update_variables)
     find_program(CMAKE_HIP_COMPILER "hipcc")
 
     option(Kokkos_ENABLE_HIP "" ON)
+    set(OMEGA_DEVICE_COMPILER ${CMAKE_HIP_COMPILER})
 
     if(OMEGA_BUILD_TYPE STREQUAL "Debug")
       message(STATUS "CMAKE_HIP_COMPILER = ${CMAKE_HIP_COMPILER}")
