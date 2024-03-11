@@ -5,6 +5,7 @@ file(GLOB _LIBSRC_FILES infra/*.cpp base/*.cpp ocn/*.cpp)
 
 # Create the library target
 add_library(${OMEGA_LIB_NAME} ${_LIBSRC_FILES})
+add_dependencies(${OMEGA_LIB_NAME} project_kokkos)
 
 # add include directories
 target_include_directories(
@@ -37,7 +38,7 @@ target_link_options(
     ${OMEGA_LINK_OPTIONS}
 )
 
-target_link_libraries(${OMEGA_LIB_NAME} spdlog Kokkos::kokkos pioc yaml-cpp parmetis metis)
+target_link_libraries(${OMEGA_LIB_NAME} spdlog pioc yaml-cpp parmetis metis)
 
 if(GKlib_FOUND)
     target_link_libraries(${OMEGA_LIB_NAME} gklib)

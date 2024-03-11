@@ -303,6 +303,7 @@ macro(update_variables)
 
     option(Kokkos_ENABLE_CUDA "" ON)
     set(OMEGA_DEVICE_COMPILER ${CMAKE_CUDA_COMPILER})
+    #list(APPEND CMAKE_CUDA_FLAGS "-ccbin ${CMAKE_CUDA_HOST_COMPILER}")
 
     if(OMEGA_BUILD_TYPE STREQUAL "Debug")
       message(STATUS "CMAKE_CUDA_COMPILER = ${CMAKE_CUDA_COMPILER}")

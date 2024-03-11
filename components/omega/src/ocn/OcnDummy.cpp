@@ -5,7 +5,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include <Kokkos_Core.hpp>
+#include <OmegaKokkos.h>
 
 #include <cstdio>
 #include <iostream>

@@ -1,5 +1,7 @@
 # Add external packages
 
+include(ExternalProject)
+
 # Add the spdlog library
 add_subdirectory(
   ${E3SM_EXTERNALS_ROOT}/ekat/extern/spdlog
@@ -13,13 +15,29 @@ add_subdirectory(
 )
 
 if (KOKKOS_OPTIONS)
-	unset(KOKKOS_OPTIONS)
+  unset(KOKKOS_OPTIONS)
 endif()
 
-# Add the Kokkos library
-add_subdirectory(
-  ${E3SM_EXTERNALS_ROOT}/ekat/extern/kokkos
-  ${CMAKE_CURRENT_BINARY_DIR}/ekat/extern/kokkos
+## Add the Kokkos library
+
+ExternalProject_Add(
+  "project_kokkos"
+  SOURCE_DIR "${E3SM_EXTERNALS_ROOT}/ekat/extern/kokkos"
+  BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/ekat/extern/kokkos"
+  DOWNLOAD_COMMAND ""
+  UPDATE_COMMAND ""
+  CMAKE_ARGS
+    "-DKokkos_ENABLE_CUDA=ON"
+    "-DCMAKE_CXX_COMPILER=${OMEGA_DEVICE_COMPILER}"
+    "-DCMAKE_CUDA_HOST_COMPILER=${CMAKE_CUDA_HOST_COMPILER}"
+    "-DCMAKE_CUDA_FLAGS=${CMAKE_CUDA_FLAGS}"
+    "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
+    "-DCMAKE_HIP_FLAGS=${CMAKE_HIP_FLAGS}"
+    "-DCMAKE_BUILD_TYPE=${OMEGA_BUILD_TYPE}"
+    "-DCMAKE_INSTALL_PREFIX=${OMEGA_BUILD_DIR}/kokkos"
+    "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+  BUILD_COMMAND make -j4 install
+    COMMAND ${PYTHON_EXE} create_kokkos_header.py # generate OmegaKokkos.h
 )
 
 # forward env. variables to Scorpio build
