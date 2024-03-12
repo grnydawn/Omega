@@ -7,7 +7,7 @@
 set(_TestDataTypesName testDataTypes.exe)
 
 add_executable(${_TestDataTypesName} base/DataTypesTest.cpp)
-add_dependencies(${_TestDataTypesName} project_kokkos)
+#add_dependencies(${_TestDataTypesName} project_kokkos)
 
 target_compile_options(
   ${_TestDataTypesName}
@@ -23,7 +23,7 @@ target_link_options(
   ${OMEGA_LINK_OPTIONS}
 )
 
-target_link_libraries(${_TestDataTypesName} ${OMEGA_LIB_NAME} parmetis metis)
+target_link_libraries(${_TestDataTypesName} ${OMEGA_LIB_NAME} Kokkos::kokkos parmetis metis)
 
 if(GKlib_FOUND)
   target_link_libraries(${_TestDataTypesName} gklib)

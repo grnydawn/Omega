@@ -5,7 +5,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include <OmegaKokkos.h>
+#include <Kokkos_Core.hpp>
 
 #include <cstdio>
 #include <iostream>
@@ -14,8 +14,12 @@
 
 int dummy(int argc, char **argv) {
 
+   long count = 0;
+   long seq_count = 0;
+
    //   initLogging(std::string(OmegaDefaultLogfile));
    Kokkos::initialize(argc, argv);
+   {
    Kokkos::DefaultExecutionSpace{}.print_configuration(std::cout);
 
    if (argc < 2) {
@@ -32,7 +36,6 @@ int dummy(int argc, char **argv) {
    timer.reset();
 
    // Compute the number of even integers from 0 to n-1, in parallel.
-   long count = 0;
    Kokkos::parallel_reduce(
        n, KOKKOS_LAMBDA(const long i, long &lcount) { lcount += (i % 2) == 0; },
        count);
@@ -43,14 +46,13 @@ int dummy(int argc, char **argv) {
    timer.reset();
 
    // Compare to a sequential loop.
-   long seq_count = 0;
    for (long i = 0; i < n; ++i) {
       seq_count += (i % 2) == 0;
    }
 
    count_time = timer.seconds();
    printf("Sequential: %ld    %10.6f\n", seq_count, count_time);
-
+   }
    Kokkos::finalize();
 
    return (count == seq_count) ? 0 : -1;

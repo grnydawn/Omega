@@ -16,7 +16,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "OmegaKokkos.h"
+#include "Kokkos_Core.hpp"
 #include <cstdint>
 
 namespace OMEGA {
