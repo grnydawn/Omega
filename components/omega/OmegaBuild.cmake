@@ -114,24 +114,14 @@ macro(preset)
 
   set(OMEGA_MPI_CXX_COMPILER ${_OMEGA_CXX_COMPILER})
 
-  message(STATUS "AAAAAAAAAAAAAAAAAA")
   if(OMEGA_ARCH STREQUAL "CUDA")
 
-  message(STATUS "BBBBBBBBBBBBBBB")
     find_program(CMAKE_CUDA_COMPILER "nvcc_wrapper" PATHS ${OMEGA_SOURCE_DIR}/../../externals/ekat/extern/kokkos/bin)
-    #find_program(CMAKE_CUDA_COMPILER "nvcc")
 
     set(OMEGA_CXX_COMPILER ${CMAKE_CUDA_COMPILER})
     set(CMAKE_CUDA_HOST_COMPILER ${_OMEGA_CXX_COMPILER})
-    #list(APPEND CMAKE_CXX_FLAGS "-x cu -ccbin ${CMAKE_CUDA_HOST_COMPILER}")
-    #set(CMAKE_CXX_FLAGS "-ccbin ${CMAKE_CUDA_HOST_COMPILER} -O2 -arch sm_80 --use_fast_math")
-    set(CMAKE_CXX_FLAGS "-ccbin ${CMAKE_CUDA_HOST_COMPILER} -O2 --use_fast_math --expt-extended-lambda -Wno-deprecated-gpu-targets")
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CUDA_FLAGS} -std=c++14")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets")
     set(CMAKE_EXE_LINKER_FLAGS "")
-    #set(CMAKE_CXX_STANDARD "14")
-    #set(CXX_STANDARD "14")
-
-    #set(ENV{CC} "${OMEGA_CXX_COMPILER}")
 
     message(STATUS "CMAKE_CUDA_HOST_COMPILER = ${CMAKE_CUDA_HOST_COMPILER}")
 
@@ -142,7 +132,6 @@ macro(preset)
 
   endif()
 
-  message(STATUS "CCCCCCCCC")
   set(OMEGA_C_COMPILER ${_OMEGA_C_COMPILER})
   set(CMAKE_C_COMPILER ${OMEGA_C_COMPILER})
 
@@ -218,7 +207,7 @@ macro(update_variables)
   # Set compiler and linker flags
   if (CXXFLAGS)
     separate_arguments(_CXXFLAGS NATIVE_COMMAND ${CXXFLAGS})
-    #YSK list(APPEND OMEGA_CXX_FLAGS ${_CXXFLAGS})
+    list(APPEND OMEGA_CXX_FLAGS ${_CXXFLAGS})
   endif()
 
   if (LDFLAGS)

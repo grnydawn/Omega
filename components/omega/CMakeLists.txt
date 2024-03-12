@@ -40,9 +40,8 @@ if (NOT DEFINED PROJECT_NAME)
           LANGUAGES C CXX
          )
 
-  #set(CMAKE_CXX_STANDARD 17) # used in E3SM
-  #set(CMAKE_CXX_STANDARD 14) # used in E3SM
-  set(CMAKE_CXX_STANDARD_REQUIRED OFF)
+  set(CMAKE_CXX_STANDARD 17) # used in E3SM
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(LINKER_LANGUAGE C) # allows C language compiler wrapper if exists
 
   # update variables for standalone build
