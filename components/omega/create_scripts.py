@@ -82,7 +82,7 @@ class OmegaMachines(Machines):
         self.machos = self.get_value("OS")
         self.mpilibs = self.get_value("MPILIBS").split(",")
 
-    # modifed based on generic_xml.py in CIME
+    # modified based on generic_xml.py in CIME
     def get_processed_value(self, raw_value, outvar):
 
         reference_re = re.compile(r"\${?(\w+)}?")

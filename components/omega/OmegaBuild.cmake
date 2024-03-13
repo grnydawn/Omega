@@ -11,20 +11,20 @@ set(OMEGA_BUILD_MODES             "E3SM" "STANDALONE" "NOT_DEFINED")
 set(OMEGA_BUILD_MODE              NOT_DEFINED CACHE STRING "Omega build mode")
 set_property(CACHE OMEGA_BUILD_MODE PROPERTY STRINGS ${OMEGA_BUILD_MODES})
 set(OMEGA_BUILD_DIR               ${CMAKE_CURRENT_BINARY_DIR})
-
 set(OMEGA_DEFAULT_BUILD_TYPE      Release) # Debug or Release
 
-set(E3SM_CIME_ROOT ${OMEGA_SOURCE_DIR}/../../cime)
-set(E3SM_CIMECONFIG_ROOT ${OMEGA_SOURCE_DIR}/../../cime_config)
+set(E3SM_ROOT                     "${OMEGA_SOURCE_DIR}/../..")
+set(E3SM_CIME_ROOT                "${E3SM_ROOT}/cime")
+set(E3SM_CIMECONFIG_ROOT          "${E3SM_ROOT}/cime_config")
+set(E3SM_EXTERNALS_ROOT           "${E3SM_ROOT}/externals")
 
 ###########################
 # Macros                  #
 ###########################
 
-# 
 macro(common)
 
-#  option(OMEGA_DEBUG "Turn on error message throwing (default OFF)." OFF)
+  option(OMEGA_DEBUG "Turn on error message throwing (default OFF)." OFF)
 
   if(NOT DEFINED OMEGA_CXX_FLAGS)
     set(OMEGA_CXX_FLAGS "")
@@ -48,14 +48,15 @@ endmacro()
 # and detect OMEGA_ARCH and compilers
 macro(init_standalone_build)
 
-  set(_TMP_CMAKE_FILE ${CMAKE_CURRENT_BINARY_DIR}/_Omega.cmake)
+  # update CMake configuration with CIME configuration 
+  set(_TMP_CMAKE_FILE ${OMEGA_BUILD_DIR}/_Omega.cmake)
   set(_PY_OPTS "-p;${E3SM_CIME_ROOT};-o;${_TMP_CMAKE_FILE}")
 
-  if(DEFINED OMEGA_CIME_COMPILER)
+  if(OMEGA_CIME_COMPILER)
     list(APPEND _PY_OPTS "-c" "${OMEGA_CIME_COMPILER}")
   endif()
 
-  if(DEFINED OMEGA_CIME_MACHINE)
+  if(OMEGA_CIME_MACHINE)
     list(APPEND _PY_OPTS "-m" "${OMEGA_CIME_MACHINE}")
   endif()
 
@@ -82,10 +83,11 @@ macro(init_standalone_build)
 
   include(${_TMP_CMAKE_FILE})
 
-  if(OMEGA_BUILD_TYPE STREQUAL "Release")
+  if(NOT OMEGA_BUILD_TYPE STREQUAL "Debug")
     file(REMOVE ${_TMP_CMAKE_FILE})
   endif()
 
+  # find compilers
   if(OMEGA_C_COMPILER)
     find_program(_OMEGA_C_COMPILER ${OMEGA_C_COMPILER})
 
@@ -94,6 +96,13 @@ macro(init_standalone_build)
 
   else()
     find_program(_OMEGA_C_COMPILER ${MPICC})
+  endif()
+
+  if(_OMEGA_C_COMPILER)
+    set(OMEGA_C_COMPILER ${_OMEGA_C_COMPILER})
+
+  else()
+    message(FATAL_ERROR "C compiler, '${OMEGA_C_COMPILER}', is not found." )
   endif()
 
   if(OMEGA_CXX_COMPILER)
@@ -106,6 +115,13 @@ macro(init_standalone_build)
     find_program(_OMEGA_CXX_COMPILER ${MPICXX})
   endif()
 
+  if(_OMEGA_CXX_COMPILER)
+    set(OMEGA_CXX_COMPILER ${_OMEGA_CXX_COMPILER})
+
+  else()
+    message(FATAL_ERROR "C++ compiler, '${OMEGA_CXX_COMPILER}', is not found." )
+  endif()
+
   if(OMEGA_Fortran_COMPILER)
     find_program(_OMEGA_Fortran_COMPILER ${OMEGA_Fortran_COMPILER})
 
@@ -116,7 +132,14 @@ macro(init_standalone_build)
     find_program(_OMEGA_Fortran_COMPILER ${MPIFC})
   endif()
 
-  # detect OMEGA_ARCH
+  if(_OMEGA_Fortran_COMPILER)
+    set(OMEGA_Fortran_COMPILER ${_OMEGA_Fortran_COMPILER})
+
+  else()
+    message(FATAL_ERROR "Fortran compiler, '${OMEGA_Fortran_COMPILER}', is not found." )
+  endif()
+
+  # detect OMEGA_ARCH if not provided
   if(NOT OMEGA_ARCH)
 
     if(USE_CUDA)
@@ -128,7 +151,7 @@ macro(init_standalone_build)
     else()
 
       execute_process(
-        COMMAND ${_OMEGA_CXX_COMPILER} --version
+        COMMAND ${OMEGA_CXX_COMPILER} --version
         RESULT_VARIABLE _CXX_VER_RESULT
         OUTPUT_VARIABLE _CXX_VER_OUTPUT)
 
@@ -156,10 +179,12 @@ macro(init_standalone_build)
     endif()
   endif()
 
-  if(OMEGA_BUILD_TYPE STREQUAL "Debug")
-    list(APPEND OMEGA_CXX_FLAGS "-DOMEGA_DEBUG")
-    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
-  endif()
+# TODO: handle below somewhere else
+#
+#  if(OMEGA_BUILD_TYPE STREQUAL "Debug")
+#    list(APPEND OMEGA_CXX_FLAGS "-DOMEGA_DEBUG")
+#    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
+#  endif()
 
 #  if(OMEGA_DEBUG)
 #    list(APPEND OMEGA_CXX_FLAGS "-DOMEGA_DEBUG")
@@ -175,21 +200,27 @@ macro(init_standalone_build)
 #    set(CMAKE_HIP_FLAGS ${OMEGA_HIP_FLAGS})
 #  endif()
 
+  # set compilers *before* calling CMake project()
   if(OMEGA_ARCH STREQUAL "CUDA")
 
-    find_program(CMAKE_CUDA_COMPILER
+    find_program(OMEGA_CUDA_COMPILER
       "nvcc_wrapper"
       PATHS "${OMEGA_SOURCE_DIR}/../../externals/ekat/extern/kokkos/bin"
     )
 
-    set(OMEGA_CXX_COMPILER ${CMAKE_CUDA_COMPILER})
-    set(CMAKE_CUDA_HOST_COMPILER ${_OMEGA_CXX_COMPILER})
+    if(NOT OMEGA_CUDA_COMPILER)
+      message(FATAL_ERROR "nvcc_wrapper is not found." )
+    endif()
+
+    #set(OMEGA_CXX_COMPILER ${CMAKE_CUDA_COMPILER})
+    #set(CMAKE_CUDA_HOST_COMPILER ${_OMEGA_CXX_COMPILER})
     set(CMAKE_CXX_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets")
     option(Kokkos_ENABLE_CUDA "" ON)
     option(Kokkos_ENABLE_CUDA_LAMBDA "" ON)
     set(CMAKE_EXE_LINKER_FLAGS "")
 
-    message(STATUS "CMAKE_CUDA_HOST_COMPILER = ${CMAKE_CUDA_HOST_COMPILER}")
+    set(CMAKE_CXX_COMPILER ${OMEGA_CUDA_COMPILER})
+    #message(STATUS "CMAKE_CUDA_HOST_COMPILER = ${CMAKE_CUDA_HOST_COMPILER}")
 
   elseif(OMEGA_ARCH STREQUAL "HIP")
 
@@ -198,12 +229,12 @@ macro(init_standalone_build)
 
   endif()
 
-  set(OMEGA_C_COMPILER ${_OMEGA_C_COMPILER})
+  #set(OMEGA_C_COMPILER ${_OMEGA_C_COMPILER})
   set(CMAKE_C_COMPILER ${OMEGA_C_COMPILER})
 
-  set(CMAKE_CXX_COMPILER ${OMEGA_CXX_COMPILER})
+  #set(CMAKE_CXX_COMPILER ${OMEGA_CXX_COMPILER})
 
-  set(OMEGA_Fortran_COMPILER ${_OMEGA_Fortran_COMPILER})
+  #set(OMEGA_Fortran_COMPILER ${_OMEGA_Fortran_COMPILER})
   set(CMAKE_Fortran_COMPILER ${OMEGA_Fortran_COMPILER})
 
   message(STATUS "OMEGA_C_COMPILER = ${OMEGA_C_COMPILER}")
@@ -226,7 +257,6 @@ macro(setup_standalone_build)
       EXISTS ${OMEGA_SOURCE_DIR}/../../externals)
 
     set(E3SM_SOURCE_DIR ${OMEGA_SOURCE_DIR}/../../components)
-    set(E3SM_EXTERNALS_ROOT ${OMEGA_SOURCE_DIR}/../../externals)
 
   else()
     # so far, we assume that Omega exists inside of E3SM.
@@ -243,7 +273,6 @@ endmacro()
 macro(setup_e3sm_build)
 
   set(OMEGA_BUILD_TYPE ${E3SM_DEFAULT_BUILD_TYPE})
-  set(E3SM_EXTERNALS_ROOT ${E3SM_SOURCE_DIR}/../externals)
 
   set(OMEGA_CXX_COMPILER ${CMAKE_CXX_COMPILER})
 
