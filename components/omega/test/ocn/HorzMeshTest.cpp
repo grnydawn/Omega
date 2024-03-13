@@ -125,7 +125,6 @@ int main(int argc, char *argv[]) {
 
    // Initialize the global MPI environment
    MPI_Init(&argc, &argv);
-   yakl::init();
 
    OMEGA::R8 tol = 1e-6;
    OMEGA::R8 pi  = 4.0 * atan(1.0);
@@ -725,7 +724,6 @@ int main(int argc, char *argv[]) {
    // MPI_Status status;
    if (Err == 0)
       LOG_INFO("HorzMeshTest: Successful completion");
-   yakl::finalize();
    MPI_Finalize();
 
 } // end of main

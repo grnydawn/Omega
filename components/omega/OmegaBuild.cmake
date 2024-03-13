@@ -48,7 +48,7 @@ endmacro()
 # and detect OMEGA_ARCH and compilers
 macro(init_standalone_build)
 
-  # update CMake configuration with CIME configuration 
+  # update CMake configuration with CIME configuration
   set(_TMP_CMAKE_FILE ${OMEGA_BUILD_DIR}/_Omega.cmake)
   set(_PY_OPTS "-p;${E3SM_CIME_ROOT};-o;${_TMP_CMAKE_FILE}")
 
@@ -192,7 +192,7 @@ macro(init_standalone_build)
 
 
 
-  # overwrite OMEGA_CXX_FLAGS and OMEGA_EXE_LINKER_FLAGS defined in CIME
+  # overwrite CMAKE_CXX_FLAGS and CMAKE_EXE_LINKER_FLAGS defined in CIME
   # because those could break CUDA and HIP builds
   if(OMEGA_CXX_FLAGS)
     set(CMAKE_CXX_FLAGS ${OMEGA_CXX_FLAGS})
@@ -224,6 +224,8 @@ macro(init_standalone_build)
 #    separate_arguments(_SLIBS NATIVE_COMMAND ${SLIBS})
 #    list(APPEND OMEGA_LINK_OPTIONS ${_SLIBS})
 #  endif()
+
+# TODO: do we want to use KOKKOS_OPTIONS in CIME?
 
   # set CXX compiler *before* calling CMake project()
   if(OMEGA_ARCH STREQUAL "CUDA")
@@ -278,11 +280,11 @@ macro(init_standalone_build)
     set(CMAKE_CXX_COMPILER ${OMEGA_CXX_COMPILER})
 
   endif()
- 
+
   message(STATUS "CMAKE_CXX_COMPILER     = ${CMAKE_CXX_COMPILER}")
   message(STATUS "CMAKE_CXX_FLAGS        = ${CMAKE_CXX_FLAGS}")
   message(STATUS "CMAKE_EXE_LINKER_FLAGS = ${CMAKE_EXE_LINKER_FLAGS}")
- 
+
 endmacro()
 
 # set build-control-variables for standalone build
@@ -325,10 +327,9 @@ macro(setup_e3sm_build)
 
 endmacro()
 
-
-################################
-# Set cmake and Kokkos variables #
-################################
+##################################
+# Set Cmake and Kokkos variables #
+##################################
 macro(update_variables)
 
   # Set the build type
@@ -372,11 +373,8 @@ macro(update_variables)
       find_package(MPI)
 
       if(MPI_CXX_FOUND)
-        list(APPEND CMAKE_CXX_FLAGS "-I${MPI_CXX_INCLUDE_DIRS}")
-        list(APPEND CMAKE_EXE_LINKER_FLAGS
-          "-L${MPI_CXX_INCLUDE_DIRS}/../lib"
-          "-L${MPI_CXX_INCLUDE_DIRS}/../lib64" "-lmpi"
-        )
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${MPI_CXX_INCLUDE_DIRS}")
+
       else()
         message(FATAL_ERROR "MPI is not found" )
       endif()

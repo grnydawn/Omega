@@ -102,7 +102,6 @@ int main(int argc, char *argv[]) {
 
    // Initialize global MPI environment and YAKL
    MPI_Init(&argc, &argv);
-   yakl::init();
 
    // Initialize the machine environment and fetch the default environment
    // pointer, the MPI communicator and the task ID of the local task
@@ -397,7 +396,6 @@ int main(int argc, char *argv[]) {
    } else {
       LOG_INFO("HaloTest: Failed");
    }
-   yakl::finalize();
    MPI_Finalize();
 
 } // end of main
