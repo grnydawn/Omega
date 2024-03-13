@@ -139,6 +139,11 @@ macro(init_standalone_build)
     message(FATAL_ERROR "Fortran compiler, '${OMEGA_Fortran_COMPILER}', is not found." )
   endif()
 
+  message(STATUS "OMEGA_C_COMPILER = ${OMEGA_C_COMPILER}")
+  message(STATUS "OMEGA_CXX_COMPILER = ${OMEGA_CXX_COMPILER}")
+  message(STATUS "OMEGA_Fortran_COMPILER = ${OMEGA_Fortran_COMPILER}")
+  #message(STATUS "MPI_EXEC = ${MPI_EXEC}")
+
   # detect OMEGA_ARCH if not provided
   if(NOT OMEGA_ARCH)
 
@@ -179,28 +184,48 @@ macro(init_standalone_build)
     endif()
   endif()
 
-# TODO: handle below somewhere else
+  message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
+
+  # set C and Fortran compilers *before* calling CMake project()
+  set(CMAKE_C_COMPILER ${OMEGA_C_COMPILER})
+  set(CMAKE_Fortran_COMPILER ${OMEGA_Fortran_COMPILER})
+
+
+
+  # overwrite OMEGA_CXX_FLAGS and OMEGA_EXE_LINKER_FLAGS defined in CIME
+  # because those could break CUDA and HIP builds
+  if(OMEGA_CXX_FLAGS)
+    set(CMAKE_CXX_FLAGS ${OMEGA_CXX_FLAGS})
+
+  else()
+    set(CMAKE_CXX_FLAGS "")
+  endif()
+
+  if(OMEGA_EXE_LINKER_FLAGS)
+    set(CMAKE_EXE_LINKER_FLAGS ${OMEGA_EXE_LINKER_FLAGS})
+
+  else()
+    set(CMAKE_EXE_LINKER_FLAGS "")
+  endif()
+
+# TODO: do we want to use these env. variables?
+#  # Set compiler and linker flags
+#  if (CXXFLAGS)
+#    separate_arguments(_CXXFLAGS NATIVE_COMMAND ${CXXFLAGS})
+#    list(APPEND OMEGA_CXX_FLAGS ${_CXXFLAGS})
+#  endif()
 #
-#  if(OMEGA_BUILD_TYPE STREQUAL "Debug")
-#    list(APPEND OMEGA_CXX_FLAGS "-DOMEGA_DEBUG")
-#    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
+#  if (LDFLAGS)
+#    separate_arguments(_LDFLAGS NATIVE_COMMAND ${LDFLAGS})
+#    list(APPEND OMEGA_LINK_OPTIONS ${_LDFLAGS})
+#  endif()
+#
+#  if (SLIBS)
+#    separate_arguments(_SLIBS NATIVE_COMMAND ${SLIBS})
+#    list(APPEND OMEGA_LINK_OPTIONS ${_SLIBS})
 #  endif()
 
-#  if(OMEGA_DEBUG)
-#    list(APPEND OMEGA_CXX_FLAGS "-DOMEGA_DEBUG")
-#    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
-#  endif()
-
-#
-#  if(DEFINED OMEGA_CUDA_FLAGS)
-#    set(CMAKE_CUDA_FLAGS ${OMEGA_CUDA_FLAGS})
-#  endif()
-#
-#  if(DEFINED OMEGA_HIP_FLAGS)
-#    set(CMAKE_HIP_FLAGS ${OMEGA_HIP_FLAGS})
-#  endif()
-
-  # set compilers *before* calling CMake project()
+  # set CXX compiler *before* calling CMake project()
   if(OMEGA_ARCH STREQUAL "CUDA")
 
     find_program(OMEGA_CUDA_COMPILER
@@ -208,40 +233,56 @@ macro(init_standalone_build)
       PATHS "${OMEGA_SOURCE_DIR}/../../externals/ekat/extern/kokkos/bin"
     )
 
-    if(NOT OMEGA_CUDA_COMPILER)
+    if(OMEGA_CUDA_COMPILER)
+      message(STATUS "OMEGA_CUDA_COMPILER = ${OMEGA_CUDA_COMPILER}")
+
+    else()
       message(FATAL_ERROR "nvcc_wrapper is not found." )
     endif()
 
-    #set(OMEGA_CXX_COMPILER ${CMAKE_CUDA_COMPILER})
-    #set(CMAKE_CUDA_HOST_COMPILER ${_OMEGA_CXX_COMPILER})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets")
-    option(Kokkos_ENABLE_CUDA "" ON)
-    option(Kokkos_ENABLE_CUDA_LAMBDA "" ON)
-    set(CMAKE_EXE_LINKER_FLAGS "")
-
     set(CMAKE_CXX_COMPILER ${OMEGA_CUDA_COMPILER})
-    #message(STATUS "CMAKE_CUDA_HOST_COMPILER = ${CMAKE_CUDA_HOST_COMPILER}")
+    set(CMAKE_CUDA_HOST_COMPILER ${OMEGA_CXX_COMPILER})
+    set(CMAKE_CXX_FLAGS "-ccbin ${CMAKE_CUDA_HOST_COMPILER} -Wno-deprecated-gpu-targets")
+
+    if(OMEGA_CUDA_FLAGS)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_CUDA_FLAGS}")
+    endif()
+
+    message(STATUS "CMAKE_CUDA_HOST_COMPILER = ${CMAKE_CUDA_HOST_COMPILER}")
 
   elseif(OMEGA_ARCH STREQUAL "HIP")
 
+    find_program(OMEGA_HIP_COMPILER "hipcc")
+
+    if(OMEGA_HIP_COMPILER)
+      message(STATUS "OMEGA_HIP_COMPILER = ${OMEGA_HIP_COMPILER}")
+
+    else()
+      message(FATAL_ERROR "hipcc is not found." )
+    endif()
+
+    set(CMAKE_CXX_COMPILER ${OMEGA_HIP_COMPILER})
+
+    if(OMEGA_HIP_FLAGS)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_HIP_FLAGS}")
+    endif()
+
+  elseif(OMEGA_ARCH STREQUAL "SYCL")
+    set(CMAKE_CXX_COMPILER ${OMEGA_SYCL_COMPILER})
+
+    if(OMEGA_SYCL_FLAGS)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_SYCL_FLAGS}")
+    endif()
+
   else()
-    set(OMEGA_CXX_COMPILER ${_OMEGA_CXX_COMPILER})
+    set(CMAKE_CXX_COMPILER ${OMEGA_CXX_COMPILER})
 
   endif()
-
-  #set(OMEGA_C_COMPILER ${_OMEGA_C_COMPILER})
-  set(CMAKE_C_COMPILER ${OMEGA_C_COMPILER})
-
-  #set(CMAKE_CXX_COMPILER ${OMEGA_CXX_COMPILER})
-
-  #set(OMEGA_Fortran_COMPILER ${_OMEGA_Fortran_COMPILER})
-  set(CMAKE_Fortran_COMPILER ${OMEGA_Fortran_COMPILER})
-
-  message(STATUS "OMEGA_C_COMPILER = ${OMEGA_C_COMPILER}")
-  message(STATUS "OMEGA_CXX_COMPILER = ${OMEGA_CXX_COMPILER}")
-  message(STATUS "OMEGA_Fortran_COMPILER = ${OMEGA_Fortran_COMPILER}")
-  message(STATUS "MPI_EXEC = ${MPI_EXEC}")
-
+ 
+  message(STATUS "CMAKE_CXX_COMPILER     = ${CMAKE_CXX_COMPILER}")
+  message(STATUS "CMAKE_CXX_FLAGS        = ${CMAKE_CXX_FLAGS}")
+  message(STATUS "CMAKE_EXE_LINKER_FLAGS = ${CMAKE_EXE_LINKER_FLAGS}")
+ 
 endmacro()
 
 # set build-control-variables for standalone build
@@ -293,21 +334,17 @@ macro(update_variables)
   # Set the build type
   set(CMAKE_BUILD_TYPE ${OMEGA_BUILD_TYPE})
 
-  # Set compiler and linker flags
-  if (CXXFLAGS)
-    separate_arguments(_CXXFLAGS NATIVE_COMMAND ${CXXFLAGS})
-    list(APPEND OMEGA_CXX_FLAGS ${_CXXFLAGS})
+  if(OMEGA_BUILD_TYPE STREQUAL "Debug")
+    set(OMEGA_DEBUG ON)
   endif()
 
-  if (LDFLAGS)
-    separate_arguments(_LDFLAGS NATIVE_COMMAND ${LDFLAGS})
-    list(APPEND OMEGA_LINK_OPTIONS ${_LDFLAGS})
+  if(OMEGA_DEBUG)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DOMEGA_DEBUG")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMEGA_DEBUG")
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -DOMEGA_DEBUG")
   endif()
 
-  if (SLIBS)
-    separate_arguments(_SLIBS NATIVE_COMMAND ${SLIBS})
-    list(APPEND OMEGA_LINK_OPTIONS ${_SLIBS})
-  endif()
+  message(STATUS "OMEGA_LINK_OPTIONS     = ${OMEGA_LINK_OPTIONS}")
 
   # check if MPI is supported
   string(CONCAT _TestMPISource
@@ -319,13 +356,13 @@ macro(update_variables)
   file(WRITE ${_TestMPISrcFile}  ${_TestMPISource})
 
   execute_process(
-    COMMAND ${_OMEGA_CXX_COMPILER} -c ${_TestMPISrcFile} -o ${_TestMPIObjFile}
+    COMMAND ${OMEGA_CXX_COMPILER} -c ${_TestMPISrcFile} -o ${_TestMPIObjFile}
     OUTPUT_QUIET ERROR_QUIET
     RESULT_VARIABLE _MPI_TEST_RESULT
     OUTPUT_VARIABLE _MPI_TEST_OUTPUT
     ERROR_VARIABLE _MPI_TEST_ERROR)
 
-  if(OMEGA_BUILD_TYPE EQUAL Release)
+  if(NOT OMEGA_DEBUG)
     file(REMOVE ${_TestMPISrcFile})
     file(REMOVE ${_TestMPIObjFile})
   endif()
@@ -333,10 +370,12 @@ macro(update_variables)
   if (NOT _MPI_TEST_RESULT EQUAL 0)
     if (_MPI_TEST_RESULT MATCHES "^[-]?[0-9]+$")
       find_package(MPI)
+
       if(MPI_CXX_FOUND)
-        list(APPEND OMEGA_CXX_FLAGS "-I${MPI_CXX_INCLUDE_DIRS}")
-        list(APPEND OMEGA_LINK_OPTIONS
-          "-L${MPI_CXX_INCLUDE_DIRS}/../lib" "-lmpi"
+        list(APPEND CMAKE_CXX_FLAGS "-I${MPI_CXX_INCLUDE_DIRS}")
+        list(APPEND CMAKE_EXE_LINKER_FLAGS
+          "-L${MPI_CXX_INCLUDE_DIRS}/../lib"
+          "-L${MPI_CXX_INCLUDE_DIRS}/../lib64" "-lmpi"
         )
       else()
         message(FATAL_ERROR "MPI is not found" )
@@ -346,122 +385,31 @@ macro(update_variables)
     endif()
   endif()
 
-  message(STATUS "OMEGA_CXX_FLAGS           = ${OMEGA_CXX_FLAGS}")
-  message(STATUS "OMEGA_LINK_OPTIONS        = ${OMEGA_LINK_OPTIONS}")
-
   if(OMEGA_INSTALL_PREFIX)
     set(CMAKE_INSTALL_PREFIX ${OMEGA_INSTALL_PREFIX})
   endif()
 
-#  # Check if CUDA or HIP is supported
-#  if((NOT DEFINED OMEGA_ARCH) OR ("${OMEGA_ARCH}" STREQUAL ""))
-#
-#    if(USE_CUDA)
-#      set(OMEGA_ARCH "CUDA")
-#
-#    elseif(USE_HIP)
-#      set(OMEGA_ARCH "HIP")
-#
-#    else()
-#
-#      execute_process(
-#        COMMAND ${OMEGA_CXX_COMPILER} --version
-#        RESULT_VARIABLE _CXX_VER_RESULT
-#        OUTPUT_VARIABLE _CXX_VER_OUTPUT)
-#
-#      if (_CXX_VER_RESULT EQUAL 0)
-#
-#        string(REGEX MATCH "HIP|hip"       _HIP_CHECK "${_CXX_VER_OUTPUT}")
-#        string(REGEX MATCH "AMD|amd"       _AMD_CHECK "${_CXX_VER_OUTPUT}")
-#        string(REGEX MATCH "NVCC|nvcc"     _NVCC_CHECK "${_CXX_VER_OUTPUT}")
-#        string(REGEX MATCH "NVIDIA|nvidia" _NVIDIA_CHECK "${_CXX_VER_OUTPUT}")
-#
-#        if(_HIP_CHECK AND _AMD_CHECK)
-#          set(OMEGA_ARCH "HIP")
-#
-#        elseif(_NVCC_CHECK AND _NVIDIA_CHECK)
-#          set(OMEGA_ARCH "CUDA")
-#
-#        else()
-#          set(OMEGA_ARCH "")
-#
-#        endif()
-#      else()
-#        set(OMEGA_ARCH "")
-#
-#      endif()
-#    endif()
-#  endif()
-#
-#  if(OMEGA_BUILD_TYPE STREQUAL "Debug")
-#    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
-#  endif()
-#
-#  if(DEFINED OMEGA_CUDA_FLAGS)
-#    set(CMAKE_CUDA_FLAGS ${OMEGA_CUDA_FLAGS})
-#  endif()
-#
-#  if(DEFINED OMEGA_HIP_FLAGS)
-#    set(CMAKE_HIP_FLAGS ${OMEGA_HIP_FLAGS})
-#  endif()
-#
-#  if(OMEGA_ARCH STREQUAL "CUDA")
-#    set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
-#    find_program(CMAKE_CUDA_COMPILER "nvcc_wrapper" PATHS ${OMEGA_SOURCE_DIR}/../../externals/ekat/extern/kokkos/bin)
-#
-#    option(Kokkos_ENABLE_CUDA "" ON)
-#    set(OMEGA_DEVICE_COMPILER ${CMAKE_CUDA_COMPILER})
-#    #list(APPEND CMAKE_CUDA_FLAGS "-ccbin ${CMAKE_CUDA_HOST_COMPILER}")
-#
-#    if(OMEGA_BUILD_TYPE STREQUAL "Debug")
-#      message(STATUS "CMAKE_CUDA_COMPILER = ${CMAKE_CUDA_COMPILER}")
-#      message(STATUS "CMAKE_CUDA_HOST_COMPILER = ${CMAKE_CUDA_HOST_COMPILER}")
-#    endif()
-#
-#  elseif(OMEGA_ARCH STREQUAL "HIP")
-#    set(CMAKE_HIP_HOST_COMPILER ${CMAKE_CXX_COMPILER})
-#    find_program(CMAKE_HIP_COMPILER "hipcc")
-#
-#    option(Kokkos_ENABLE_HIP "" ON)
-#    set(OMEGA_DEVICE_COMPILER ${CMAKE_HIP_COMPILER})
-#
-#    if(OMEGA_BUILD_TYPE STREQUAL "Debug")
-#      message(STATUS "CMAKE_HIP_COMPILER = ${CMAKE_HIP_COMPILER}")
-#      message(STATUS "CMAKE_HIP_HOST_COMPILER = ${CMAKE_HIP_HOST_COMPILER}")
-#    endif()
-#
-#  elseif(OMEGA_ARCH STREQUAL "SYCL")
-#    message(FATAL_ERROR "SYCL is not supported yet." )
-#
-#    option(Kokkos_ENABLE_SYCL "" ON)
-#
-#  elseif(OMEGA_ARCH STREQUAL "OpenMP")
-#    message(FATAL_ERROR "OpenMP is not supported yet." )
-#
-#  elseif(OMEGA_ARCH STREQUAL "Pthreads")
-#    message(FATAL_ERROR "Pthreads is not supported yet." )
-#
-#  else()
-#    set(OMEGA_ARCH "")
-#
-#    option(Kokkos_ENABLE_SERIAL "" ON)
-#
-#  endif()
+  if(OMEGA_ARCH STREQUAL "CUDA")
+    option(Kokkos_ENABLE_CUDA "" ON)
+    option(Kokkos_ENABLE_CUDA_LAMBDA "" ON)
 
-#  set(YAKL_ARCH "${OMEGA_ARCH}")
-#
-#  if(YAKL_ARCH)
-#
-#      if(OMEGA_${YAKL_ARCH}_FLAGS)
-#        set(YAKL_${YAKL_ARCH}_FLAGS ${OMEGA_${YAKL_ARCH}_FLAGS})
-#      endif()
-#
-#  endif()
-#
-#  if(OMEGA_DEBUG)
-#    list(APPEND OMEGA_CXX_FLAGS "-DOMEGA_DEBUG")
-#    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
-#  endif()
+  elseif(OMEGA_ARCH STREQUAL "HIP")
+    option(Kokkos_ENABLE_HIP "" ON)
+
+  elseif(OMEGA_ARCH STREQUAL "SYCL")
+    option(Kokkos_ENABLE_SYCL "" ON)
+
+  elseif(OMEGA_ARCH STREQUAL "OPENMP")
+    option(Kokkos_ENABLE_OPENMP "" ON)
+
+  elseif(OMEGA_ARCH STREQUAL "THREADS")
+    option(Kokkos_ENABLE_THREADS "" ON)
+
+  else()
+    set(OMEGA_ARCH "SERIAL")
+    option(Kokkos_ENABLE_SERIAL "" ON)
+
+  endif()
 
   # Include the findParmetis script
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")

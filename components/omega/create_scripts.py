@@ -369,7 +369,7 @@ class OmegaMachines(Machines):
             f.write("#!/usr/bin/env bash\n\n")
 
             f.write("source ./omega_env.sh\n")
-            f.write("./src/omega.exe\n")
+            f.write("./src/omega.exe 1000\n")
 
         with open(omega_ctest, "w") as f:
             f.write("#!/usr/bin/env bash\n\n")
