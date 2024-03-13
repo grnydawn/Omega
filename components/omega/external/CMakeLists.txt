@@ -18,8 +18,8 @@ if (KOKKOS_OPTIONS)
   unset(KOKKOS_OPTIONS)
 endif()
 
-option(Kokkos_ENABLE_CUDA "" ON)
-option(Kokkos_ENABLE_CUDA_LAMBDA "" ON)
+#option(Kokkos_ENABLE_CUDA "" ON)
+#option(Kokkos_ENABLE_CUDA_LAMBDA "" ON)
 # Add the Kokkos library
 add_subdirectory(
   ${E3SM_EXTERNALS_ROOT}/ekat/extern/kokkos

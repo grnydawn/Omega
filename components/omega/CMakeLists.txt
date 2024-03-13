@@ -26,6 +26,8 @@ cmake_policy(SET CMP0074 NEW)
 # define variables and macros for Omega build
 include(${CMAKE_CURRENT_SOURCE_DIR}/OmegaBuild.cmake)
 
+# common pre-processing for standalone and e3sm mode
+common()
 
 # handle build modes
 if (NOT DEFINED PROJECT_NAME)
@@ -34,7 +36,7 @@ if (NOT DEFINED PROJECT_NAME)
   cmake_minimum_required(VERSION 3.21) # the minimum version for HIP support
 
   # Collect machine and compiler info from CIME
-  preset()
+  init_standalone_build()
 
   project(${OMEGA_PROJECT_NAME}
           LANGUAGES C CXX

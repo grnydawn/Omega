@@ -21,10 +21,10 @@ set(E3SM_CIMECONFIG_ROOT ${OMEGA_SOURCE_DIR}/../../cime_config)
 # Macros                  #
 ###########################
 
-# set build control variables used for both e3sm build and standalone build
-macro(setup_common_variables)
+# 
+macro(common)
 
-  option(OMEGA_DEBUG "Turn on error message throwing (default OFF)." OFF)
+#  option(OMEGA_DEBUG "Turn on error message throwing (default OFF)." OFF)
 
   if(NOT DEFINED OMEGA_CXX_FLAGS)
     set(OMEGA_CXX_FLAGS "")
@@ -34,16 +34,19 @@ macro(setup_common_variables)
     set(OMEGA_LINK_OPTIONS "")
   endif()
 
+  if(NOT Python_FOUND)
+    find_package (Python COMPONENTS Interpreter)
+
+    if(NOT Python_FOUND)
+      message(FATAL_ERROR "Python is not available, CMake will exit." )
+    endif()
+  endif()
+
 endmacro()
 
 # Collect machine and compiler info from CIME
-macro(preset)
-
-  find_package (Python COMPONENTS Interpreter)
-
-  if(NOT Python_FOUND)
-    message(FATAL_ERROR "Python is not available, CMake will exit." )
-  endif()
+# and detect OMEGA_ARCH and compilers
+macro(init_standalone_build)
 
   set(_TMP_CMAKE_FILE ${CMAKE_CURRENT_BINARY_DIR}/_Omega.cmake)
   set(_PY_OPTS "-p;${E3SM_CIME_ROOT};-o;${_TMP_CMAKE_FILE}")
@@ -78,49 +81,112 @@ macro(preset)
   endif()
 
   include(${_TMP_CMAKE_FILE})
+
   if(OMEGA_BUILD_TYPE STREQUAL "Release")
     file(REMOVE ${_TMP_CMAKE_FILE})
   endif()
 
   if(OMEGA_C_COMPILER)
     find_program(_OMEGA_C_COMPILER ${OMEGA_C_COMPILER})
+
+  elseif(MPILIB STREQUAL "mpi-serial")
+    find_program(_OMEGA_C_COMPILER ${SCC})
+
   else()
-    if (MPILIB STREQUAL "mpi-serial")
-      find_program(_OMEGA_C_COMPILER ${SCC})
-    else()
-      find_program(_OMEGA_C_COMPILER ${MPICC})
-    endif()
+    find_program(_OMEGA_C_COMPILER ${MPICC})
   endif()
 
   if(OMEGA_CXX_COMPILER)
     find_program(_OMEGA_CXX_COMPILER ${OMEGA_CXX_COMPILER})
+
+  elseif(MPILIB STREQUAL "mpi-serial")
+    find_program(_OMEGA_CXX_COMPILER ${SCXX})
+
   else()
-    if (MPILIB STREQUAL "mpi-serial")
-      find_program(_OMEGA_CXX_COMPILER ${SCXX})
-    else()
-      find_program(_OMEGA_CXX_COMPILER ${MPICXX})
-    endif()
+    find_program(_OMEGA_CXX_COMPILER ${MPICXX})
   endif()
 
   if(OMEGA_Fortran_COMPILER)
     find_program(_OMEGA_Fortran_COMPILER ${OMEGA_Fortran_COMPILER})
+
+  elseif(MPILIB STREQUAL "mpi-serial")
+    find_program(_OMEGA_Fortran_COMPILER ${SFC})
+
   else()
-    if (MPILIB STREQUAL "mpi-serial")
-      find_program(_OMEGA_Fortran_COMPILER ${SFC})
+    find_program(_OMEGA_Fortran_COMPILER ${MPIFC})
+  endif()
+
+  # detect OMEGA_ARCH
+  if(NOT OMEGA_ARCH)
+
+    if(USE_CUDA)
+      set(OMEGA_ARCH "CUDA")
+
+    elseif(USE_HIP)
+      set(OMEGA_ARCH "HIP")
+
     else()
-      find_program(_OMEGA_Fortran_COMPILER ${MPIFC})
+
+      execute_process(
+        COMMAND ${_OMEGA_CXX_COMPILER} --version
+        RESULT_VARIABLE _CXX_VER_RESULT
+        OUTPUT_VARIABLE _CXX_VER_OUTPUT)
+
+      if (_CXX_VER_RESULT EQUAL 0)
+
+        string(REGEX MATCH "HIP|hip"       _HIP_CHECK "${_CXX_VER_OUTPUT}")
+        string(REGEX MATCH "AMD|amd"       _AMD_CHECK "${_CXX_VER_OUTPUT}")
+        string(REGEX MATCH "NVCC|nvcc"     _NVCC_CHECK "${_CXX_VER_OUTPUT}")
+        string(REGEX MATCH "NVIDIA|nvidia" _NVIDIA_CHECK "${_CXX_VER_OUTPUT}")
+
+        if(_HIP_CHECK AND _AMD_CHECK)
+          set(OMEGA_ARCH "HIP")
+
+        elseif(_NVCC_CHECK AND _NVIDIA_CHECK)
+          set(OMEGA_ARCH "CUDA")
+
+        else()
+          set(OMEGA_ARCH "OPENMP")
+
+        endif()
+      else()
+        set(OMEGA_ARCH "OPENMP")
+
+      endif()
     endif()
   endif()
 
-  set(OMEGA_MPI_CXX_COMPILER ${_OMEGA_CXX_COMPILER})
+  if(OMEGA_BUILD_TYPE STREQUAL "Debug")
+    list(APPEND OMEGA_CXX_FLAGS "-DOMEGA_DEBUG")
+    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
+  endif()
+
+#  if(OMEGA_DEBUG)
+#    list(APPEND OMEGA_CXX_FLAGS "-DOMEGA_DEBUG")
+#    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
+#  endif()
+
+#
+#  if(DEFINED OMEGA_CUDA_FLAGS)
+#    set(CMAKE_CUDA_FLAGS ${OMEGA_CUDA_FLAGS})
+#  endif()
+#
+#  if(DEFINED OMEGA_HIP_FLAGS)
+#    set(CMAKE_HIP_FLAGS ${OMEGA_HIP_FLAGS})
+#  endif()
 
   if(OMEGA_ARCH STREQUAL "CUDA")
 
-    find_program(CMAKE_CUDA_COMPILER "nvcc_wrapper" PATHS ${OMEGA_SOURCE_DIR}/../../externals/ekat/extern/kokkos/bin)
+    find_program(CMAKE_CUDA_COMPILER
+      "nvcc_wrapper"
+      PATHS "${OMEGA_SOURCE_DIR}/../../externals/ekat/extern/kokkos/bin"
+    )
 
     set(OMEGA_CXX_COMPILER ${CMAKE_CUDA_COMPILER})
     set(CMAKE_CUDA_HOST_COMPILER ${_OMEGA_CXX_COMPILER})
     set(CMAKE_CXX_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets")
+    option(Kokkos_ENABLE_CUDA "" ON)
+    option(Kokkos_ENABLE_CUDA_LAMBDA "" ON)
     set(CMAKE_EXE_LINKER_FLAGS "")
 
     message(STATUS "CMAKE_CUDA_HOST_COMPILER = ${CMAKE_CUDA_HOST_COMPILER}")
@@ -150,9 +216,6 @@ endmacro()
 # set build-control-variables for standalone build
 macro(setup_standalone_build)
 
-  # initialize compiler and linker flags
-  setup_common_variables()
-
   if(NOT DEFINED OMEGA_BUILD_TYPE)
     set(OMEGA_BUILD_TYPE ${OMEGA_DEFAULT_BUILD_TYPE})
   endif()
@@ -178,9 +241,6 @@ endmacro()
 
 # set build-control-variables for e3sm build
 macro(setup_e3sm_build)
-
-  # initialize compiler and linker flags
-  setup_common_variables()
 
   set(OMEGA_BUILD_TYPE ${E3SM_DEFAULT_BUILD_TYPE})
   set(E3SM_EXTERNALS_ROOT ${E3SM_SOURCE_DIR}/../externals)
@@ -230,7 +290,7 @@ macro(update_variables)
   file(WRITE ${_TestMPISrcFile}  ${_TestMPISource})
 
   execute_process(
-    COMMAND ${OMEGA_MPI_CXX_COMPILER} -c ${_TestMPISrcFile} -o ${_TestMPIObjFile}
+    COMMAND ${_OMEGA_CXX_COMPILER} -c ${_TestMPISrcFile} -o ${_TestMPIObjFile}
     OUTPUT_QUIET ERROR_QUIET
     RESULT_VARIABLE _MPI_TEST_RESULT
     OUTPUT_VARIABLE _MPI_TEST_OUTPUT
@@ -264,57 +324,57 @@ macro(update_variables)
     set(CMAKE_INSTALL_PREFIX ${OMEGA_INSTALL_PREFIX})
   endif()
 
-  # Check if CUDA or HIP is supported
-  if((NOT DEFINED OMEGA_ARCH) OR ("${OMEGA_ARCH}" STREQUAL ""))
-
-    if(USE_CUDA)
-      set(OMEGA_ARCH "CUDA")
-
-    elseif(USE_HIP)
-      set(OMEGA_ARCH "HIP")
-
-    else()
-
-      execute_process(
-        COMMAND ${OMEGA_CXX_COMPILER} --version
-        RESULT_VARIABLE _CXX_VER_RESULT
-        OUTPUT_VARIABLE _CXX_VER_OUTPUT)
-
-      if (_CXX_VER_RESULT EQUAL 0)
-
-        string(REGEX MATCH "HIP|hip"       _HIP_CHECK "${_CXX_VER_OUTPUT}")
-        string(REGEX MATCH "AMD|amd"       _AMD_CHECK "${_CXX_VER_OUTPUT}")
-        string(REGEX MATCH "NVCC|nvcc"     _NVCC_CHECK "${_CXX_VER_OUTPUT}")
-        string(REGEX MATCH "NVIDIA|nvidia" _NVIDIA_CHECK "${_CXX_VER_OUTPUT}")
-
-        if(_HIP_CHECK AND _AMD_CHECK)
-          set(OMEGA_ARCH "HIP")
-
-        elseif(_NVCC_CHECK AND _NVIDIA_CHECK)
-          set(OMEGA_ARCH "CUDA")
-
-        else()
-          set(OMEGA_ARCH "")
-
-        endif()
-      else()
-        set(OMEGA_ARCH "")
-
-      endif()
-    endif()
-  endif()
-
-  if(OMEGA_BUILD_TYPE STREQUAL "Debug")
-    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
-  endif()
-
-  if(DEFINED OMEGA_CUDA_FLAGS)
-    set(CMAKE_CUDA_FLAGS ${OMEGA_CUDA_FLAGS})
-  endif()
-
-  if(DEFINED OMEGA_HIP_FLAGS)
-    set(CMAKE_HIP_FLAGS ${OMEGA_HIP_FLAGS})
-  endif()
+#  # Check if CUDA or HIP is supported
+#  if((NOT DEFINED OMEGA_ARCH) OR ("${OMEGA_ARCH}" STREQUAL ""))
+#
+#    if(USE_CUDA)
+#      set(OMEGA_ARCH "CUDA")
+#
+#    elseif(USE_HIP)
+#      set(OMEGA_ARCH "HIP")
+#
+#    else()
+#
+#      execute_process(
+#        COMMAND ${OMEGA_CXX_COMPILER} --version
+#        RESULT_VARIABLE _CXX_VER_RESULT
+#        OUTPUT_VARIABLE _CXX_VER_OUTPUT)
+#
+#      if (_CXX_VER_RESULT EQUAL 0)
+#
+#        string(REGEX MATCH "HIP|hip"       _HIP_CHECK "${_CXX_VER_OUTPUT}")
+#        string(REGEX MATCH "AMD|amd"       _AMD_CHECK "${_CXX_VER_OUTPUT}")
+#        string(REGEX MATCH "NVCC|nvcc"     _NVCC_CHECK "${_CXX_VER_OUTPUT}")
+#        string(REGEX MATCH "NVIDIA|nvidia" _NVIDIA_CHECK "${_CXX_VER_OUTPUT}")
+#
+#        if(_HIP_CHECK AND _AMD_CHECK)
+#          set(OMEGA_ARCH "HIP")
+#
+#        elseif(_NVCC_CHECK AND _NVIDIA_CHECK)
+#          set(OMEGA_ARCH "CUDA")
+#
+#        else()
+#          set(OMEGA_ARCH "")
+#
+#        endif()
+#      else()
+#        set(OMEGA_ARCH "")
+#
+#      endif()
+#    endif()
+#  endif()
+#
+#  if(OMEGA_BUILD_TYPE STREQUAL "Debug")
+#    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
+#  endif()
+#
+#  if(DEFINED OMEGA_CUDA_FLAGS)
+#    set(CMAKE_CUDA_FLAGS ${OMEGA_CUDA_FLAGS})
+#  endif()
+#
+#  if(DEFINED OMEGA_HIP_FLAGS)
+#    set(CMAKE_HIP_FLAGS ${OMEGA_HIP_FLAGS})
+#  endif()
 #
 #  if(OMEGA_ARCH STREQUAL "CUDA")
 #    set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
@@ -368,11 +428,11 @@ macro(update_variables)
 #      endif()
 #
 #  endif()
-
-  if(OMEGA_DEBUG)
-    list(APPEND OMEGA_CXX_FLAGS "-DOMEGA_DEBUG")
-    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
-  endif()
+#
+#  if(OMEGA_DEBUG)
+#    list(APPEND OMEGA_CXX_FLAGS "-DOMEGA_DEBUG")
+#    message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
+#  endif()
 
   # Include the findParmetis script
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
