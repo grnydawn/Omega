@@ -84,7 +84,7 @@ macro(init_standalone_build)
   include(${_TMP_CMAKE_FILE})
 
   if(NOT OMEGA_BUILD_TYPE STREQUAL "Debug")
-    file(REMOVE ${_TMP_CMAKE_FILE})
+    #YSK file(REMOVE ${_TMP_CMAKE_FILE})
   endif()
 
   # find compilers
@@ -190,24 +190,6 @@ macro(init_standalone_build)
   set(CMAKE_C_COMPILER ${OMEGA_C_COMPILER})
   set(CMAKE_Fortran_COMPILER ${OMEGA_Fortran_COMPILER})
 
-
-
-  # overwrite CMAKE_CXX_FLAGS and CMAKE_EXE_LINKER_FLAGS defined in CIME
-  # because those could break CUDA and HIP builds
-  if(OMEGA_CXX_FLAGS)
-    set(CMAKE_CXX_FLAGS ${OMEGA_CXX_FLAGS})
-
-  else()
-    set(CMAKE_CXX_FLAGS "")
-  endif()
-
-  if(OMEGA_EXE_LINKER_FLAGS)
-    set(CMAKE_EXE_LINKER_FLAGS ${OMEGA_EXE_LINKER_FLAGS})
-
-  else()
-    set(CMAKE_EXE_LINKER_FLAGS "")
-  endif()
-
 # TODO: do we want to use these env. variables?
 #  # Set compiler and linker flags
 #  if (CXXFLAGS)
@@ -230,10 +212,12 @@ macro(init_standalone_build)
   # set CXX compiler *before* calling CMake project()
   if(OMEGA_ARCH STREQUAL "CUDA")
 
-    find_program(OMEGA_CUDA_COMPILER
-      "nvcc_wrapper"
-      PATHS "${OMEGA_SOURCE_DIR}/../../externals/ekat/extern/kokkos/bin"
-    )
+    if(NOT OMEGA_CUDA_COMPILER)
+      find_program(OMEGA_CUDA_COMPILER
+        "nvcc_wrapper"
+        PATHS "${OMEGA_SOURCE_DIR}/../../externals/ekat/extern/kokkos/bin"
+      )
+    endif()
 
     if(OMEGA_CUDA_COMPILER)
       message(STATUS "OMEGA_CUDA_COMPILER = ${OMEGA_CUDA_COMPILER}")
@@ -244,17 +228,37 @@ macro(init_standalone_build)
 
     set(CMAKE_CXX_COMPILER ${OMEGA_CUDA_COMPILER})
     set(CMAKE_CUDA_HOST_COMPILER ${OMEGA_CXX_COMPILER})
-    set(CMAKE_CXX_FLAGS "-ccbin ${CMAKE_CUDA_HOST_COMPILER} -Wno-deprecated-gpu-targets")
+
+    # overwrite CMAKE_CXX_FLAGS and CMAKE_EXE_LINKER_FLAGS defined in CIME
+    # because those could break CUDA build
+    if(OMEGA_CXX_FLAGS)
+      set(CMAKE_CXX_FLAGS ${OMEGA_CXX_FLAGS})
+
+    else()
+      set(CMAKE_CXX_FLAGS "")
+    endif()
 
     if(OMEGA_CUDA_FLAGS)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_CUDA_FLAGS}")
+    endif()
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ccbin ${CMAKE_CUDA_HOST_COMPILER}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-gpu-targets")
+
+    if(OMEGA_EXE_LINKER_FLAGS)
+      set(CMAKE_EXE_LINKER_FLAGS ${OMEGA_EXE_LINKER_FLAGS})
+
+    else()
+      set(CMAKE_EXE_LINKER_FLAGS "")
     endif()
 
     message(STATUS "CMAKE_CUDA_HOST_COMPILER = ${CMAKE_CUDA_HOST_COMPILER}")
 
   elseif(OMEGA_ARCH STREQUAL "HIP")
 
-    find_program(OMEGA_HIP_COMPILER "hipcc")
+    if(NOT OMEGA_HIP_COMPILER)
+      find_program(OMEGA_HIP_COMPILER "hipcc")
+    endif()
 
     if(OMEGA_HIP_COMPILER)
       message(STATUS "OMEGA_HIP_COMPILER = ${OMEGA_HIP_COMPILER}")
@@ -263,11 +267,18 @@ macro(init_standalone_build)
       message(FATAL_ERROR "hipcc is not found." )
     endif()
 
-    set(CMAKE_CXX_COMPILER ${OMEGA_HIP_COMPILER})
+    #set(CMAKE_CXX_COMPILER ${OMEGA_HIP_COMPILER})
+    set(CMAKE_CXX_COMPILER ${OMEGA_CXX_COMPILER})
 
-    if(OMEGA_HIP_FLAGS)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_HIP_FLAGS}")
+    if(OMEGA_CXX_FLAGS)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_CXX_FLAGS} -I$ENV{OLCF_ROCM_ROOT}/include")
     endif()
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I$ENV{OLCF_ROCM_ROOT}/include")
+
+    #if(OMEGA_HIP_FLAGS)
+    #  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_HIP_FLAGS}")
+    #endif()
 
   elseif(OMEGA_ARCH STREQUAL "SYCL")
     set(CMAKE_CXX_COMPILER ${OMEGA_SYCL_COMPILER})

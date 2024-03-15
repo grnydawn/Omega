@@ -4,17 +4,44 @@
 file(GLOB _LIBSRC_FILES infra/*.cpp base/*.cpp ocn/*.cpp)
 
 # Create the library target
-add_library(${OMEGA_LIB_NAME} ${_LIBSRC_FILES})
+if(OMEGA_ARCH STREQUAL "HIP")
+  add_library(${OMEGA_LIB_NAME} ${_LIBSRC_FILES})
+  add_dependencies(${OMEGA_LIB_NAME} "hip_build")
 
-# add include directories
-target_include_directories(
+  target_include_directories(
     ${OMEGA_LIB_NAME}
     PRIVATE
     ${OMEGA_SOURCE_DIR}/src/base
     ${OMEGA_SOURCE_DIR}/src/infra
     ${OMEGA_SOURCE_DIR}/src/ocn
     ${Parmetis_INCLUDE_DIRS}
-)
+    ${OMEGA_BUILD_DIR}/kokkos/include
+  )
+
+else()
+  add_library(${OMEGA_LIB_NAME} ${_LIBSRC_FILES})
+
+  target_include_directories(
+    ${OMEGA_LIB_NAME}
+    PRIVATE
+    ${OMEGA_SOURCE_DIR}/src/base
+    ${OMEGA_SOURCE_DIR}/src/infra
+    ${OMEGA_SOURCE_DIR}/src/ocn
+    ${Parmetis_INCLUDE_DIRS}
+  )
+
+endif()
+
+## add include directories
+#target_include_directories(
+#    ${OMEGA_LIB_NAME}
+#    PRIVATE
+#    ${OMEGA_SOURCE_DIR}/src/base
+#    ${OMEGA_SOURCE_DIR}/src/infra
+#    ${OMEGA_SOURCE_DIR}/src/ocn
+#    ${Parmetis_INCLUDE_DIRS}
+#    ${OMEGA_BUILD_DIR}/kokkos/include
+#)
 
 #target_include_directories(
 #    ${OMEGA_LIB_NAME}
@@ -38,7 +65,8 @@ target_link_options(
     ${OMEGA_LINK_OPTIONS}
 )
 
-target_link_libraries(${OMEGA_LIB_NAME} Kokkos::kokkos spdlog pioc yaml-cpp parmetis metis)
+#target_link_libraries(${OMEGA_LIB_NAME} Kokkos::kokkos spdlog pioc yaml-cpp parmetis metis)
+target_link_libraries(${OMEGA_LIB_NAME} _KOKKOS_LIB spdlog pioc yaml-cpp parmetis metis)
 
 if(GKlib_FOUND)
     target_link_libraries(${OMEGA_LIB_NAME} gklib)
