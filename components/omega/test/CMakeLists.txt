@@ -8,32 +8,14 @@ set(_TestDataTypesName testDataTypes.exe)
 
 add_executable(${_TestDataTypesName} base/DataTypesTest.cpp)
 
-if(OMEGA_ARCH STREQUAL "HIP")
-  target_include_directories(
-    ${_TestDataTypesName}
-    PRIVATE
-    ${OMEGA_SOURCE_DIR}/src/base
-    ${OMEGA_SOURCE_DIR}/src/infra
-    ${OMEGA_BUILD_DIR}/kokkos/include
-  )
+target_include_directories(
+  ${_TestDataTypesName}
+  PRIVATE
+  ${OMEGA_SOURCE_DIR}/src/base
+  ${OMEGA_SOURCE_DIR}/src/infra
+)
 
-else()
-  target_include_directories(
-    ${_TestDataTypesName}
-    PRIVATE
-    ${OMEGA_SOURCE_DIR}/src/base
-    ${OMEGA_SOURCE_DIR}/src/infra
-  )
-endif()
-
-#target_link_options(
-#  ${_TestDataTypesName}
-#  PRIVATE
-#  ${OMEGA_LINK_OPTIONS}
-#)
-
-#target_link_libraries(${_TestDataTypesName} ${OMEGA_LIB_NAME} Kokkos::kokkos parmetis metis)
-target_link_libraries(${_TestDataTypesName} ${OMEGA_LIB_NAME} ${_KOKKOS_LIB} parmetis metis)
+target_link_libraries(${_TestDataTypesName} ${OMEGA_LIB_NAME} Kokkos::kokkos parmetis metis)
 
 if(GKlib_FOUND)
   target_link_libraries(${_TestDataTypesName} gklib)
@@ -44,91 +26,90 @@ add_test(
   COMMAND ${MPI_EXEC} -n 1 -- ./${_TestDataTypesName}
 )
 
+##################
+# Machine env test
+##################
 
-###################
-## Machine env test
-###################
-#
-#set(_TestMachEnvName testMachEnv.exe)
-#
-#add_executable(${_TestMachEnvName} base/MachEnvTest.cpp)
-#
-#target_include_directories(
+set(_TestMachEnvName testMachEnv.exe)
+
+add_executable(${_TestMachEnvName} base/MachEnvTest.cpp)
+
+target_include_directories(
+  ${_TestMachEnvName}
+  PRIVATE
+  ${OMEGA_SOURCE_DIR}/src/base
+  ${OMEGA_SOURCE_DIR}/src/infra
+)
+
+#target_link_options(
 #  ${_TestMachEnvName}
 #  PRIVATE
-#  ${OMEGA_SOURCE_DIR}/src/base
-#  ${OMEGA_SOURCE_DIR}/src/infra
+#  ${OMEGA_LINK_OPTIONS}
 #)
-#
-##target_link_options(
-##  ${_TestMachEnvName}
-##  PRIVATE
-##  ${OMEGA_LINK_OPTIONS}
-##)
-#
-#target_link_libraries(${_TestMachEnvName} ${OMEGA_LIB_NAME})
-#
-#add_test(
-#  NAME MACHINE_ENV_TEST
-#  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestMachEnvName}
-#)
-#
-#
-###################
-## Broadcast test
-###################
-#
-#set(_TestBroadcastName testBroadcast.exe)
-#
-## Add broadcast test
-#add_executable(${_TestBroadcastName} base/BroadcastTest.cpp)
-#
-#target_include_directories(
+
+target_link_libraries(${_TestMachEnvName} ${OMEGA_LIB_NAME})
+
+add_test(
+  NAME MACHINE_ENV_TEST
+  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestMachEnvName}
+)
+
+
+##################
+# Broadcast test
+##################
+
+set(_TestBroadcastName testBroadcast.exe)
+
+# Add broadcast test
+add_executable(${_TestBroadcastName} base/BroadcastTest.cpp)
+
+target_include_directories(
+  ${_TestBroadcastName}
+  PRIVATE
+  ${OMEGA_SOURCE_DIR}/src/base
+  ${OMEGA_SOURCE_DIR}/src/infra
+)
+
+#target_link_options(
 #  ${_TestBroadcastName}
 #  PRIVATE
-#  ${OMEGA_SOURCE_DIR}/src/base
-#  ${OMEGA_SOURCE_DIR}/src/infra
+#  ${OMEGA_LINK_OPTIONS}
 #)
-#
-##target_link_options(
-##  ${_TestBroadcastName}
-##  PRIVATE
-##  ${OMEGA_LINK_OPTIONS}
-##)
-#
-#target_link_libraries(${_TestBroadcastName} ${OMEGA_LIB_NAME} spdlog)
-#
-#add_test(
-#  NAME BROADCAST_TEST
-#  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestBroadcastName}
-#)
-#
-#
-###################
-## Logging test
-###################
-#
-#set(_TestLoggingName testLogging.exe)
-#
-#add_executable(${_TestLoggingName} infra/LoggingTest.cpp)
-#
-#target_include_directories(
+
+target_link_libraries(${_TestBroadcastName} ${OMEGA_LIB_NAME} spdlog)
+
+add_test(
+  NAME BROADCAST_TEST
+  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestBroadcastName}
+)
+
+
+##################
+# Logging test
+##################
+
+set(_TestLoggingName testLogging.exe)
+
+add_executable(${_TestLoggingName} infra/LoggingTest.cpp)
+
+target_include_directories(
+  ${_TestLoggingName}
+  PRIVATE
+  ${OMEGA_SOURCE_DIR}/src/base
+  ${OMEGA_SOURCE_DIR}/src/infra
+)
+
+#target_link_options(
 #  ${_TestLoggingName}
 #  PRIVATE
-#  ${OMEGA_SOURCE_DIR}/src/base
-#  ${OMEGA_SOURCE_DIR}/src/infra
+#  ${OMEGA_LINK_OPTIONS}
 #)
-#
-##target_link_options(
-##  ${_TestLoggingName}
-##  PRIVATE
-##  ${OMEGA_LINK_OPTIONS}
-##)
-#
-#target_link_libraries(${_TestLoggingName} ${OMEGA_LIB_NAME} spdlog)
-#
-#add_test(NAME LOGGING_TEST COMMAND ./${_TestLoggingName})
-#
+
+target_link_libraries(${_TestLoggingName} ${OMEGA_LIB_NAME} spdlog)
+
+add_test(NAME LOGGING_TEST COMMAND ./${_TestLoggingName})
+
 ###############
 ### Decomp test
 ###############
@@ -197,38 +178,38 @@ add_test(
 ##  NAME HALO_TEST
 ##  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestHaloName}
 ##)
-##
-##################
-### HorzMesh test
-##################
-##
-##set(_TestHorzMeshName testHorzMesh.exe)
-##
-### Add broadcast test
-##add_executable(${_TestHorzMeshName} ocn/HorzMeshTest.cpp)
-##
-##target_include_directories(
-##  ${_TestHorzMeshName}
-##  PRIVATE
-##  ${OMEGA_SOURCE_DIR}/src/base
-##  ${OMEGA_SOURCE_DIR}/src/infra
-##  ${OMEGA_SOURCE_DIR}/src/ocn
-##  ${Parmetis_INCLUDE_DIRS}
-##)
-##
-##target_compile_options(
-##  ${_TestHorzMeshName}
-##  PRIVATE
-##  ${OMEGA_LINK_OPTIONS}
-##)
-##
-##target_link_libraries(${_TestHorzMeshName} ${OMEGA_LIB_NAME} spdlog parmetis metis pioc)
-##
-##add_test(
-##  NAME HORZMESH_TEST
-##  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestHorzMeshName}
-##)
+
+#################
+## HorzMesh test
+#################
 #
+#set(_TestHorzMeshName testHorzMesh.exe)
+#
+## Add broadcast test
+#add_executable(${_TestHorzMeshName} ocn/HorzMeshTest.cpp)
+#
+#target_include_directories(
+#  ${_TestHorzMeshName}
+#  PRIVATE
+#  ${OMEGA_SOURCE_DIR}/src/base
+#  ${OMEGA_SOURCE_DIR}/src/infra
+#  ${OMEGA_SOURCE_DIR}/src/ocn
+#  ${Parmetis_INCLUDE_DIRS}
+#)
+#
+#target_compile_options(
+#  ${_TestHorzMeshName}
+#  PRIVATE
+#  ${OMEGA_LINK_OPTIONS}
+#)
+#
+#target_link_libraries(${_TestHorzMeshName} ${OMEGA_LIB_NAME} spdlog parmetis metis pioc)
+#
+#add_test(
+#  NAME HORZMESH_TEST
+#  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestHorzMeshName}
+#)
+
 ##############
 ## IO test
 ##############
@@ -267,67 +248,67 @@ add_test(
 #  NAME IO_TEST
 #  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestIOName}
 #)
-#
-###################
-## Config test
-###################
-#
-#set(_TestConfigName testConfig.exe)
-#
-## Add broadcast test
-#add_executable(${_TestConfigName} infra/ConfigTest.cpp)
-#
-#target_include_directories(
+
+##################
+# Config test
+##################
+
+set(_TestConfigName testConfig.exe)
+
+# Add broadcast test
+add_executable(${_TestConfigName} infra/ConfigTest.cpp)
+
+target_include_directories(
+  ${_TestConfigName}
+  PRIVATE
+  ${OMEGA_SOURCE_DIR}/src/base
+  ${OMEGA_SOURCE_DIR}/src/infra
+)
+
+#target_compile_options(
 #  ${_TestConfigName}
 #  PRIVATE
-#  ${OMEGA_SOURCE_DIR}/src/base
-#  ${OMEGA_SOURCE_DIR}/src/infra
+#  ${OMEGA_CXX_FLAGS}
 #)
-#
-##target_compile_options(
-##  ${_TestConfigName}
-##  PRIVATE
-##  ${OMEGA_CXX_FLAGS}
-##)
-#
-##target_link_options(
-##  ${_TestConfigName}
-##  PRIVATE
-##  ${OMEGA_LINK_OPTIONS}
-##)
-#
-#target_link_libraries(${_TestConfigName} ${OMEGA_LIB_NAME} yaml-cpp)
-#
-#add_test(
-#  NAME CONFIG_TEST
-#  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestConfigName}
+
+#target_link_options(
+#  ${_TestConfigName}
+#  PRIVATE
+#  ${OMEGA_LINK_OPTIONS}
 #)
-#
-###################
-## Metadata test
-###################
-#
-#set(_TestMetadataName testMetadata.exe)
-#
-#add_executable(${_TestMetadataName} infra/MetadataTest.cpp)
-#
-#target_include_directories(
+
+target_link_libraries(${_TestConfigName} ${OMEGA_LIB_NAME} yaml-cpp)
+
+add_test(
+  NAME CONFIG_TEST
+  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestConfigName}
+)
+
+##################
+# Metadata test
+##################
+
+set(_TestMetadataName testMetadata.exe)
+
+add_executable(${_TestMetadataName} infra/MetadataTest.cpp)
+
+target_include_directories(
+  ${_TestMetadataName}
+  PRIVATE
+  ${OMEGA_SOURCE_DIR}/src/base
+  ${OMEGA_SOURCE_DIR}/src/infra
+)
+
+#target_link_options(
 #  ${_TestMetadataName}
 #  PRIVATE
-#  ${OMEGA_SOURCE_DIR}/src/base
-#  ${OMEGA_SOURCE_DIR}/src/infra
+#  ${OMEGA_LINK_OPTIONS}
 #)
-#
-##target_link_options(
-##  ${_TestMetadataName}
-##  PRIVATE
-##  ${OMEGA_LINK_OPTIONS}
-##)
-#
-#target_link_libraries(${_TestMetadataName} ${OMEGA_LIB_NAME})
-#
-#add_test(NAME METADATA_TEST COMMAND ./${_TestMetadataName})
-#
+
+target_link_libraries(${_TestMetadataName} ${OMEGA_LIB_NAME})
+
+add_test(NAME METADATA_TEST COMMAND ./${_TestMetadataName})
+
 ####################
 ### YAKL test
 ####################
@@ -357,15 +338,15 @@ add_test(
 
 set_tests_properties(
   DATA_TYPES_TEST
-#  MACHINE_ENV_TEST
-#  BROADCAST_TEST
-#  LOGGING_TEST
-#  CONFIG_TEST
+  MACHINE_ENV_TEST
+  BROADCAST_TEST
+  LOGGING_TEST
+  CONFIG_TEST
 ##  DECOMP_TEST
 ##  HALO_TEST
-##  HORZMESH_TEST
+#  HORZMESH_TEST
 #  IO_TEST
-#  METADATA_TEST
+  METADATA_TEST
   PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL" PASS_REGULAR_EXPRESSION "PASS"
 )
 

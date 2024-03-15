@@ -56,6 +56,7 @@ int main(int argc, char *argv[]) {
 
    // Initialize the global MPI environment
    MPI_Init(&argc, &argv);
+   yakl::init();
 
    // Call initialization routine to create the default decomposition
    int Err = initDecompTest();
@@ -135,6 +136,7 @@ int main(int argc, char *argv[]) {
 
    if (Err == 0)
       LOG_INFO("DecompTest: Successful completion");
+   yakl::finalize();
    MPI_Finalize();
 
 } // end of main

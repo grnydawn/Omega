@@ -341,6 +341,8 @@ class OmegaMachines(Machines):
                                  "omega_run.sh")
         omega_ctest = os.path.join(os.path.dirname(self.outpath),
                                    "omega_ctest.sh")
+        omega_profile = os.path.join(os.path.dirname(self.outpath),
+                                     "omega_profile.sh")
 
         with open(omega_env, "w") as f:
             f.write("#!/usr/bin/env bash\n\n")
@@ -359,7 +361,7 @@ class OmegaMachines(Machines):
             f.write("source ./omega_env.sh\n")
 
             if self.debug == "TRUE":
-                f.write(f"make\n")
+                f.write("make\n")
 
             else:
                 nthreads_build = self.get_value("GMAKE_J")
@@ -377,6 +379,12 @@ class OmegaMachines(Machines):
             f.write("source ./omega_env.sh\n")
             f.write("ctest $* # --rerun-failed --output-on-failure\n")
 
+        with open(omega_profile, "w") as f:
+            f.write("#!/usr/bin/env bash\n\n")
+
+            f.write("source ./omega_env.sh\n")
+            f.write("rocprof ./src/omega.exe 1000000\n")
+
         st = os.stat(omega_env)
         os.chmod(omega_env, st.st_mode | stat.S_IEXEC)
 
@@ -388,6 +396,9 @@ class OmegaMachines(Machines):
 
         st = os.stat(omega_ctest)
         os.chmod(omega_ctest, st.st_mode | stat.S_IEXEC)
+
+        st = os.stat(omega_profile)
+        os.chmod(omega_profile, st.st_mode | stat.S_IEXEC)
 
 
 def main():

@@ -267,18 +267,23 @@ macro(init_standalone_build)
       message(FATAL_ERROR "hipcc is not found." )
     endif()
 
-    #set(CMAKE_CXX_COMPILER ${OMEGA_HIP_COMPILER})
+    set(CMAKE_HIP_COMPILER ${OMEGA_HIP_COMPILER})
     set(CMAKE_CXX_COMPILER ${OMEGA_CXX_COMPILER})
 
     if(OMEGA_CXX_FLAGS)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_CXX_FLAGS} -I$ENV{OLCF_ROCM_ROOT}/include")
+      #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_CXX_FLAGS} -I$ENV{OLCF_ROCM_ROOT}/include")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_CXX_FLAGS}")
     endif()
 
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I$ENV{OLCF_ROCM_ROOT}/include")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I$ENV{OLCF_ROCM_ROOT}/include")
 
-    #if(OMEGA_HIP_FLAGS)
-    #  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_HIP_FLAGS}")
-    #endif()
+    if(OMEGA_HIP_FLAGS)
+      set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} ${OMEGA_HIP_FLAGS}")
+    endif()
+
+    if(NOT $ENV{MPICH_CXX})
+      set(ENV{MPICH_CXX} ${OMEGA_HIP_COMPILER})
+    endif()
 
   elseif(OMEGA_ARCH STREQUAL "SYCL")
     set(CMAKE_CXX_COMPILER ${OMEGA_SYCL_COMPILER})
@@ -290,6 +295,10 @@ macro(init_standalone_build)
   else()
     set(CMAKE_CXX_COMPILER ${OMEGA_CXX_COMPILER})
 
+  endif()
+
+  if(KOKKOS_OPTIONS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KOKKOS_OPTIONS}")
   endif()
 
   message(STATUS "CMAKE_CXX_COMPILER     = ${CMAKE_CXX_COMPILER}")
