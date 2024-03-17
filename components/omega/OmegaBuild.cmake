@@ -185,6 +185,13 @@ macro(init_standalone_build)
 
   message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
 
+  # create a profile script
+  set(_ProfileScript ${OMEGA_BUILD_DIR}/omega_profile.sh)
+  file(WRITE ${_ProfileScript}  "#!/usr/bin/env bash\n\n")
+  file(APPEND ${_ProfileScript} "source ./omega_env.sh\n\n")
+  file(APPEND ${_ProfileScript} "# modify 'OUTFILE' with a path in that the profiler can\n")
+  file(APPEND ${_ProfileScript} "# create files such as a path in a scratch file system.\n")
+
   # set C and Fortran compilers *before* calling CMake project()
   set(CMAKE_C_COMPILER ${OMEGA_C_COMPILER})
   set(CMAKE_Fortran_COMPILER ${OMEGA_Fortran_COMPILER})
@@ -251,6 +258,14 @@ macro(init_standalone_build)
 
     message(STATUS "CMAKE_CUDA_HOST_COMPILER = ${CMAKE_CUDA_HOST_COMPILER}")
 
+    file(APPEND ${_ProfileScript} "OUTFILE=${OMEGA_BUILD_DIR}/nsys_output\n\n")
+    file(APPEND ${_ProfileScript} "# load Nsight Systems Profiler\n")
+    file(APPEND ${_ProfileScript} "module load Nsight-Systems\n\n")
+    file(APPEND ${_ProfileScript} "nsys profile -o \$OUTFILE \\\n")
+    file(APPEND ${_ProfileScript} "    --cuda-memory-usage=true --force-overwrite=true \\\n")
+    file(APPEND ${_ProfileScript} "    --trace=cuda,nvtx,osrt \\\n")
+    file(APPEND ${_ProfileScript} "    ./src/omega.exe 1000")
+
   elseif(OMEGA_ARCH STREQUAL "HIP")
 
     if(NOT OMEGA_HIP_COMPILER)
@@ -279,6 +294,9 @@ macro(init_standalone_build)
       set(ENV{MPICH_CXX} ${OMEGA_HIP_COMPILER})
     endif()
 
+    file(APPEND ${_ProfileScript} "OUTFILE=${OMEGA_BUILD_DIR}/rocprof_output\n")
+    file(APPEND ${_ProfileScript} "rocprof -o \$OUTFILE ./src/omega.exe 1000")
+
   elseif(OMEGA_ARCH STREQUAL "SYCL")
     set(CMAKE_CXX_COMPILER ${OMEGA_SYCL_COMPILER})
 
@@ -290,6 +308,8 @@ macro(init_standalone_build)
     set(CMAKE_CXX_COMPILER ${OMEGA_CXX_COMPILER})
 
   endif()
+
+  execute_process(COMMAND chmod +x ${_ProfileScript})
 
   if(KOKKOS_OPTIONS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KOKKOS_OPTIONS}")
