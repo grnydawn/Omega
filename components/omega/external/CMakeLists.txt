@@ -14,10 +14,6 @@ add_subdirectory(
   ${CMAKE_CURRENT_BINARY_DIR}/ekat/extern/yaml-cpp
 )
 
-if (KOKKOS_OPTIONS)
-  unset(KOKKOS_OPTIONS)
-endif()
-
 # Add the Kokkos library
   add_subdirectory(
     ${E3SM_EXTERNALS_ROOT}/ekat/extern/kokkos

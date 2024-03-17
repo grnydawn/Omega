@@ -84,7 +84,7 @@ macro(init_standalone_build)
   include(${_TMP_CMAKE_FILE})
 
   if(NOT OMEGA_BUILD_TYPE STREQUAL "Debug")
-    #YSK file(REMOVE ${_TMP_CMAKE_FILE})
+    file(REMOVE ${_TMP_CMAKE_FILE})
   endif()
 
   # find compilers
@@ -142,7 +142,6 @@ macro(init_standalone_build)
   message(STATUS "OMEGA_C_COMPILER = ${OMEGA_C_COMPILER}")
   message(STATUS "OMEGA_CXX_COMPILER = ${OMEGA_CXX_COMPILER}")
   message(STATUS "OMEGA_Fortran_COMPILER = ${OMEGA_Fortran_COMPILER}")
-  #message(STATUS "MPI_EXEC = ${MPI_EXEC}")
 
   # detect OMEGA_ARCH if not provided
   if(NOT OMEGA_ARCH)
@@ -190,7 +189,7 @@ macro(init_standalone_build)
   set(CMAKE_C_COMPILER ${OMEGA_C_COMPILER})
   set(CMAKE_Fortran_COMPILER ${OMEGA_Fortran_COMPILER})
 
-# TODO: do we want to use these env. variables?
+# TODO: do we want to use these variables?
 #  # Set compiler and linker flags
 #  if (CXXFLAGS)
 #    separate_arguments(_CXXFLAGS NATIVE_COMMAND ${CXXFLAGS})
@@ -207,8 +206,6 @@ macro(init_standalone_build)
 #    list(APPEND OMEGA_LINK_OPTIONS ${_SLIBS})
 #  endif()
 
-# TODO: do we want to use KOKKOS_OPTIONS in CIME?
-
   # set CXX compiler *before* calling CMake project()
   if(OMEGA_ARCH STREQUAL "CUDA")
 
@@ -223,14 +220,14 @@ macro(init_standalone_build)
       message(STATUS "OMEGA_CUDA_COMPILER = ${OMEGA_CUDA_COMPILER}")
 
     else()
-      message(FATAL_ERROR "nvcc_wrapper is not found." )
+      message(FATAL_ERROR "Cuda compiler is not found." )
     endif()
 
     set(CMAKE_CXX_COMPILER ${OMEGA_CUDA_COMPILER})
     set(CMAKE_CUDA_HOST_COMPILER ${OMEGA_CXX_COMPILER})
 
-    # overwrite CMAKE_CXX_FLAGS and CMAKE_EXE_LINKER_FLAGS defined in CIME
-    # because those could break CUDA build
+    # overwrite CMAKE_CXX_FLAGS and CMAKE_EXE_LINKER_FLAGS defined in
+    # cime configuration because those could break CUDA build
     if(OMEGA_CXX_FLAGS)
       set(CMAKE_CXX_FLAGS ${OMEGA_CXX_FLAGS})
 
@@ -271,11 +268,8 @@ macro(init_standalone_build)
     set(CMAKE_CXX_COMPILER ${OMEGA_CXX_COMPILER})
 
     if(OMEGA_CXX_FLAGS)
-      #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_CXX_FLAGS} -I$ENV{OLCF_ROCM_ROOT}/include")
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OMEGA_CXX_FLAGS}")
     endif()
-
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I$ENV{OLCF_ROCM_ROOT}/include")
 
     if(OMEGA_HIP_FLAGS)
       set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} ${OMEGA_HIP_FLAGS}")
@@ -299,6 +293,7 @@ macro(init_standalone_build)
 
   if(KOKKOS_OPTIONS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KOKKOS_OPTIONS}")
+    unset(KOKKOS_OPTIONS)
   endif()
 
   message(STATUS "CMAKE_CXX_COMPILER     = ${CMAKE_CXX_COMPILER}")
