@@ -290,12 +290,24 @@ macro(init_standalone_build)
       set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} ${OMEGA_HIP_FLAGS}")
     endif()
 
-    if(NOT $ENV{MPICH_CXX})
-      set(ENV{MPICH_CXX} ${OMEGA_HIP_COMPILER})
+    if(${MPILIB_NAME} STREQUAL "mpich")
+      if(NOT $ENV{MPICH_CXX})
+        set(ENV{MPICH_CXX} ${OMEGA_HIP_COMPILER})
+      endif()
+
+    elseif(${MPILIB_NAME} STREQUAL "openmpi")
+      if(NOT $ENV{OMPI_CXX})
+        set(ENV{OMPI_CXX} ${OMEGA_HIP_COMPILER})
+      endif()
+
+    else()
+      message(FATAL_ERROR "'$ENV{MPILIB_NAME}' is not supported yet.")
+
     endif()
 
-    file(APPEND ${_ProfileScript} "OUTFILE=${OMEGA_BUILD_DIR}/rocprof_output\n")
-    file(APPEND ${_ProfileScript} "rocprof -o \$OUTFILE ./src/omega.exe 1000")
+    file(APPEND ${_ProfileScript} "OUTFILE=${OMEGA_BUILD_DIR}/rocprof_output.csv\n")
+    file(APPEND ${_ProfileScript} "rocprof --hip-trace --hsa-trace --timestamp on \\\n")
+    file(APPEND ${_ProfileScript} "    -o \$OUTFILE ./src/omega.exe 1000")
 
   elseif(OMEGA_ARCH STREQUAL "SYCL")
     set(CMAKE_CXX_COMPILER ${OMEGA_SYCL_COMPILER})

@@ -327,6 +327,7 @@ class OmegaMachines(Machines):
             f.write(f"set(OS {self.machos})\n")
             f.write(f"set(COMPILER {self.compiler})\n")
             f.write(f"set(MPI_EXEC {self.mpiexec})\n")
+            f.write(f"set(MPILIB_NAME {self.mpilib})\n")
             f.write(f"set(CASEROOT {self.machpath})\n")
             f.write(f"include({self.macrospath})\n")
 
@@ -341,8 +342,6 @@ class OmegaMachines(Machines):
                                  "omega_run.sh")
         omega_ctest = os.path.join(os.path.dirname(self.outpath),
                                    "omega_ctest.sh")
-        omega_profile = os.path.join(os.path.dirname(self.outpath),
-                                     "omega_profile.sh")
 
         with open(omega_env, "w") as f:
             f.write("#!/usr/bin/env bash\n\n")
