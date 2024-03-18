@@ -102,20 +102,20 @@ int testKokkosDataTypes() {
 
    Kokkos::initialize();
    {
-      ArrayHost1DReal test1d("test1d", d1);
-      ArrayHost2DReal test2d("test2d", d1, d2);
+      HostArray1DReal test1d("test1d", d1);
+      HostArray2DReal test2d("test2d", d1, d2);
 
       LOG_INFO("1d var {}", test1d);
 
-      // check if ArrayHost1DReal is detected
+      // check if HostArray1DReal is detected
       RetVal -=
-          outputTestResult("Kokkos data type 1", "ArrayHost1DReal", Contains);
+          outputTestResult("Kokkos data type 1", "HostArray1DReal", Contains);
 
       LOG_INFO("2d var {}", test2d);
 
-      // check if ArrayHost2DReal is detected
+      // check if HostArray2DReal is detected
       RetVal -=
-          outputTestResult("Kokkos data type 2", "ArrayHost2DReal", Contains);
+          outputTestResult("Kokkos data type 2", "HostArray2DReal", Contains);
    }
    Kokkos::finalize();
 

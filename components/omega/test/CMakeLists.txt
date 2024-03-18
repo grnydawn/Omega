@@ -15,6 +15,12 @@ target_include_directories(
   ${OMEGA_SOURCE_DIR}/src/infra
 )
 
+  target_compile_definitions(
+    ${_TestDataTypesName}
+    PUBLIC
+    OMEGA_ARCH=${OMEGA_ARCH}
+  )
+
 target_link_libraries(${_TestDataTypesName} ${OMEGA_LIB_NAME} Kokkos::kokkos parmetis metis)
 
 if(GKlib_FOUND)
@@ -40,6 +46,13 @@ target_include_directories(
   ${OMEGA_SOURCE_DIR}/src/base
   ${OMEGA_SOURCE_DIR}/src/infra
 )
+
+  target_compile_definitions(
+    ${_TestMachEnvName}
+    PUBLIC
+    OMEGA_ARCH=${OMEGA_ARCH}
+  )
+
 
 #target_link_options(
 #  ${_TestMachEnvName}
@@ -71,6 +84,12 @@ target_include_directories(
   ${OMEGA_SOURCE_DIR}/src/infra
 )
 
+  target_compile_definitions(
+    ${_TestBroadcastName}
+    PUBLIC
+    OMEGA_ARCH=${OMEGA_ARCH}
+  )
+
 #target_link_options(
 #  ${_TestBroadcastName}
 #  PRIVATE
@@ -99,6 +118,12 @@ target_include_directories(
   ${OMEGA_SOURCE_DIR}/src/base
   ${OMEGA_SOURCE_DIR}/src/infra
 )
+
+  target_compile_definitions(
+    ${_TestLoggingName}
+    PUBLIC
+    OMEGA_ARCH=${OMEGA_ARCH}
+  )
 
 #target_link_options(
 #  ${_TestLoggingName}
@@ -265,6 +290,12 @@ target_include_directories(
   ${OMEGA_SOURCE_DIR}/src/infra
 )
 
+  target_compile_definitions(
+    ${_TestConfigName}
+    PUBLIC
+    OMEGA_ARCH=${OMEGA_ARCH}
+  )
+
 #target_compile_options(
 #  ${_TestConfigName}
 #  PRIVATE
@@ -299,6 +330,13 @@ target_include_directories(
   ${OMEGA_SOURCE_DIR}/src/infra
 )
 
+  target_compile_definitions(
+    ${_TestMetadataName}
+    PUBLIC
+    OMEGA_ARCH=${OMEGA_ARCH}
+  )
+
+
 #target_link_options(
 #  ${_TestMetadataName}
 #  PRIVATE
@@ -309,28 +347,31 @@ target_link_libraries(${_TestMetadataName} ${OMEGA_LIB_NAME})
 
 add_test(NAME METADATA_TEST COMMAND ./${_TestMetadataName})
 
-####################
-### YAKL test
-####################
-##
-##set(_TestYaklName testYakl.exe)
-##
-##add_executable(
-##  ${_TestYaklName} ${E3SM_EXTERNALS_ROOT}/YAKL/unit/ParForC/ParForC.cpp
-##)
-##
-##include(${E3SM_EXTERNALS_ROOT}/YAKL/yakl_utils.cmake)
-##yakl_process_target(${_TestYaklName})
-##
-### handles cuda cases
-##if (YAKL_ARCH STREQUAL "CUDA")
-##  set_target_properties(${_TestYaklName} PROPERTIES LINKER_LANGUAGE CXX)
-##  if (CMAKE_VERSION VERSION_GREATER "3.18.0")
-##    set_target_properties(${_TestYaklName} PROPERTIES CUDA_ARCHITECTURES OFF)
-##  endif()
-##endif()
-##
-##add_test(NAME YAKL_TEST COMMAND ./${_TestYaklName})
+##################
+# Kokkos test
+##################
+
+set(_TestKokkosName testKokkos.exe)
+
+add_executable(${_TestKokkosName} infra/OmegaKokkosTest.cpp)
+
+
+target_include_directories(
+  ${_TestKokkosName}
+  PRIVATE
+  ${OMEGA_SOURCE_DIR}/src/base
+  ${OMEGA_SOURCE_DIR}/src/infra
+)
+
+  target_compile_definitions(
+    ${_TestKokkosName}
+    PUBLIC
+    OMEGA_ARCH=${OMEGA_ARCH}
+  )
+
+target_link_libraries(${_TestKokkosName} ${OMEGA_LIB_NAME})
+
+add_test(NAME KOKKOS_TEST COMMAND ./${_TestKokkosName})
 
 ##################
 # test properties
@@ -347,10 +388,6 @@ set_tests_properties(
 #  HORZMESH_TEST
 #  IO_TEST
   METADATA_TEST
+  KOKKOS_TEST
   PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL" PASS_REGULAR_EXPRESSION "PASS"
 )
-
-#set_tests_properties(
-#  YAKL_TEST
-#  PROPERTIES FAIL_REGULAR_EXPRESSION "ERROR"
-#)

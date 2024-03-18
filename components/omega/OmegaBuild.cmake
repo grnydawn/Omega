@@ -437,12 +437,15 @@ macro(update_variables)
   if(OMEGA_ARCH STREQUAL "CUDA")
     option(Kokkos_ENABLE_CUDA "" ON)
     option(Kokkos_ENABLE_CUDA_LAMBDA "" ON)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMEGA_TARGET_DEVICE")
 
   elseif(OMEGA_ARCH STREQUAL "HIP")
     option(Kokkos_ENABLE_HIP "" ON)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMEGA_TARGET_DEVICE")
 
   elseif(OMEGA_ARCH STREQUAL "SYCL")
     option(Kokkos_ENABLE_SYCL "" ON)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMEGA_TARGET_DEVICE")
 
   elseif(OMEGA_ARCH STREQUAL "OPENMP")
     option(Kokkos_ENABLE_OPENMP "" ON)
@@ -455,6 +458,8 @@ macro(update_variables)
     option(Kokkos_ENABLE_SERIAL "" ON)
 
   endif()
+
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMEGA_ENABLE_${OMEGA_ARCH}")
 
   # Include the findParmetis script
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")

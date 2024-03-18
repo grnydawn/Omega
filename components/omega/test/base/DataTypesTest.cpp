@@ -15,7 +15,10 @@
 #include <iostream>
 
 #include "DataTypes.h"
+#include "OmegaKokkos.h"
 #include "mpi.h"
+
+using namespace OMEGA;
 
 int main(int argc, char *argv[]) {
 
@@ -25,12 +28,12 @@ int main(int argc, char *argv[]) {
    {
 
       // declare variables of each supported type
-      OMEGA::I4 MyInt4   = 1;
-      OMEGA::I8 MyInt8   = 2;
-      OMEGA::R4 MyR4     = 3.0;
-      OMEGA::R8 MyR8     = 4.0000000000001;
-      OMEGA::Real MyReal = 5.000001;
-      using OMEGA::operator""_Real;
+      I4 MyInt4   = 1;
+      I8 MyInt8   = 2;
+      R4 MyR4     = 3.0;
+      R8 MyR8     = 4.0000000000001;
+      Real MyReal = 5.000001;
+      //using operator""_Real;
       auto MyRealLiteral = 1._Real;
       int SizeTmp        = 0;
 
@@ -73,7 +76,7 @@ int main(int argc, char *argv[]) {
 #endif
 
       SizeTmp = sizeof(MyRealLiteral);
-      if (SizeTmp == sizeof(OMEGA::Real))
+      if (SizeTmp == sizeof(Real))
          std::cout << "Size of Real literal: PASS" << std::endl;
       else
          std::cout << "Size of Real literal: FAIL " << SizeTmp << std::endl;
@@ -89,21 +92,24 @@ int main(int argc, char *argv[]) {
       int NumExtra    = 2;
 
       // Test for 1DI4
-      OMEGA::Array1DI4 TstArr1DI4("TstArr1DI4", NumCells);
-      OMEGA::ArrayHost1DI4 RefArr1DI4("RefArr1DI4", NumCells);
+      Array1DI4 TstArr1DI4("TstArr1DI4", NumCells);
+      HostArray1DI4 RefArr1DI4("RefArr1DI4", NumCells);
 
       for (int i = 0; i < NumCells; ++i) {
          RefArr1DI4(i) = i;
       }
 
-      Kokkos::parallel_for(
-          DeviceRangePolicy(0, NumCells),
+      parallelFor(
+          {NumCells},
           KOKKOS_LAMBDA(int i) { TstArr1DI4(i) = i; });
 
       Kokkos::fence();
 
-      auto TstHost1DI4 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr1DI4);
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost1DI4 = createHostCopy(HostMemSpace(), TstArr1DI4);
+      #else
+        auto &TstHost1DI4 = TstArr1DI4;
+      #endif
 
       int icount = 0;
       for (int i = 0; i < NumCells; ++i) {
@@ -117,8 +123,8 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 1DI4 test: FAIL" << std::endl;
 
       // Test for 2DI4
-      OMEGA::Array2DI4 TstArr2DI4("TstArr2DI4", NumCells, NumVertLvls);
-      OMEGA::ArrayHost2DI4 RefArr2DI4("RefArr2DI4", NumCells, NumVertLvls);
+      Array2DI4 TstArr2DI4("TstArr2DI4", NumCells, NumVertLvls);
+      HostArray2DI4 RefArr2DI4("RefArr2DI4", NumCells, NumVertLvls);
 
       for (int j = 0; j < NumCells; ++j) {
          for (int i = 0; i < NumVertLvls; ++i) {
@@ -126,13 +132,17 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device2DRangePolicy({0, 0}, {NumCells, NumVertLvls}),
+      parallelFor(
+          {NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int j, int i) { TstArr2DI4(j, i) = i + j; });
 
       Kokkos::fence();
-      auto TstHost2DI4 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr2DI4);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost2DI4 = createHostCopy(HostMemSpace(), TstArr2DI4);
+      #else
+        auto &TstHost2DI4 = TstArr2DI4;
+      #endif
 
       icount = 0;
       for (int j = 0; j < NumCells; ++j) {
@@ -148,9 +158,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 2DI4 test: FAIL" << std::endl;
 
       // Test for 3DI4
-      OMEGA::Array3DI4 TstArr3DI4("TstArr3DI4", NumTracers, NumCells,
+      Array3DI4 TstArr3DI4("TstArr3DI4", NumTracers, NumCells,
                                   NumVertLvls);
-      OMEGA::ArrayHost3DI4 RefArr3DI4("RefArr3DI4", NumTracers, NumCells,
+      HostArray3DI4 RefArr3DI4("RefArr3DI4", NumTracers, NumCells,
                                       NumVertLvls);
 
       for (int k = 0; k < NumTracers; ++k) {
@@ -161,15 +171,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device3DRangePolicy({0, 0, 0}, {NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int k, int j, int i) {
              TstArr3DI4(k, j, i) = i + j + k;
           });
 
       Kokkos::fence();
-      auto TstHost3DI4 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr3DI4);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost3DI4 = createHostCopy(HostMemSpace(), TstArr3DI4);
+      #else
+        auto &TstHost3DI4 = TstArr3DI4;
+      #endif
 
       icount = 0;
       for (int k = 0; k < NumTracers; ++k) {
@@ -187,9 +201,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 3DI4 test: FAIL" << std::endl;
 
       // Test for 4DI4
-      OMEGA::Array4DI4 TstArr4DI4("TstArr4DI4", NumTimeLvls, NumTracers,
+      Array4DI4 TstArr4DI4("TstArr4DI4", NumTimeLvls, NumTracers,
                                   NumCells, NumVertLvls);
-      OMEGA::ArrayHost4DI4 RefArr4DI4("RefArr4DI4", NumTimeLvls, NumTracers,
+      HostArray4DI4 RefArr4DI4("RefArr4DI4", NumTimeLvls, NumTracers,
                                       NumCells, NumVertLvls);
 
       for (int m = 0; m < NumTimeLvls; ++m) {
@@ -202,16 +216,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device4DRangePolicy({0, 0, 0, 0},
-                              {NumTimeLvls, NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumTimeLvls, NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int m, int k, int j, int i) {
              TstArr4DI4(m, k, j, i) = i + j + k + m;
           });
 
       Kokkos::fence();
-      auto TstHost4DI4 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr4DI4);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost4DI4 = createHostCopy(HostMemSpace(), TstArr4DI4);
+      #else
+        auto &TstHost4DI4 = TstArr4DI4;
+      #endif
 
       icount = 0;
       for (int m = 0; m < NumTimeLvls; ++m) {
@@ -231,9 +248,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 4DI4 test: FAIL" << std::endl;
 
       // Test for 5DI4
-      OMEGA::Array5DI4 TstArr5DI4("TstArr5DI4", NumExtra, NumTimeLvls,
+      Array5DI4 TstArr5DI4("TstArr5DI4", NumExtra, NumTimeLvls,
                                   NumTracers, NumCells, NumVertLvls);
-      OMEGA::ArrayHost5DI4 RefArr5DI4("RefArr5DI4", NumExtra, NumTimeLvls,
+      HostArray5DI4 RefArr5DI4("RefArr5DI4", NumExtra, NumTimeLvls,
                                       NumTracers, NumCells, NumVertLvls);
 
       for (int n = 0; n < NumExtra; ++n) {
@@ -248,17 +265,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device5DRangePolicy(
-              {0, 0, 0, 0, 0},
-              {NumExtra, NumTimeLvls, NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumExtra, NumTimeLvls, NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int n, int m, int k, int j, int i) {
              TstArr5DI4(n, m, k, j, i) = i + j + k + m + n;
           });
 
       Kokkos::fence();
-      auto TstHost5DI4 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr5DI4);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost5DI4 = createHostCopy(HostMemSpace(), TstArr5DI4);
+      #else
+        auto &TstHost5DI4 = TstArr5DI4;
+      #endif
 
       icount = 0;
       for (int n = 0; n < NumExtra; ++n) {
@@ -281,21 +300,24 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 5DI4 test: FAIL" << std::endl;
 
       // Test for 1DI8
-      OMEGA::Array1DI8 TstArr1DI8("TstArr1DI8", NumCells);
-      OMEGA::ArrayHost1DI8 RefArr1DI8("RefArr1DI8", NumCells);
+      Array1DI8 TstArr1DI8("TstArr1DI8", NumCells);
+      HostArray1DI8 RefArr1DI8("RefArr1DI8", NumCells);
 
       for (int i = 0; i < NumCells; ++i) {
          RefArr1DI8(i) = i;
       }
 
-      Kokkos::parallel_for(
-          DeviceRangePolicy(0, NumCells),
+      parallelFor(
+          {NumCells},
           KOKKOS_LAMBDA(int i) { TstArr1DI8(i) = i; });
 
       Kokkos::fence();
 
-      auto TstHost1DI8 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr1DI8);
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost1DI8 = createHostCopy(HostMemSpace(), TstArr1DI8);
+      #else
+        auto &TstHost1DI8 = TstArr1DI8;
+      #endif
 
       icount = 0;
       for (int i = 0; i < NumCells; ++i) {
@@ -309,8 +331,8 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 1DI8 test: FAIL" << std::endl;
 
       // Test for 2DI8
-      OMEGA::Array2DI8 TstArr2DI8("TstArr2DI8", NumCells, NumVertLvls);
-      OMEGA::ArrayHost2DI8 RefArr2DI8("RefArr2DI8", NumCells, NumVertLvls);
+      Array2DI8 TstArr2DI8("TstArr2DI8", NumCells, NumVertLvls);
+      HostArray2DI8 RefArr2DI8("RefArr2DI8", NumCells, NumVertLvls);
 
       for (int j = 0; j < NumCells; ++j) {
          for (int i = 0; i < NumVertLvls; ++i) {
@@ -318,13 +340,17 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device2DRangePolicy({0, 0}, {NumCells, NumVertLvls}),
+      parallelFor(
+          {NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int j, int i) { TstArr2DI8(j, i) = i + j; });
 
       Kokkos::fence();
-      auto TstHost2DI8 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr2DI8);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost2DI8 = createHostCopy(HostMemSpace(), TstArr2DI8);
+      #else
+        auto &TstHost2DI8 = TstArr2DI8;
+      #endif
 
       icount = 0;
       for (int j = 0; j < NumCells; ++j) {
@@ -340,9 +366,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 2DI8 test: FAIL" << std::endl;
 
       // Test for 3DI8
-      OMEGA::Array3DI8 TstArr3DI8("TstArr3DI8", NumTracers, NumCells,
+      Array3DI8 TstArr3DI8("TstArr3DI8", NumTracers, NumCells,
                                   NumVertLvls);
-      OMEGA::ArrayHost3DI8 RefArr3DI8("RefArr3DI8", NumTracers, NumCells,
+      HostArray3DI8 RefArr3DI8("RefArr3DI8", NumTracers, NumCells,
                                       NumVertLvls);
 
       for (int k = 0; k < NumTracers; ++k) {
@@ -353,15 +379,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device3DRangePolicy({0, 0, 0}, {NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int k, int j, int i) {
              TstArr3DI8(k, j, i) = i + j + k;
           });
 
       Kokkos::fence();
-      auto TstHost3DI8 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr3DI8);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost3DI8 = createHostCopy(HostMemSpace(), TstArr3DI8);
+      #else
+        auto &TstHost3DI8 = TstArr3DI8;
+      #endif
 
       icount = 0;
       for (int k = 0; k < NumTracers; ++k) {
@@ -379,9 +409,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 3DI8 test: FAIL" << std::endl;
 
       // Test for 4DI8
-      OMEGA::Array4DI8 TstArr4DI8("TstArr4DI8", NumTimeLvls, NumTracers,
+      Array4DI8 TstArr4DI8("TstArr4DI8", NumTimeLvls, NumTracers,
                                   NumCells, NumVertLvls);
-      OMEGA::ArrayHost4DI8 RefArr4DI8("RefArr4DI8", NumTimeLvls, NumTracers,
+      HostArray4DI8 RefArr4DI8("RefArr4DI8", NumTimeLvls, NumTracers,
                                       NumCells, NumVertLvls);
 
       for (int m = 0; m < NumTimeLvls; ++m) {
@@ -394,16 +424,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device4DRangePolicy({0, 0, 0, 0},
-                              {NumTimeLvls, NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumTimeLvls, NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int m, int k, int j, int i) {
              TstArr4DI8(m, k, j, i) = i + j + k + m;
           });
 
       Kokkos::fence();
-      auto TstHost4DI8 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr4DI8);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost4DI8 = createHostCopy(HostMemSpace(), TstArr4DI8);
+      #else
+        auto &TstHost4DI8 = TstArr4DI8;
+      #endif
 
       icount = 0;
       for (int m = 0; m < NumTimeLvls; ++m) {
@@ -423,9 +456,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 4DI8 test: FAIL" << std::endl;
 
       // Test for 5DI8
-      OMEGA::Array5DI8 TstArr5DI8("TstArr5DI8", NumExtra, NumTimeLvls,
+      Array5DI8 TstArr5DI8("TstArr5DI8", NumExtra, NumTimeLvls,
                                   NumTracers, NumCells, NumVertLvls);
-      OMEGA::ArrayHost5DI8 RefArr5DI8("RefArr5DI8", NumExtra, NumTimeLvls,
+      HostArray5DI8 RefArr5DI8("RefArr5DI8", NumExtra, NumTimeLvls,
                                       NumTracers, NumCells, NumVertLvls);
 
       for (int n = 0; n < NumExtra; ++n) {
@@ -440,17 +473,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device5DRangePolicy(
-              {0, 0, 0, 0, 0},
-              {NumExtra, NumTimeLvls, NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumExtra, NumTimeLvls, NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int n, int m, int k, int j, int i) {
              TstArr5DI8(n, m, k, j, i) = i + j + k + m + n;
           });
 
       Kokkos::fence();
-      auto TstHost5DI8 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr5DI8);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost5DI8 = createHostCopy(HostMemSpace(), TstArr5DI8);
+      #else
+        auto &TstHost5DI8 = TstArr5DI8;
+      #endif
 
       icount = 0;
       for (int n = 0; n < NumExtra; ++n) {
@@ -473,21 +508,24 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 5DI8 test: FAIL" << std::endl;
 
       // Test for 1DR4
-      OMEGA::Array1DR4 TstArr1DR4("TstArr1DR4", NumCells);
-      OMEGA::ArrayHost1DR4 RefArr1DR4("RefArr1DR4", NumCells);
+      Array1DR4 TstArr1DR4("TstArr1DR4", NumCells);
+      HostArray1DR4 RefArr1DR4("RefArr1DR4", NumCells);
 
       for (int i = 0; i < NumCells; ++i) {
          RefArr1DR4(i) = i;
       }
 
-      Kokkos::parallel_for(
-          DeviceRangePolicy(0, NumCells),
+      parallelFor(
+          {NumCells},
           KOKKOS_LAMBDA(int i) { TstArr1DR4(i) = i; });
 
       Kokkos::fence();
 
-      auto TstHost1DR4 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr1DR4);
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost1DR4 = createHostCopy(HostMemSpace(), TstArr1DR4);
+      #else
+        auto &TstHost1DR4 = TstArr1DR4;
+      #endif
 
       icount = 0;
       for (int i = 0; i < NumCells; ++i) {
@@ -501,8 +539,8 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 1DR4 test: FAIL" << std::endl;
 
       // Test for 2DR4
-      OMEGA::Array2DR4 TstArr2DR4("TstArr2DR4", NumCells, NumVertLvls);
-      OMEGA::ArrayHost2DR4 RefArr2DR4("RefArr2DR4", NumCells, NumVertLvls);
+      Array2DR4 TstArr2DR4("TstArr2DR4", NumCells, NumVertLvls);
+      HostArray2DR4 RefArr2DR4("RefArr2DR4", NumCells, NumVertLvls);
 
       for (int j = 0; j < NumCells; ++j) {
          for (int i = 0; i < NumVertLvls; ++i) {
@@ -510,13 +548,17 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device2DRangePolicy({0, 0}, {NumCells, NumVertLvls}),
+      parallelFor(
+          {NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int j, int i) { TstArr2DR4(j, i) = i + j; });
 
       Kokkos::fence();
-      auto TstHost2DR4 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr2DR4);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost2DR4 = createHostCopy(HostMemSpace(), TstArr2DR4);
+      #else
+        auto &TstHost2DR4 = TstArr2DR4;
+      #endif
 
       icount = 0;
       for (int j = 0; j < NumCells; ++j) {
@@ -532,9 +574,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 2DR4 test: FAIL" << std::endl;
 
       // Test for 3DR4
-      OMEGA::Array3DR4 TstArr3DR4("TstArr3DR4", NumTracers, NumCells,
+      Array3DR4 TstArr3DR4("TstArr3DR4", NumTracers, NumCells,
                                   NumVertLvls);
-      OMEGA::ArrayHost3DR4 RefArr3DR4("RefArr3DR4", NumTracers, NumCells,
+      HostArray3DR4 RefArr3DR4("RefArr3DR4", NumTracers, NumCells,
                                       NumVertLvls);
 
       for (int k = 0; k < NumTracers; ++k) {
@@ -545,15 +587,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device3DRangePolicy({0, 0, 0}, {NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int k, int j, int i) {
              TstArr3DR4(k, j, i) = i + j + k;
           });
 
       Kokkos::fence();
-      auto TstHost3DR4 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr3DR4);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost3DR4 = createHostCopy(HostMemSpace(), TstArr3DR4);
+      #else
+        auto &TstHost3DR4 = TstArr3DR4;
+      #endif
 
       icount = 0;
       for (int k = 0; k < NumTracers; ++k) {
@@ -571,9 +617,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 3DR4 test: FAIL" << std::endl;
 
       // Test for 4DR4
-      OMEGA::Array4DR4 TstArr4DR4("TstArr4DR4", NumTimeLvls, NumTracers,
+      Array4DR4 TstArr4DR4("TstArr4DR4", NumTimeLvls, NumTracers,
                                   NumCells, NumVertLvls);
-      OMEGA::ArrayHost4DR4 RefArr4DR4("RefArr4DR4", NumTimeLvls, NumTracers,
+      HostArray4DR4 RefArr4DR4("RefArr4DR4", NumTimeLvls, NumTracers,
                                       NumCells, NumVertLvls);
 
       for (int m = 0; m < NumTimeLvls; ++m) {
@@ -586,16 +632,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device4DRangePolicy({0, 0, 0, 0},
-                              {NumTimeLvls, NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumTimeLvls, NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int m, int k, int j, int i) {
              TstArr4DR4(m, k, j, i) = i + j + k + m;
           });
 
       Kokkos::fence();
-      auto TstHost4DR4 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr4DR4);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost4DR4 = createHostCopy(HostMemSpace(), TstArr4DR4);
+      #else
+        auto &TstHost4DR4 = TstArr4DR4;
+      #endif
 
       icount = 0;
       for (int m = 0; m < NumTimeLvls; ++m) {
@@ -615,9 +664,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 4DR4 test: FAIL" << std::endl;
 
       // Test for 5DR4
-      OMEGA::Array5DR4 TstArr5DR4("TstArr5DR4", NumExtra, NumTimeLvls,
+      Array5DR4 TstArr5DR4("TstArr5DR4", NumExtra, NumTimeLvls,
                                   NumTracers, NumCells, NumVertLvls);
-      OMEGA::ArrayHost5DR4 RefArr5DR4("RefArr5DR4", NumExtra, NumTimeLvls,
+      HostArray5DR4 RefArr5DR4("RefArr5DR4", NumExtra, NumTimeLvls,
                                       NumTracers, NumCells, NumVertLvls);
 
       for (int n = 0; n < NumExtra; ++n) {
@@ -632,17 +681,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device5DRangePolicy(
-              {0, 0, 0, 0, 0},
-              {NumExtra, NumTimeLvls, NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumExtra, NumTimeLvls, NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int n, int m, int k, int j, int i) {
              TstArr5DR4(n, m, k, j, i) = i + j + k + m + n;
           });
 
       Kokkos::fence();
-      auto TstHost5DR4 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr5DR4);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost5DR4 = createHostCopy(HostMemSpace(), TstArr5DR4);
+      #else
+        auto &TstHost5DR4 = TstArr5DR4;
+      #endif
 
       icount = 0;
       for (int n = 0; n < NumExtra; ++n) {
@@ -665,21 +716,24 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 5DR4 test: FAIL" << std::endl;
 
       // Test for 1DR8
-      OMEGA::Array1DR8 TstArr1DR8("TstArr1DR8", NumCells);
-      OMEGA::ArrayHost1DR8 RefArr1DR8("RefArr1DR8", NumCells);
+      Array1DR8 TstArr1DR8("TstArr1DR8", NumCells);
+      HostArray1DR8 RefArr1DR8("RefArr1DR8", NumCells);
 
       for (int i = 0; i < NumCells; ++i) {
          RefArr1DR8(i) = i;
       }
 
-      Kokkos::parallel_for(
-          DeviceRangePolicy(0, NumCells),
+      parallelFor(
+          {NumCells},
           KOKKOS_LAMBDA(int i) { TstArr1DR8(i) = i; });
 
       Kokkos::fence();
 
-      auto TstHost1DR8 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr1DR8);
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost1DR8 = createHostCopy(HostMemSpace(), TstArr1DR8);
+      #else
+        auto &TstHost1DR8 = TstArr1DR8;
+      #endif
 
       icount = 0;
       for (int i = 0; i < NumCells; ++i) {
@@ -693,8 +747,8 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 1DR8 test: FAIL" << std::endl;
 
       // Test for 2DR8
-      OMEGA::Array2DR8 TstArr2DR8("TstArr2DR8", NumCells, NumVertLvls);
-      OMEGA::ArrayHost2DR8 RefArr2DR8("RefArr2DR8", NumCells, NumVertLvls);
+      Array2DR8 TstArr2DR8("TstArr2DR8", NumCells, NumVertLvls);
+      HostArray2DR8 RefArr2DR8("RefArr2DR8", NumCells, NumVertLvls);
 
       for (int j = 0; j < NumCells; ++j) {
          for (int i = 0; i < NumVertLvls; ++i) {
@@ -702,13 +756,17 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device2DRangePolicy({0, 0}, {NumCells, NumVertLvls}),
+      parallelFor(
+          {NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int j, int i) { TstArr2DR8(j, i) = i + j; });
 
       Kokkos::fence();
-      auto TstHost2DR8 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr2DR8);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost2DR8 = createHostCopy(HostMemSpace(), TstArr2DR8);
+      #else
+        auto &TstHost2DR8 = TstArr2DR8;
+      #endif
 
       icount = 0;
       for (int j = 0; j < NumCells; ++j) {
@@ -724,9 +782,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 2DR8 test: FAIL" << std::endl;
 
       // Test for 3DR8
-      OMEGA::Array3DR8 TstArr3DR8("TstArr3DR8", NumTracers, NumCells,
+      Array3DR8 TstArr3DR8("TstArr3DR8", NumTracers, NumCells,
                                   NumVertLvls);
-      OMEGA::ArrayHost3DR8 RefArr3DR8("RefArr3DR8", NumTracers, NumCells,
+      HostArray3DR8 RefArr3DR8("RefArr3DR8", NumTracers, NumCells,
                                       NumVertLvls);
 
       for (int k = 0; k < NumTracers; ++k) {
@@ -737,15 +795,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device3DRangePolicy({0, 0, 0}, {NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int k, int j, int i) {
              TstArr3DR8(k, j, i) = i + j + k;
           });
 
       Kokkos::fence();
-      auto TstHost3DR8 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr3DR8);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost3DR8 = createHostCopy(HostMemSpace(), TstArr3DR8);
+      #else
+        auto &TstHost3DR8 = TstArr3DR8;
+      #endif
 
       icount = 0;
       for (int k = 0; k < NumTracers; ++k) {
@@ -763,9 +825,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 3DR8 test: FAIL" << std::endl;
 
       // Test for 4DR8
-      OMEGA::Array4DR8 TstArr4DR8("TstArr4DR8", NumTimeLvls, NumTracers,
+      Array4DR8 TstArr4DR8("TstArr4DR8", NumTimeLvls, NumTracers,
                                   NumCells, NumVertLvls);
-      OMEGA::ArrayHost4DR8 RefArr4DR8("RefArr4DR8", NumTimeLvls, NumTracers,
+      HostArray4DR8 RefArr4DR8("RefArr4DR8", NumTimeLvls, NumTracers,
                                       NumCells, NumVertLvls);
 
       for (int m = 0; m < NumTimeLvls; ++m) {
@@ -778,16 +840,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device4DRangePolicy({0, 0, 0, 0},
-                              {NumTimeLvls, NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumTimeLvls, NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int m, int k, int j, int i) {
              TstArr4DR8(m, k, j, i) = i + j + k + m;
           });
 
       Kokkos::fence();
-      auto TstHost4DR8 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr4DR8);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost4DR8 = createHostCopy(HostMemSpace(), TstArr4DR8);
+      #else
+        auto &TstHost4DR8 = TstArr4DR8;
+      #endif
 
       icount = 0;
       for (int m = 0; m < NumTimeLvls; ++m) {
@@ -807,9 +872,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 4DR8 test: FAIL" << std::endl;
 
       // Test for 5DR8
-      OMEGA::Array5DR8 TstArr5DR8("TstArr5DR8", NumExtra, NumTimeLvls,
+      Array5DR8 TstArr5DR8("TstArr5DR8", NumExtra, NumTimeLvls,
                                   NumTracers, NumCells, NumVertLvls);
-      OMEGA::ArrayHost5DR8 RefArr5DR8("RefArr5DR8", NumExtra, NumTimeLvls,
+      HostArray5DR8 RefArr5DR8("RefArr5DR8", NumExtra, NumTimeLvls,
                                       NumTracers, NumCells, NumVertLvls);
 
       for (int n = 0; n < NumExtra; ++n) {
@@ -824,17 +889,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device5DRangePolicy(
-              {0, 0, 0, 0, 0},
-              {NumExtra, NumTimeLvls, NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumExtra, NumTimeLvls, NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int n, int m, int k, int j, int i) {
              TstArr5DR8(n, m, k, j, i) = i + j + k + m + n;
           });
 
       Kokkos::fence();
-      auto TstHost5DR8 =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr5DR8);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost5DR8 = createHostCopy(HostMemSpace(), TstArr5DR8);
+      #else
+        auto &TstHost5DR8= TstArr5DR8;
+      #endif
 
       icount = 0;
       for (int n = 0; n < NumExtra; ++n) {
@@ -857,21 +924,24 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 5DR8 test: FAIL" << std::endl;
 
       // Test for 1DReal
-      OMEGA::Array1DReal TstArr1DReal("TstArr1DReal", NumCells);
-      OMEGA::ArrayHost1DReal RefArr1DReal("RefArr1DReal", NumCells);
+      Array1DReal TstArr1DReal("TstArr1DReal", NumCells);
+      HostArray1DReal RefArr1DReal("RefArr1DReal", NumCells);
 
       for (int i = 0; i < NumCells; ++i) {
          RefArr1DReal(i) = i;
       }
 
-      Kokkos::parallel_for(
-          DeviceRangePolicy(0, NumCells),
+      parallelFor(
+          {NumCells},
           KOKKOS_LAMBDA(int i) { TstArr1DReal(i) = i; });
 
       Kokkos::fence();
 
-      auto TstHost1DReal =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr1DReal);
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost1DReal = createHostCopy(HostMemSpace(), TstArr1DReal);
+      #else
+        auto &TstHost1DReal= TstArr1DReal;
+      #endif
 
       icount = 0;
       for (int i = 0; i < NumCells; ++i) {
@@ -885,8 +955,8 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 1DReal test: FAIL" << std::endl;
 
       // Test for 2DReal
-      OMEGA::Array2DReal TstArr2DReal("TstArr2DReal", NumCells, NumVertLvls);
-      OMEGA::ArrayHost2DReal RefArr2DReal("RefArr2DReal", NumCells,
+      Array2DReal TstArr2DReal("TstArr2DReal", NumCells, NumVertLvls);
+      HostArray2DReal RefArr2DReal("RefArr2DReal", NumCells,
                                           NumVertLvls);
 
       for (int j = 0; j < NumCells; ++j) {
@@ -895,13 +965,17 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device2DRangePolicy({0, 0}, {NumCells, NumVertLvls}),
+      parallelFor(
+          {NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int j, int i) { TstArr2DReal(j, i) = i + j; });
 
       Kokkos::fence();
-      auto TstHost2DReal =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr2DReal);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost2DReal = createHostCopy(HostMemSpace(), TstArr2DReal);
+      #else
+        auto &TstHost2DReal = TstArr2DReal;
+      #endif
 
       icount = 0;
       for (int j = 0; j < NumCells; ++j) {
@@ -917,9 +991,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 2DReal test: FAIL" << std::endl;
 
       // Test for 3DReal
-      OMEGA::Array3DReal TstArr3DReal("TstArr3DReal", NumTracers, NumCells,
+      Array3DReal TstArr3DReal("TstArr3DReal", NumTracers, NumCells,
                                       NumVertLvls);
-      OMEGA::ArrayHost3DReal RefArr3DReal("RefArr3DReal", NumTracers, NumCells,
+      HostArray3DReal RefArr3DReal("RefArr3DReal", NumTracers, NumCells,
                                           NumVertLvls);
 
       for (int k = 0; k < NumTracers; ++k) {
@@ -930,15 +1004,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device3DRangePolicy({0, 0, 0}, {NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int k, int j, int i) {
              TstArr3DReal(k, j, i) = i + j + k;
           });
 
       Kokkos::fence();
-      auto TstHost3DReal =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr3DReal);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost3DReal = createHostCopy(HostMemSpace(), TstArr3DReal);
+      #else
+        auto &TstHost3DReal= TstArr3DReal;
+      #endif
 
       icount = 0;
       for (int k = 0; k < NumTracers; ++k) {
@@ -956,9 +1034,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 3DReal test: FAIL" << std::endl;
 
       // Test for 4DReal
-      OMEGA::Array4DReal TstArr4DReal("TstArr4DReal", NumTimeLvls, NumTracers,
+      Array4DReal TstArr4DReal("TstArr4DReal", NumTimeLvls, NumTracers,
                                       NumCells, NumVertLvls);
-      OMEGA::ArrayHost4DReal RefArr4DReal("RefArr4DReal", NumTimeLvls,
+      HostArray4DReal RefArr4DReal("RefArr4DReal", NumTimeLvls,
                                           NumTracers, NumCells, NumVertLvls);
 
       for (int m = 0; m < NumTimeLvls; ++m) {
@@ -971,16 +1049,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device4DRangePolicy({0, 0, 0, 0},
-                              {NumTimeLvls, NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumTimeLvls, NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int m, int k, int j, int i) {
              TstArr4DReal(m, k, j, i) = i + j + k + m;
           });
 
       Kokkos::fence();
-      auto TstHost4DReal =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr4DReal);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost4DReal = createHostCopy(HostMemSpace(), TstArr4DReal);
+      #else
+        auto &TstHost4DReal = TstArr4DReal;
+      #endif
 
       icount = 0;
       for (int m = 0; m < NumTimeLvls; ++m) {
@@ -1000,9 +1081,9 @@ int main(int argc, char *argv[]) {
          std::cout << "Kokkos 4DReal test: FAIL" << std::endl;
 
       // Test for 5DReal
-      OMEGA::Array5DReal TstArr5DReal("TstArr5DReal", NumExtra, NumTimeLvls,
+      Array5DReal TstArr5DReal("TstArr5DReal", NumExtra, NumTimeLvls,
                                       NumTracers, NumCells, NumVertLvls);
-      OMEGA::ArrayHost5DReal RefArr5DReal("RefArr5DReal", NumExtra, NumTimeLvls,
+      HostArray5DReal RefArr5DReal("RefArr5DReal", NumExtra, NumTimeLvls,
                                           NumTracers, NumCells, NumVertLvls);
 
       for (int n = 0; n < NumExtra; ++n) {
@@ -1017,17 +1098,19 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      parallel_for(
-          Device5DRangePolicy(
-              {0, 0, 0, 0, 0},
-              {NumExtra, NumTimeLvls, NumTracers, NumCells, NumVertLvls}),
+      parallelFor(
+          {NumExtra, NumTimeLvls, NumTracers, NumCells, NumVertLvls},
           KOKKOS_LAMBDA(int n, int m, int k, int j, int i) {
              TstArr5DReal(n, m, k, j, i) = i + j + k + m + n;
           });
 
       Kokkos::fence();
-      auto TstHost5DReal =
-          Kokkos::create_mirror_view_and_copy(HostMemSpace(), TstArr5DReal);
+
+      #ifdef OMEGA_TARGET_DEVICE
+        auto TstHost5DReal = createHostCopy(HostMemSpace(), TstArr5DReal);
+      #else
+        auto &TstHost5DReal = TstArr5DReal;
+      #endif
 
       icount = 0;
       for (int n = 0; n < NumExtra; ++n) {

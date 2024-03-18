@@ -3,22 +3,6 @@
 # Add source files for the library
 file(GLOB _LIBSRC_FILES infra/*.cpp base/*.cpp ocn/*.cpp)
 
-# Create the library target
-#if(OMEGA_ARCH STREQUAL "HIP")
-#  add_library(${OMEGA_LIB_NAME} ${_LIBSRC_FILES})
-#  add_dependencies(${OMEGA_LIB_NAME} "hip_build")
-#
-#  target_include_directories(
-#    ${OMEGA_LIB_NAME}
-#    PRIVATE
-#    ${OMEGA_SOURCE_DIR}/src/base
-#    ${OMEGA_SOURCE_DIR}/src/infra
-#    ${OMEGA_SOURCE_DIR}/src/ocn
-#    ${Parmetis_INCLUDE_DIRS}
-#    ${OMEGA_BUILD_DIR}/kokkos/include
-#  )
-#
-#else()
   add_library(${OMEGA_LIB_NAME} ${_LIBSRC_FILES})
 
   target_include_directories(
@@ -30,33 +14,11 @@ file(GLOB _LIBSRC_FILES infra/*.cpp base/*.cpp ocn/*.cpp)
     ${Parmetis_INCLUDE_DIRS}
   )
 
-#endif()
-
-## add include directories
-#target_include_directories(
-#    ${OMEGA_LIB_NAME}
-#    PRIVATE
-#    ${OMEGA_SOURCE_DIR}/src/base
-#    ${OMEGA_SOURCE_DIR}/src/infra
-#    ${OMEGA_SOURCE_DIR}/src/ocn
-#    ${Parmetis_INCLUDE_DIRS}
-#    ${OMEGA_BUILD_DIR}/kokkos/include
-#)
-
-#target_include_directories(
-#    ${OMEGA_LIB_NAME}
-#    PRIVATE
-#    ${OMEGA_SOURCE_DIR}/src/base
-#    ${OMEGA_SOURCE_DIR}/src/infra
-#    ${OMEGA_SOURCE_DIR}/src/ocn
-#)
-
-# add compiler options
-#target_compile_options(
-#    ${OMEGA_LIB_NAME}
-#    PRIVATE
-#    ${OMEGA_CXX_FLAGS}
-#)
+  target_compile_definitions(
+    ${OMEGA_LIB_NAME}
+    PUBLIC
+    OMEGA_ARCH=${OMEGA_ARCH}
+  )
 
 # add linker options
 target_link_options(
@@ -87,6 +49,12 @@ if(OMEGA_BUILD_EXECUTABLE)
 #		"-L${OMEGA_SOURCE_DIR}/src/base"
 #		"-L${CMAKE_CURRENT_SOURCE_DIR}/infra"
 #  )
+
+  target_compile_definitions(
+    ${OMEGA_EXE_NAME}
+    PUBLIC
+    OMEGA_ARCH=${OMEGA_ARCH}
+  )
 
   target_link_libraries(${OMEGA_EXE_NAME} ${OMEGA_LIB_NAME})
 

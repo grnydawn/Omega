@@ -17,7 +17,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "Kokkos_Core.hpp"
-#include <cstdint>
+//#include <cstdint>
 
 namespace OMEGA {
 
@@ -34,6 +34,8 @@ using Real = float;
 using Real = double;
 #endif
 
+using Int  = int;
+
 // user-defined literal for generic reals
 KOKKOS_INLINE_FUNCTION constexpr Real operator""_Real(long double x) {
    return x;
@@ -42,95 +44,100 @@ KOKKOS_INLINE_FUNCTION constexpr Real operator""_Real(long double x) {
 // Aliases for Kokkos arrays - by default, all arrays are on the device and
 // use C-ordering.
 /// Aliases for Kokkos device arrays of various dimensions and types
-#ifdef KOKKOS_ENABLE_CUDA
-#define DeviceMemSpace Kokkos::CudaSpace
-#define DeviceLayout   Kokkos::LayoutLeft
+
+#ifdef OMEGA_ENABLE_CUDA
+using MemSpace  = Kokkos::CudaSpace;
+using MemLayout = Kokkos::LayoutRight;
 #endif
 
-#ifdef KOKKOS_ENABLE_HIP
-#define DeviceMemSpace Kokkos::Experimental::HIPSpace
-#define DeviceLayout   Kokkos::LayoutLeft
+#ifdef OMEGA_ENABLE_HIP
+using MemSpace  = Kokkos::Experimental::HIPSpace;
+using MemLayout = Kokkos::LayoutRight;
 #endif
 
-#ifdef KOKKOS_ENABLE_OPENMPTARGET
-#define DeviceMemSpace Kokkos::OpenMPTargetSpace
-#define DeviceLayout   Kokkos::LayoutLeft
+#ifdef OMEGA_ENABLE_OPENMP
+using MemSpace  = Kokkos::HostSpace;
+using MemLayout = Kokkos::LayoutRight;
 #endif
 
-#ifndef DeviceMemSpace
-#define DeviceMemSpace Kokkos::HostSpace
-#define DeviceLayout   Kokkos::LayoutRight
-#endif
+using HostMemSpace  = Kokkos::HostSpace;
+using HostMemLayout = Kokkos::LayoutRight;
 
-#define HostMemSpace Kokkos::HostSpace
-#define HostLayout   Kokkos::LayoutRight
+template <Int N> struct DefaultTile;
 
-#define DeviceExecSpace DeviceMemSpace::execution_space
+template <> struct DefaultTile<1> {
+    static constexpr Int value[] = {64};
+};
 
-#define DeviceRangePolicy   Kokkos::RangePolicy<DeviceExecSpace>
-#define Device1DRangePolicy Kokkos::RangePolicy<DeviceExecSpace>
-#define Device2DRangePolicy \
-   Kokkos::MDRangePolicy<Kokkos::Rank<2>, DeviceExecSpace>
-#define Device3DRangePolicy \
-   Kokkos::MDRangePolicy<Kokkos::Rank<3>, DeviceExecSpace>
-#define Device4DRangePolicy \
-   Kokkos::MDRangePolicy<Kokkos::Rank<4>, DeviceExecSpace>
-#define Device5DRangePolicy \
-   Kokkos::MDRangePolicy<Kokkos::Rank<5>, DeviceExecSpace>
+template <> struct DefaultTile<2> {
+    static constexpr Int value[] = {1, 64};
+};
 
-using Array1DI4   = Kokkos::View<I4 *, DeviceLayout, DeviceMemSpace>;
-using Array1DI8   = Kokkos::View<I8 *, DeviceLayout, DeviceMemSpace>;
-using Array1DR4   = Kokkos::View<R4 *, DeviceLayout, DeviceMemSpace>;
-using Array1DR8   = Kokkos::View<R8 *, DeviceLayout, DeviceMemSpace>;
-using Array1DReal = Kokkos::View<Real *, DeviceLayout, DeviceMemSpace>;
-using Array2DI4   = Kokkos::View<I4 **, DeviceLayout, DeviceMemSpace>;
-using Array2DI8   = Kokkos::View<I8 **, DeviceLayout, DeviceMemSpace>;
-using Array2DR4   = Kokkos::View<R4 **, DeviceLayout, DeviceMemSpace>;
-using Array2DR8   = Kokkos::View<R8 **, DeviceLayout, DeviceMemSpace>;
-using Array2DReal = Kokkos::View<Real **, DeviceLayout, DeviceMemSpace>;
-using Array3DI4   = Kokkos::View<I4 ***, DeviceLayout, DeviceMemSpace>;
-using Array3DI8   = Kokkos::View<I8 ***, DeviceLayout, DeviceMemSpace>;
-using Array3DR4   = Kokkos::View<R4 ***, DeviceLayout, DeviceMemSpace>;
-using Array3DR8   = Kokkos::View<R8 ***, DeviceLayout, DeviceMemSpace>;
-using Array3DReal = Kokkos::View<Real ***, DeviceLayout, DeviceMemSpace>;
-using Array4DI4   = Kokkos::View<I4 ****, DeviceLayout, DeviceMemSpace>;
-using Array4DI8   = Kokkos::View<I8 ****, DeviceLayout, DeviceMemSpace>;
-using Array4DR4   = Kokkos::View<R4 ****, DeviceLayout, DeviceMemSpace>;
-using Array4DR8   = Kokkos::View<R8 ****, DeviceLayout, DeviceMemSpace>;
-using Array4DReal = Kokkos::View<Real ****, DeviceLayout, DeviceMemSpace>;
-using Array5DI4   = Kokkos::View<I4 *****, DeviceLayout, DeviceMemSpace>;
-using Array5DI8   = Kokkos::View<I8 *****, DeviceLayout, DeviceMemSpace>;
-using Array5DR4   = Kokkos::View<R4 *****, DeviceLayout, DeviceMemSpace>;
-using Array5DR8   = Kokkos::View<R8 *****, DeviceLayout, DeviceMemSpace>;
-using Array5DReal = Kokkos::View<Real *****, DeviceLayout, DeviceMemSpace>;
+template <> struct DefaultTile<3> {
+    static constexpr Int value[] = {1, 1, 64};
+};
+
+template <> struct DefaultTile<4> {
+    static constexpr Int value[] = {1, 1, 1, 64};
+};
+
+template <> struct DefaultTile<5> {
+    static constexpr Int value[] = {1, 1, 1, 1, 64};
+};
+
+using Array1DI4   = Kokkos::View<I4 *, MemLayout, MemSpace>;
+using Array1DI8   = Kokkos::View<I8 *, MemLayout, MemSpace>;
+using Array1DR4   = Kokkos::View<R4 *, MemLayout, MemSpace>;
+using Array1DR8   = Kokkos::View<R8 *, MemLayout, MemSpace>;
+using Array1DReal = Kokkos::View<Real *, MemLayout, MemSpace>;
+using Array2DI4   = Kokkos::View<I4 **, MemLayout, MemSpace>;
+using Array2DI8   = Kokkos::View<I8 **, MemLayout, MemSpace>;
+using Array2DR4   = Kokkos::View<R4 **, MemLayout, MemSpace>;
+using Array2DR8   = Kokkos::View<R8 **, MemLayout, MemSpace>;
+using Array2DReal = Kokkos::View<Real **, MemLayout, MemSpace>;
+using Array3DI4   = Kokkos::View<I4 ***, MemLayout, MemSpace>;
+using Array3DI8   = Kokkos::View<I8 ***, MemLayout, MemSpace>;
+using Array3DR4   = Kokkos::View<R4 ***, MemLayout, MemSpace>;
+using Array3DR8   = Kokkos::View<R8 ***, MemLayout, MemSpace>;
+using Array3DReal = Kokkos::View<Real ***, MemLayout, MemSpace>;
+using Array4DI4   = Kokkos::View<I4 ****, MemLayout, MemSpace>;
+using Array4DI8   = Kokkos::View<I8 ****, MemLayout, MemSpace>;
+using Array4DR4   = Kokkos::View<R4 ****, MemLayout, MemSpace>;
+using Array4DR8   = Kokkos::View<R8 ****, MemLayout, MemSpace>;
+using Array4DReal = Kokkos::View<Real ****, MemLayout, MemSpace>;
+using Array5DI4   = Kokkos::View<I4 *****, MemLayout, MemSpace>;
+using Array5DI8   = Kokkos::View<I8 *****, MemLayout, MemSpace>;
+using Array5DR4   = Kokkos::View<R4 *****, MemLayout, MemSpace>;
+using Array5DR8   = Kokkos::View<R8 *****, MemLayout, MemSpace>;
+using Array5DReal = Kokkos::View<Real *****, MemLayout, MemSpace>;
 
 // Also need similar aliases for arrays on the host
 /// Aliases for Kokkos host arrays of various dimensions and types
-using ArrayHost1DI4   = Kokkos::View<I4 *, HostLayout, HostMemSpace>;
-using ArrayHost1DI8   = Kokkos::View<I8 *, HostLayout, HostMemSpace>;
-using ArrayHost1DR4   = Kokkos::View<R4 *, HostLayout, HostMemSpace>;
-using ArrayHost1DR8   = Kokkos::View<R8 *, HostLayout, HostMemSpace>;
-using ArrayHost1DReal = Kokkos::View<Real *, HostLayout, HostMemSpace>;
-using ArrayHost2DI4   = Kokkos::View<I4 **, HostLayout, HostMemSpace>;
-using ArrayHost2DI8   = Kokkos::View<I8 **, HostLayout, HostMemSpace>;
-using ArrayHost2DR4   = Kokkos::View<R4 **, HostLayout, HostMemSpace>;
-using ArrayHost2DR8   = Kokkos::View<R8 **, HostLayout, HostMemSpace>;
-using ArrayHost2DReal = Kokkos::View<Real **, HostLayout, HostMemSpace>;
-using ArrayHost3DI4   = Kokkos::View<I4 ***, HostLayout, HostMemSpace>;
-using ArrayHost3DI8   = Kokkos::View<I8 ***, HostLayout, HostMemSpace>;
-using ArrayHost3DR4   = Kokkos::View<R4 ***, HostLayout, HostMemSpace>;
-using ArrayHost3DR8   = Kokkos::View<R8 ***, HostLayout, HostMemSpace>;
-using ArrayHost3DReal = Kokkos::View<Real ***, HostLayout, HostMemSpace>;
-using ArrayHost4DI4   = Kokkos::View<I4 ****, HostLayout, HostMemSpace>;
-using ArrayHost4DI8   = Kokkos::View<I8 ****, HostLayout, HostMemSpace>;
-using ArrayHost4DR4   = Kokkos::View<R4 ****, HostLayout, HostMemSpace>;
-using ArrayHost4DR8   = Kokkos::View<R8 ****, HostLayout, HostMemSpace>;
-using ArrayHost4DReal = Kokkos::View<Real ****, HostLayout, HostMemSpace>;
-using ArrayHost5DI4   = Kokkos::View<I4 *****, HostLayout, HostMemSpace>;
-using ArrayHost5DI8   = Kokkos::View<I8 *****, HostLayout, HostMemSpace>;
-using ArrayHost5DR4   = Kokkos::View<R4 *****, HostLayout, HostMemSpace>;
-using ArrayHost5DR8   = Kokkos::View<R8 *****, HostLayout, HostMemSpace>;
-using ArrayHost5DReal = Kokkos::View<Real *****, HostLayout, HostMemSpace>;
+using HostArray1DI4   = Kokkos::View<I4 *, HostMemLayout, HostMemSpace>;
+using HostArray1DI8   = Kokkos::View<I8 *, HostMemLayout, HostMemSpace>;
+using HostArray1DR4   = Kokkos::View<R4 *, HostMemLayout, HostMemSpace>;
+using HostArray1DR8   = Kokkos::View<R8 *, HostMemLayout, HostMemSpace>;
+using HostArray1DReal = Kokkos::View<Real *, HostMemLayout, HostMemSpace>;
+using HostArray2DI4   = Kokkos::View<I4 **, HostMemLayout, HostMemSpace>;
+using HostArray2DI8   = Kokkos::View<I8 **, HostMemLayout, HostMemSpace>;
+using HostArray2DR4   = Kokkos::View<R4 **, HostMemLayout, HostMemSpace>;
+using HostArray2DR8   = Kokkos::View<R8 **, HostMemLayout, HostMemSpace>;
+using HostArray2DReal = Kokkos::View<Real **, HostMemLayout, HostMemSpace>;
+using HostArray3DI4   = Kokkos::View<I4 ***, HostMemLayout, HostMemSpace>;
+using HostArray3DI8   = Kokkos::View<I8 ***, HostMemLayout, HostMemSpace>;
+using HostArray3DR4   = Kokkos::View<R4 ***, HostMemLayout, HostMemSpace>;
+using HostArray3DR8   = Kokkos::View<R8 ***, HostMemLayout, HostMemSpace>;
+using HostArray3DReal = Kokkos::View<Real ***, HostMemLayout, HostMemSpace>;
+using HostArray4DI4   = Kokkos::View<I4 ****, HostMemLayout, HostMemSpace>;
+using HostArray4DI8   = Kokkos::View<I8 ****, HostMemLayout, HostMemSpace>;
+using HostArray4DR4   = Kokkos::View<R4 ****, HostMemLayout, HostMemSpace>;
+using HostArray4DR8   = Kokkos::View<R8 ****, HostMemLayout, HostMemSpace>;
+using HostArray4DReal = Kokkos::View<Real ****, HostMemLayout, HostMemSpace>;
+using HostArray5DI4   = Kokkos::View<I4 *****, HostMemLayout, HostMemSpace>;
+using HostArray5DI8   = Kokkos::View<I8 *****, HostMemLayout, HostMemSpace>;
+using HostArray5DR4   = Kokkos::View<R4 *****, HostMemLayout, HostMemSpace>;
+using HostArray5DR8   = Kokkos::View<R8 *****, HostMemLayout, HostMemSpace>;
+using HostArray5DReal = Kokkos::View<Real *****, HostMemLayout, HostMemSpace>;
 
 } // end namespace OMEGA
 
