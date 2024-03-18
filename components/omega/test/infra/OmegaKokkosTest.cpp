@@ -27,12 +27,13 @@ int main(int argc, char **argv) {
 
     Kokkos::initialize( argc, argv );
     {
+
+      #ifdef OMEGA_TARGET_DEVICE
       // Allocate y, x vectors and Matrix A on device.
       Array1DR8 y( "y", N );
       Array1DR8 x( "x", M );
       Array2DR8 A( "A", N, M );
 
-      #ifdef OMEGA_TARGET_DEVICE
       // Create host mirrors of device views.
       Array1DR8::HostMirror h_y = createHostMirror( y );
       Array1DR8::HostMirror h_x = createHostMirror( x );
@@ -61,9 +62,27 @@ int main(int argc, char **argv) {
       Kokkos::deep_copy( A, h_A );
       #else
 
-      Array1DR8 &h_y = y;
-      Array1DR8 &h_x = x;
-      Array2DR8 &h_A = A;
+      // Allocate y, x vectors and Matrix A on device.
+      HostArray1DR8 y( "y", N );
+      HostArray1DR8 x( "x", M );
+      HostArray2DR8 A( "A", N, M );
+
+      // Initialize y vector on host.
+      for ( int i = 0; i < N; ++i ) {
+        y( i ) = 1;
+      }
+
+      // Initialize x vector on host.
+      for ( int i = 0; i < M; ++i ) {
+        x( i ) = 1;
+      }
+
+      // Initialize A matrix on host.
+      for ( int j = 0; j < N; ++j ) {
+        for ( int i = 0; i < M; ++i ) {
+          A( j, i ) = 1;
+        }
+      }
 
       #endif
 
@@ -100,6 +119,7 @@ int main(int argc, char **argv) {
         if ( result != solution ) {
           std::cout << "  FAIL: result( " << result << " ) != solution( "
                << solution << " )" << std::endl;
+          RetVal -= -1;
         }
 
         // Calculate time.
