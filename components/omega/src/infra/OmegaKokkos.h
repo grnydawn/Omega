@@ -16,10 +16,11 @@ namespace OMEGA {
 
 using ExecSpace = MemSpace::execution_space;
 
+// TODO: change to function from macro
 #ifdef OMEGA_TARGET_DEVICE
 
-using createHostMirror  = Kokkos::create_mirror_view;
-using createHostCopy    = Kokkos::create_mirror_view_and_copy;
+#define createHostMirror  Kokkos::create_mirror_view
+#define createHostCopy    Kokkos::create_mirror_view_and_copy
 
 #endif
 
