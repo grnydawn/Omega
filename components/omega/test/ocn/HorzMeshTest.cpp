@@ -10,6 +10,7 @@
 
 #include "HorzMesh.h"
 #include "DataTypes.h"
+#include "OmegaKokkos.h"
 #include "Decomp.h"
 #include "Halo.h"
 #include "IO.h"
@@ -644,8 +645,10 @@ int main(int argc, char *argv[]) {
    // read values
    // Tests that halo values are read in correctly
    OMEGA::Halo MyHalo(DefEnv, DefDecomp);
-   OMEGA::ArrayHost1DR8 XCellTest("XCellTest", Mesh->NCellsSize);
-   Mesh->XCellH.deep_copy_to(XCellTest);
+   OMEGA::HostArray1DR8 XCellTest("XCellTest", Mesh->NCellsSize);
+   //Mesh->XCellH.deep_copy_to(XCellTest);
+   deepCopy(XCellTest, Mesh->XCellH);
+
    for (int Cell = Mesh->NCellsOwned; Cell < Mesh->NCellsAll; Cell++) {
       XCellTest(Cell) = 0.0;
    }
@@ -669,8 +672,10 @@ int main(int argc, char *argv[]) {
    // Perform halo exhange on owned edge only array and compare
    // read values
    // Tests that halo values are read in correctly
-   OMEGA::ArrayHost1DR8 XEdgeTest("XEdgeTest", Mesh->NEdgesSize);
-   Mesh->XEdgeH.deep_copy_to(XEdgeTest);
+   OMEGA::HostArray1DR8 XEdgeTest("XEdgeTest", Mesh->NEdgesSize);
+   //Mesh->XEdgeH.deep_copy_to(XEdgeTest);
+   deepCopy(XEdgeTest, Mesh->XEdgeH);
+
    for (int Edge = Mesh->NEdgesOwned; Edge < Mesh->NEdgesAll; Edge++) {
       XEdgeTest(Edge) = 0.0;
    }
@@ -694,8 +699,10 @@ int main(int argc, char *argv[]) {
    // Perform halo exhange on owned vertex only array and compare
    // read values
    // Tests that halo values are read in correctly
-   OMEGA::ArrayHost1DR8 XVertexTest("XVertexTest", Mesh->NVerticesSize);
-   Mesh->XVertexH.deep_copy_to(XVertexTest);
+   OMEGA::HostArray1DR8 XVertexTest("XVertexTest", Mesh->NVerticesSize);
+   //Mesh->XVertexH.deep_copy_to(XVertexTest);
+   deepCopy(XVertexTest, Mesh->XVertexH);
+
    for (int Vertex = Mesh->NVerticesOwned; Vertex < Mesh->NVerticesAll;
         Vertex++) {
       XVertexTest(Vertex) = 0.0;

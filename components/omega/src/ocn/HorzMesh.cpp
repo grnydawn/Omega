@@ -11,6 +11,7 @@
 
 #include "HorzMesh.h"
 #include "DataTypes.h"
+#include "OmegaKokkos.h"
 #include "Decomp.h"
 #include "IO.h"
 #include "Logging.h"
@@ -279,35 +280,35 @@ void HorzMesh::readCoordinates() {
 
    // Read mesh cell coordinates
    int XCellID;
-   XCellH = ArrayHost1DR8("XCell", NCellsSize);
+   XCellH = HostArray1DR8("XCell", NCellsSize);
    Err    = IO::readArray(XCellH.data(), NCellsAll, "xCell", MeshFileID,
                           CellDecompR8, XCellID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading xCell");
 
    int YCellID;
-   YCellH = ArrayHost1DR8("YCell", NCellsSize);
+   YCellH = HostArray1DR8("YCell", NCellsSize);
    Err    = IO::readArray(YCellH.data(), NCellsAll, "yCell", MeshFileID,
                           CellDecompR8, YCellID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading yCell");
 
    int ZCellID;
-   ZCellH = ArrayHost1DR8("ZCell", NCellsSize);
+   ZCellH = HostArray1DR8("ZCell", NCellsSize);
    Err    = IO::readArray(ZCellH.data(), NCellsAll, "zCell", MeshFileID,
                           CellDecompR8, ZCellID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading zCell");
 
    int LonCellID;
-   LonCellH = ArrayHost1DR8("LonCell", NCellsSize);
+   LonCellH = HostArray1DR8("LonCell", NCellsSize);
    Err      = IO::readArray(LonCellH.data(), NCellsAll, "lonCell", MeshFileID,
                             CellDecompR8, LonCellID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading lonCell");
 
    int LatCellID;
-   LatCellH = ArrayHost1DR8("LatCell", NCellsSize);
+   LatCellH = HostArray1DR8("LatCell", NCellsSize);
    Err      = IO::readArray(LatCellH.data(), NCellsAll, "latCell", MeshFileID,
                             CellDecompR8, LatCellID);
    if (Err != 0)
@@ -315,35 +316,35 @@ void HorzMesh::readCoordinates() {
 
    // Read mesh edge coordinateID
    int XEdgeID;
-   XEdgeH = ArrayHost1DR8("XEdge", NEdgesSize);
+   XEdgeH = HostArray1DR8("XEdge", NEdgesSize);
    Err    = IO::readArray(XEdgeH.data(), NEdgesAll, "xEdge", MeshFileID,
                           EdgeDecompR8, XEdgeID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading xEdge");
 
    int YEdgeID;
-   YEdgeH = ArrayHost1DR8("YEdge", NEdgesSize);
+   YEdgeH = HostArray1DR8("YEdge", NEdgesSize);
    Err    = IO::readArray(YEdgeH.data(), NEdgesAll, "yEdge", MeshFileID,
                           EdgeDecompR8, YEdgeID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading yEdge");
 
    int ZEdgeID;
-   ZEdgeH = ArrayHost1DR8("ZEdge", NEdgesSize);
+   ZEdgeH = HostArray1DR8("ZEdge", NEdgesSize);
    Err    = IO::readArray(ZEdgeH.data(), NEdgesAll, "zEdge", MeshFileID,
                           EdgeDecompR8, ZEdgeID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading zEdge");
 
    int LonEdgeID;
-   LonEdgeH = ArrayHost1DR8("LonEdge", NEdgesSize);
+   LonEdgeH = HostArray1DR8("LonEdge", NEdgesSize);
    Err      = IO::readArray(LonEdgeH.data(), NEdgesAll, "lonEdge", MeshFileID,
                             EdgeDecompR8, LonEdgeID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading lonEdge");
 
    int LatEdgeID;
-   LatEdgeH = ArrayHost1DR8("LatEdge", NEdgesSize);
+   LatEdgeH = HostArray1DR8("LatEdge", NEdgesSize);
    Err      = IO::readArray(LatEdgeH.data(), NEdgesAll, "latEdge", MeshFileID,
                             EdgeDecompR8, LatEdgeID);
    if (Err != 0)
@@ -351,35 +352,35 @@ void HorzMesh::readCoordinates() {
 
    // Read mesh vertex coordinates
    int XVertexID;
-   XVertexH = ArrayHost1DR8("XVertex", NVerticesSize);
+   XVertexH = HostArray1DR8("XVertex", NVerticesSize);
    Err = IO::readArray(XVertexH.data(), NVerticesAll, "xVertex", MeshFileID,
                        VertexDecompR8, XVertexID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading xVertex");
 
    int YVertexID;
-   YVertexH = ArrayHost1DR8("YVertex", NVerticesSize);
+   YVertexH = HostArray1DR8("YVertex", NVerticesSize);
    Err = IO::readArray(YVertexH.data(), NVerticesAll, "yVertex", MeshFileID,
                        VertexDecompR8, YVertexID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading yVertex");
 
    int ZVertexID;
-   ZVertexH = ArrayHost1DR8("ZVertex", NVerticesSize);
+   ZVertexH = HostArray1DR8("ZVertex", NVerticesSize);
    Err = IO::readArray(ZVertexH.data(), NVerticesAll, "zVertex", MeshFileID,
                        VertexDecompR8, ZVertexID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading zVertex");
 
    int LonVertexID;
-   LonVertexH = ArrayHost1DR8("LonVertex", NVerticesSize);
+   LonVertexH = HostArray1DR8("LonVertex", NVerticesSize);
    Err = IO::readArray(LonVertexH.data(), NVerticesAll, "lonVertex", MeshFileID,
                        VertexDecompR8, LonVertexID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading lonVertex");
 
    int LatVertexID;
-   LatVertexH = ArrayHost1DR8("LatVertex", NVerticesSize);
+   LatVertexH = HostArray1DR8("LatVertex", NVerticesSize);
    Err = IO::readArray(LatVertexH.data(), NVerticesAll, "latVertex", MeshFileID,
                        VertexDecompR8, LatVertexID);
    if (Err != 0)
@@ -394,7 +395,7 @@ void HorzMesh::readBottomDepth() {
    I4 Err;
 
    int BottomDepthID;
-   BottomDepthH = ArrayHost1DR8("BottomDepth", NCellsSize);
+   BottomDepthH = HostArray1DR8("BottomDepth", NCellsSize);
    Err          = IO::readArray(BottomDepthH.data(), NCellsAll, "bottomDepth",
                                 MeshFileID, CellDecompR8, BottomDepthID);
    if (Err != 0)
@@ -410,42 +411,42 @@ void HorzMesh::readMeasurements() {
    I4 Err;
 
    int AreaCellID;
-   AreaCellH = ArrayHost1DR8("AreaCell", NCellsSize);
+   AreaCellH = HostArray1DR8("AreaCell", NCellsSize);
    Err = IO::readArray(AreaCellH.data(), NCellsAll, "areaCell", MeshFileID,
                        CellDecompR8, AreaCellID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading areaCell");
 
    int AreaTriangleID;
-   AreaTriangleH = ArrayHost1DR8("AreaTriangle", NVerticesSize);
+   AreaTriangleH = HostArray1DR8("AreaTriangle", NVerticesSize);
    Err = IO::readArray(AreaTriangleH.data(), NVerticesAll, "areaTriangle",
                        MeshFileID, VertexDecompR8, AreaTriangleID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading areaTriangle");
 
    int DvEdgeID;
-   DvEdgeH = ArrayHost1DR8("DvEdge", NEdgesSize);
+   DvEdgeH = HostArray1DR8("DvEdge", NEdgesSize);
    Err     = IO::readArray(DvEdgeH.data(), NEdgesAll, "dvEdge", MeshFileID,
                            EdgeDecompR8, DvEdgeID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading dvEdge");
 
    int DcEdgeID;
-   DcEdgeH = ArrayHost1DR8("DcEdge", NEdgesSize);
+   DcEdgeH = HostArray1DR8("DcEdge", NEdgesSize);
    Err     = IO::readArray(DcEdgeH.data(), NEdgesAll, "dcEdge", MeshFileID,
                            EdgeDecompR8, DcEdgeID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading dcEdge");
 
    int AngleEdgeID;
-   AngleEdgeH = ArrayHost1DR8("AngleEdge", NEdgesSize);
+   AngleEdgeH = HostArray1DR8("AngleEdge", NEdgesSize);
    Err = IO::readArray(AngleEdgeH.data(), NEdgesAll, "angleEdge", MeshFileID,
                        EdgeDecompR8, AngleEdgeID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading angleEdge");
 
    int MeshDensityID;
-   MeshDensityH = ArrayHost1DR8("MeshDensity", NCellsSize);
+   MeshDensityH = HostArray1DR8("MeshDensity", NCellsSize);
    Err          = IO::readArray(MeshDensityH.data(), NCellsAll, "meshDensity",
                                 MeshFileID, CellDecompR8, MeshDensityID);
    if (Err != 0)
@@ -453,7 +454,7 @@ void HorzMesh::readMeasurements() {
 
    int KiteAreasOnVertexID;
    KiteAreasOnVertexH =
-       ArrayHost2DR8("KiteAreasOnVertex", NVerticesSize, VertexDegree);
+       HostArray2DR8("KiteAreasOnVertex", NVerticesSize, VertexDegree);
    Err = IO::readArray(KiteAreasOnVertexH.data(), NVerticesAll * VertexDegree,
                        "kiteAreasOnVertex", MeshFileID, OnVertexDecompR8,
                        KiteAreasOnVertexID);
@@ -469,7 +470,7 @@ void HorzMesh::readWeights() {
    I4 Err;
 
    int WeightsOnEdgeID;
-   WeightsOnEdgeH = ArrayHost2DR8("WeightsOnEdge", NEdgesSize, MaxEdges2);
+   WeightsOnEdgeH = HostArray2DR8("WeightsOnEdge", NEdgesSize, MaxEdges2);
    Err            = IO::readArray(WeightsOnEdgeH.data(), NEdgesAll * MaxEdges2,
                                   "weightsOnEdge", MeshFileID, OnEdgeDecompR8,
                                   WeightsOnEdgeID);
@@ -485,21 +486,21 @@ void HorzMesh::readCoriolis() {
    int Err;
 
    int FCellID;
-   FCellH = ArrayHost1DR8("FCell", NCellsSize);
+   FCellH = HostArray1DR8("FCell", NCellsSize);
    Err    = IO::readArray(FCellH.data(), NCellsAll, "fCell", MeshFileID,
                           CellDecompR8, FCellID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading fCell");
 
    int FVertexID;
-   FVertexH = ArrayHost1DR8("FVertex", NVerticesSize);
+   FVertexH = HostArray1DR8("FVertex", NVerticesSize);
    Err = IO::readArray(FVertexH.data(), NVerticesAll, "fVertex", MeshFileID,
                        VertexDecompR8, FVertexID);
    if (Err != 0)
       LOG_CRITICAL("HorzMesh: error reading fVertex");
 
    int FEdgeID;
-   FEdgeH = ArrayHost1DR8("FEdge", NEdgesSize);
+   FEdgeH = HostArray1DR8("FEdge", NEdgesSize);
    Err    = IO::readArray(FEdgeH.data(), NEdgesAll, "fEdge", MeshFileID,
                           EdgeDecompR8, FEdgeID);
    if (Err != 0)
@@ -512,6 +513,7 @@ void HorzMesh::readCoriolis() {
 void HorzMesh::computeEdgeSign() {
 
    EdgeSignOnCell = Array2DR8("EdgeSignOnCell", NCellsSize, MaxEdges);
+/*
    yakl::c::parallel_for(
        yakl::c::SimpleBounds<1>(NCellsAll), YAKL_LAMBDA(int Cell) {
           for (int i = 0; i < NEdgesOnCell(Cell); i++) {
@@ -525,10 +527,31 @@ void HorzMesh::computeEdgeSign() {
              }
           }
        });
-   EdgeSignOnCellH = EdgeSignOnCell.createHostCopy();
+*/
+   parallelFor(
+       {NCellsAll}, KOKKOS_LAMBDA(int Cell) {
+          for (int i = 0; i < NEdgesOnCell(Cell); i++) {
+             int Edge = EdgesOnCell(Cell, i);
+
+             // Vector points from cell 0 to cell 1
+             if (Cell == CellsOnEdge(Edge, 0)) {
+                EdgeSignOnCell(Cell, i) = -1.0;
+             } else {
+                EdgeSignOnCell(Cell, i) = 1.0;
+             }
+          }
+       });
+
+   //EdgeSignOnCellH = EdgeSignOnCell.createHostCopy();
+   #ifdef OMEGA_TARGET_DEVICE
+       EdgeSignOnCellH = createHostCopy(HostMemSpace(), EdgeSignOnCell);
+   #else
+       EdgeSignOnCellH = EdgeSignOnCell;
+   #endif
 
    EdgeSignOnVertex =
        Array2DR8("EdgeSignOnVertex", NVerticesSize, VertexDegree);
+/*
    yakl::c::parallel_for(
        yakl::c::SimpleBounds<1>(NVerticesAll), YAKL_LAMBDA(int Vertex) {
           for (int i = 0; i < VertexDegree; i++) {
@@ -542,7 +565,26 @@ void HorzMesh::computeEdgeSign() {
              }
           }
        });
-   EdgeSignOnVertexH = EdgeSignOnVertex.createHostCopy();
+*/
+   parallelFor(
+       {NVerticesAll}, KOKKOS_LAMBDA(int Vertex) {
+          for (int i = 0; i < VertexDegree; i++) {
+             int Edge = EdgesOnVertex(Vertex, i);
+
+             // Vector points from vertex 0 to vertex 1
+             if (Vertex == VerticesOnEdge(Edge, 0)) {
+                EdgeSignOnVertex(Vertex, i) = -1.0;
+             } else {
+                EdgeSignOnVertex(Vertex, i) = 1.0;
+             }
+          }
+       });
+   //EdgeSignOnVertexH = EdgeSignOnVertex.createHostCopy();
+   #ifdef OMEGA_TARGET_DEVICE
+       EdgeSignOnVertexH = createHostCopy(HostMemSpace(), EdgeSignOnVertex);
+   #else
+       EdgeSignOnVertexH = EdgeSignOnVertex;
+   #endif
 
 } // end computeEdgeSign
 
@@ -550,6 +592,7 @@ void HorzMesh::computeEdgeSign() {
 // Perform copy to device for mesh variables
 void HorzMesh::copyToDevice() {
 
+/*
    AreaCell          = AreaCellH.createDeviceCopy();
    AreaTriangle      = AreaTriangleH.createDeviceCopy();
    KiteAreasOnVertex = KiteAreasOnVertexH.createDeviceCopy();
@@ -559,6 +602,18 @@ void HorzMesh::copyToDevice() {
    WeightsOnEdge     = WeightsOnEdgeH.createDeviceCopy();
    FVertex           = FVertexH.createDeviceCopy();
    BottomDepth       = BottomDepthH.createDeviceCopy();
+*/
+
+   AreaCell          = createDeviceCopy(AreaCellH, "AreaCell");
+   AreaTriangle      = createDeviceCopy(AreaTriangleH, "AreaTriangle");
+   KiteAreasOnVertex = createDeviceCopy(KiteAreasOnVertexH, "KiteAreasOnVertex");
+   DcEdge            = createDeviceCopy(DcEdgeH, "DcEdge");
+   DvEdge            = createDeviceCopy(DvEdgeH, "DvEdge");
+   AngleEdge         = createDeviceCopy(AngleEdgeH, "AngleEdge");
+   WeightsOnEdge     = createDeviceCopy(WeightsOnEdgeH, "WeightsOnEdge");
+   FVertex           = createDeviceCopy(FVertexH, "FVertex");
+   BottomDepth       = createDeviceCopy(BottomDepthH, "BottomDepth");
+
 
 } // end copyToDevice
 

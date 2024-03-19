@@ -55,8 +55,8 @@ int main(int argc, char *argv[]) {
 
    // Initialize the global MPI environment
    MPI_Init(&argc, &argv);
-   yakl::init();
-
+   Kokkos::initialize();
+   {
    // Call initialization routine to create the default decomposition
    // and initialize the parallel IO library
    int Err = initIOTest();
@@ -91,24 +91,24 @@ int main(int argc, char *argv[]) {
    OMEGA::I4 NVerticesGlobal = DefDecomp->NVerticesGlobal;
    OMEGA::I4 NVertLevels     = 128;
 
-   OMEGA::ArrayHost2DI4 RefI4Cell("RefI4Cell", NCellsSize, NVertLevels);
-   OMEGA::ArrayHost2DI8 RefI8Cell("RefI8Cell", NCellsSize, NVertLevels);
-   OMEGA::ArrayHost2DR4 RefR4Cell("RefR4Cell", NCellsSize, NVertLevels);
-   OMEGA::ArrayHost2DR8 RefR8Cell("RefR8Cell", NCellsSize, NVertLevels);
+   OMEGA::HostArray2DI4 RefI4Cell("RefI4Cell", NCellsSize, NVertLevels);
+   OMEGA::HostArray2DI8 RefI8Cell("RefI8Cell", NCellsSize, NVertLevels);
+   OMEGA::HostArray2DR4 RefR4Cell("RefR4Cell", NCellsSize, NVertLevels);
+   OMEGA::HostArray2DR8 RefR8Cell("RefR8Cell", NCellsSize, NVertLevels);
 
-   OMEGA::ArrayHost2DI4 RefI4Edge("RefI4Edge", NEdgesSize, NVertLevels);
-   OMEGA::ArrayHost2DI8 RefI8Edge("RefI8Edge", NEdgesSize, NVertLevels);
-   OMEGA::ArrayHost2DR4 RefR4Edge("RefR4Edge", NEdgesSize, NVertLevels);
-   OMEGA::ArrayHost2DR8 RefR8Edge("RefR8Edge", NEdgesSize, NVertLevels);
+   OMEGA::HostArray2DI4 RefI4Edge("RefI4Edge", NEdgesSize, NVertLevels);
+   OMEGA::HostArray2DI8 RefI8Edge("RefI8Edge", NEdgesSize, NVertLevels);
+   OMEGA::HostArray2DR4 RefR4Edge("RefR4Edge", NEdgesSize, NVertLevels);
+   OMEGA::HostArray2DR8 RefR8Edge("RefR8Edge", NEdgesSize, NVertLevels);
 
-   OMEGA::ArrayHost2DI4 RefI4Vrtx("RefI4Vrtx", NVerticesSize, NVertLevels);
-   OMEGA::ArrayHost2DI8 RefI8Vrtx("RefI8Vrtx", NVerticesSize, NVertLevels);
-   OMEGA::ArrayHost2DR4 RefR4Vrtx("RefR4Vrtx", NVerticesSize, NVertLevels);
-   OMEGA::ArrayHost2DR8 RefR8Vrtx("RefR8Vrtx", NVerticesSize, NVertLevels);
+   OMEGA::HostArray2DI4 RefI4Vrtx("RefI4Vrtx", NVerticesSize, NVertLevels);
+   OMEGA::HostArray2DI8 RefI8Vrtx("RefI8Vrtx", NVerticesSize, NVertLevels);
+   OMEGA::HostArray2DR4 RefR4Vrtx("RefR4Vrtx", NVerticesSize, NVertLevels);
+   OMEGA::HostArray2DR8 RefR8Vrtx("RefR8Vrtx", NVerticesSize, NVertLevels);
 
-   OMEGA::ArrayHost1DI4 CellIDH = DefDecomp->CellIDH;
-   OMEGA::ArrayHost1DI4 EdgeIDH = DefDecomp->EdgeIDH;
-   OMEGA::ArrayHost1DI4 VrtxIDH = DefDecomp->VertexIDH;
+   OMEGA::HostArray1DI4 CellIDH = DefDecomp->CellIDH;
+   OMEGA::HostArray1DI4 EdgeIDH = DefDecomp->EdgeIDH;
+   OMEGA::HostArray1DI4 VrtxIDH = DefDecomp->VertexIDH;
 
    // Offset arrays - initialize to -1, corresponding to entries
    // that should not be written;
@@ -547,20 +547,20 @@ int main(int argc, char *argv[]) {
    }
 
    // Read arrays
-   OMEGA::ArrayHost2DI4 NewI4Cell("NewI4Cell", NCellsSize, NVertLevels);
-   OMEGA::ArrayHost2DI8 NewI8Cell("NewI8Cell", NCellsSize, NVertLevels);
-   OMEGA::ArrayHost2DR4 NewR4Cell("NewR4Cell", NCellsSize, NVertLevels);
-   OMEGA::ArrayHost2DR8 NewR8Cell("NewR8Cell", NCellsSize, NVertLevels);
+   OMEGA::HostArray2DI4 NewI4Cell("NewI4Cell", NCellsSize, NVertLevels);
+   OMEGA::HostArray2DI8 NewI8Cell("NewI8Cell", NCellsSize, NVertLevels);
+   OMEGA::HostArray2DR4 NewR4Cell("NewR4Cell", NCellsSize, NVertLevels);
+   OMEGA::HostArray2DR8 NewR8Cell("NewR8Cell", NCellsSize, NVertLevels);
 
-   OMEGA::ArrayHost2DI4 NewI4Edge("NewI4Edge", NEdgesSize, NVertLevels);
-   OMEGA::ArrayHost2DI8 NewI8Edge("NewI8Edge", NEdgesSize, NVertLevels);
-   OMEGA::ArrayHost2DR4 NewR4Edge("NewR4Edge", NEdgesSize, NVertLevels);
-   OMEGA::ArrayHost2DR8 NewR8Edge("NewR8Edge", NEdgesSize, NVertLevels);
+   OMEGA::HostArray2DI4 NewI4Edge("NewI4Edge", NEdgesSize, NVertLevels);
+   OMEGA::HostArray2DI8 NewI8Edge("NewI8Edge", NEdgesSize, NVertLevels);
+   OMEGA::HostArray2DR4 NewR4Edge("NewR4Edge", NEdgesSize, NVertLevels);
+   OMEGA::HostArray2DR8 NewR8Edge("NewR8Edge", NEdgesSize, NVertLevels);
 
-   OMEGA::ArrayHost2DI4 NewI4Vrtx("NewI4Vrtx", NVerticesSize, NVertLevels);
-   OMEGA::ArrayHost2DI8 NewI8Vrtx("NewI8Vrtx", NVerticesSize, NVertLevels);
-   OMEGA::ArrayHost2DR4 NewR4Vrtx("NewR4Vrtx", NVerticesSize, NVertLevels);
-   OMEGA::ArrayHost2DR8 NewR8Vrtx("NewR8Vrtx", NVerticesSize, NVertLevels);
+   OMEGA::HostArray2DI4 NewI4Vrtx("NewI4Vrtx", NVerticesSize, NVertLevels);
+   OMEGA::HostArray2DI8 NewI8Vrtx("NewI8Vrtx", NVerticesSize, NVertLevels);
+   OMEGA::HostArray2DR4 NewR4Vrtx("NewR4Vrtx", NVerticesSize, NVertLevels);
+   OMEGA::HostArray2DR8 NewR8Vrtx("NewR8Vrtx", NVerticesSize, NVertLevels);
 
    Err = OMEGA::IO::readArray(NewI4Cell.data(), NCellsSize * NVertLevels,
                               "CellI4", InFileID, DecompCellI4, VarIDCellI4);
@@ -827,7 +827,8 @@ int main(int argc, char *argv[]) {
    OMEGA::MachEnv::removeAll();
    if (Err == 0)
       LOG_INFO("IOTest: Successful completion");
-   yakl::finalize();
+   }
+   Kokkos::finalize();
    MPI_Finalize();
 
 } // end of main
