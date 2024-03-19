@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 
    // Initialize the global MPI environment
    MPI_Init(&argc, &argv);
-   yakl::init();
+   Kokkos::initialize();
 
    // Call initialization routine to create the default decomposition
    int Err = initDecompTest();
@@ -94,9 +94,9 @@ int main(int argc, char *argv[]) {
    OMEGA::I4 LocSumCells          = 0;
    OMEGA::I4 LocSumEdges          = 0;
    OMEGA::I4 LocSumVertices       = 0;
-   OMEGA::ArrayHost1DI4 CellIDH   = DefDecomp->CellIDH;
-   OMEGA::ArrayHost1DI4 EdgeIDH   = DefDecomp->EdgeIDH;
-   OMEGA::ArrayHost1DI4 VertexIDH = DefDecomp->VertexIDH;
+   OMEGA::HostArray1DI4 CellIDH   = DefDecomp->CellIDH;
+   OMEGA::HostArray1DI4 EdgeIDH   = DefDecomp->EdgeIDH;
+   OMEGA::HostArray1DI4 VertexIDH = DefDecomp->VertexIDH;
    for (int n = 0; n < DefDecomp->NCellsOwned; ++n)
       LocSumCells += CellIDH(n);
    for (int n = 0; n < DefDecomp->NEdgesOwned; ++n)
@@ -136,7 +136,7 @@ int main(int argc, char *argv[]) {
 
    if (Err == 0)
       LOG_INFO("DecompTest: Successful completion");
-   yakl::finalize();
+   Kokkos::finalize();
    MPI_Finalize();
 
 } // end of main

@@ -15,22 +15,12 @@ namespace OMEGA {
 
 using ExecSpace = MemSpace::execution_space;
 
-#ifdef OMEGA_TARGET_DEVICE
+#if defined(OMEGA_ENABLE_CUDA) || defined(OMEGA_ENABLE_HIP)
 
 using createHostMirror  = Kokkos::create_mirror_view;
 using createHostCopy    = Kokkos::create_mirror_view_and_copy;
 
 #endif
-
-#define deepCopy Kokkos::deep_copy
-
-template<typename ViewType>
-auto createDeviceCopy(const ViewType& sourceView, const std::string& viewName) -> Kokkos::View<typename ViewType::data_type, MemLayout, MemSpace> {
-    auto destView = Kokkos::View<typename ViewType::data_type, MemLayout, MemSpace>(viewName, sourceView.layout());
-    deepCopy(destView, sourceView);
-    return destView;
-}
-
 
 template <Int N>
 using Bounds = Kokkos::MDRangePolicy<ExecSpace,

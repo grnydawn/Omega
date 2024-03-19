@@ -17,7 +17,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "Kokkos_Core.hpp"
-#include "Kokkos_DualView.hpp"
+//#include <cstdint>
 
 namespace OMEGA {
 
@@ -41,8 +41,9 @@ KOKKOS_INLINE_FUNCTION constexpr Real operator""_Real(long double x) {
    return x;
 }
 
-// Aliases for Kokkos memory spaces and memory layouts
-// for target spaces
+// Aliases for Kokkos arrays - by default, all arrays are on the device and
+// use C-ordering.
+/// Aliases for Kokkos device arrays of various dimensions and types
 
 #ifdef OMEGA_ENABLE_CUDA
 using MemSpace  = Kokkos::CudaSpace;
@@ -84,9 +85,6 @@ template <> struct DefaultTile<5> {
     static constexpr Int value[] = {1, 1, 1, 1, 64};
 };
 
-// Aliases for Kokkos device arrays of various dimensions and types
-// by default, all arrays are on the device and use C-ordering.
-
 using Array1DI4   = Kokkos::View<I4 *, MemLayout, MemSpace>;
 using Array1DI8   = Kokkos::View<I8 *, MemLayout, MemSpace>;
 using Array1DR4   = Kokkos::View<R4 *, MemLayout, MemSpace>;
@@ -113,7 +111,8 @@ using Array5DR4   = Kokkos::View<R4 *****, MemLayout, MemSpace>;
 using Array5DR8   = Kokkos::View<R8 *****, MemLayout, MemSpace>;
 using Array5DReal = Kokkos::View<Real *****, MemLayout, MemSpace>;
 
-// Aliases for Kokkos host arrays of various dimensions and types
+// Also need similar aliases for arrays on the host
+/// Aliases for Kokkos host arrays of various dimensions and types
 using HostArray1DI4   = Kokkos::View<I4 *, HostMemLayout, HostMemSpace>;
 using HostArray1DI8   = Kokkos::View<I8 *, HostMemLayout, HostMemSpace>;
 using HostArray1DR4   = Kokkos::View<R4 *, HostMemLayout, HostMemSpace>;
@@ -139,33 +138,6 @@ using HostArray5DI8   = Kokkos::View<I8 *****, HostMemLayout, HostMemSpace>;
 using HostArray5DR4   = Kokkos::View<R4 *****, HostMemLayout, HostMemSpace>;
 using HostArray5DR8   = Kokkos::View<R8 *****, HostMemLayout, HostMemSpace>;
 using HostArray5DReal = Kokkos::View<Real *****, HostMemLayout, HostMemSpace>;
-
-// Aliases for Kokkos dual arrays of various dimensions and types
-using DualArray1DI4   = Kokkos::DualView<I4 *, MemLayout, MemSpace>;
-using DualArray1DI8   = Kokkos::DualView<I8 *, MemLayout, MemSpace>;
-using DualArray1DR4   = Kokkos::DualView<R4 *, MemLayout, MemSpace>;
-using DualArray1DR8   = Kokkos::DualView<R8 *, MemLayout, MemSpace>;
-using DualArray1DReal = Kokkos::DualView<Real *, MemLayout, MemSpace>;
-using DualArray2DI4   = Kokkos::DualView<I4 **, MemLayout, MemSpace>;
-using DualArray2DI8   = Kokkos::DualView<I8 **, MemLayout, MemSpace>;
-using DualArray2DR4   = Kokkos::DualView<R4 **, MemLayout, MemSpace>;
-using DualArray2DR8   = Kokkos::DualView<R8 **, MemLayout, MemSpace>;
-using DualArray2DReal = Kokkos::DualView<Real **, MemLayout, MemSpace>;
-using DualArray3DI4   = Kokkos::DualView<I4 ***, MemLayout, MemSpace>;
-using DualArray3DI8   = Kokkos::DualView<I8 ***, MemLayout, MemSpace>;
-using DualArray3DR4   = Kokkos::DualView<R4 ***, MemLayout, MemSpace>;
-using DualArray3DR8   = Kokkos::DualView<R8 ***, MemLayout, MemSpace>;
-using DualArray3DReal = Kokkos::DualView<Real ***, MemLayout, MemSpace>;
-using DualArray4DI4   = Kokkos::DualView<I4 ****, MemLayout, MemSpace>;
-using DualArray4DI8   = Kokkos::DualView<I8 ****, MemLayout, MemSpace>;
-using DualArray4DR4   = Kokkos::DualView<R4 ****, MemLayout, MemSpace>;
-using DualArray4DR8   = Kokkos::DualView<R8 ****, MemLayout, MemSpace>;
-using DualArray4DReal = Kokkos::DualView<Real ****, MemLayout, MemSpace>;
-using DualArray5DI4   = Kokkos::DualView<I4 *****, MemLayout, MemSpace>;
-using DualArray5DI8   = Kokkos::DualView<I8 *****, MemLayout, MemSpace>;
-using DualArray5DR4   = Kokkos::DualView<R4 *****, MemLayout, MemSpace>;
-using DualArray5DR8   = Kokkos::DualView<R8 *****, MemLayout, MemSpace>;
-using DualArray5DReal = Kokkos::DualView<Real *****, MemLayout, MemSpace>;
 
 } // end namespace OMEGA
 
