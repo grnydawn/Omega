@@ -39,11 +39,12 @@ if (NOT DEFINED PROJECT_NAME)
   init_standalone_build()
 
   project(${OMEGA_PROJECT_NAME}
-          LANGUAGES CXX
+          LANGUAGES C CXX
          )
 
   set(CMAKE_CXX_STANDARD 17) # used in E3SM
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(LINKER_LANGUAGE C)     # needed to support Cray C compiler wrapper
 
   # update variables for standalone build
   setup_standalone_build()
