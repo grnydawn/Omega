@@ -14,27 +14,47 @@
 
 namespace OMEGA {
 
+#define OMEGA_SCOPE(a, b) auto &a = b
+
 using ExecSpace = MemSpace::execution_space;
 
-// TODO: change to function from macro
 #ifdef OMEGA_TARGET_DEVICE
 
-#define createHostMirror Kokkos::create_mirror_view
-#define createHostCopy   Kokkos::create_mirror_view_and_copy
+// alias to follow Camel Naming Convention
+#define createHostMirror  Kokkos::create_mirror_view
+#define createHostCopy(V) Kokkos::create_mirror_view_and_copy(HostMemSpace(), V)
+
+template <typename VT>
+auto createDeviceCopy(const VT &view)
+    -> Kokkos::View<typename VT::data_type, MemLayout, MemSpace> {
+   auto destView = Kokkos::View<typename VT::data_type, MemLayout, MemSpace>(
+       "Device" + view.label(), view.layout());
+   Kokkos::deep_copy(destView, view);
+   return destView;
+}
+
+#else
+
+template <typename VT> auto _nullCopy(const VT &view) -> VT { return view; }
+
+template <typename VT> auto createHostMirror(const VT &view) -> VT {
+   return _nullCopy(view);
+}
+
+template <typename VT> auto createHostCopy(const VT &view) -> VT {
+   return _nullCopy(view);
+}
+
+template <typename VT> auto createDeviceCopy(const VT &view) -> VT {
+   return _nullCopy(view);
+}
+
+template <typename VT> void deepCopy(VT &vDst, const VT &vSrc) { vDst = vSrc; }
 
 #endif
 
+// alias to follow Camel Naming Convention
 #define deepCopy Kokkos::deep_copy
-
-template <typename ViewType>
-auto createDeviceCopy(const ViewType &sourceView, const std::string &viewName)
-    -> Kokkos::View<typename ViewType::data_type, MemLayout, MemSpace> {
-   auto destView =
-       Kokkos::View<typename ViewType::data_type, MemLayout, MemSpace>(
-           viewName, sourceView.layout());
-   deepCopy(destView, sourceView);
-   return destView;
-}
 
 /*
 template<typename V>

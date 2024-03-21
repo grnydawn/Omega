@@ -34,59 +34,58 @@ using Real = float;
 using Real = double;
 #endif
 
-using Int  = int;
+using Int = int;
 
 // user-defined literal for generic reals
 KOKKOS_INLINE_FUNCTION constexpr Real operator""_Real(long double x) {
    return x;
 }
 
-// Aliases for Kokkos memory spaces and memory layouts
-// for target spaces
-
-#ifdef OMEGA_ENABLE_CUDA
-using MemSpace  = Kokkos::CudaSpace;
-using MemLayout = Kokkos::LayoutRight;
+// Aliases for Kokkos memory spaces
+#ifdef OMEGA_ENABLE_OPENMP
+using MemSpace = Kokkos::HostSpace;
 #endif
 
 #ifdef OMEGA_ENABLE_HIP
-using MemSpace  = Kokkos::Experimental::HIPSpace;
-using MemLayout = Kokkos::LayoutRight;
+using MemSpace = Kokkos::Experimental::HIPSpace;
 #endif
 
-#ifdef OMEGA_ENABLE_OPENMP
-using MemSpace  = Kokkos::HostSpace;
-using MemLayout = Kokkos::LayoutRight;
+#ifdef OMEGA_ENABLE_CUDA
+using MemSpace = Kokkos::CudaSpace;
 #endif
 
-using HostMemSpace  = Kokkos::HostSpace;
-using HostMemLayout = Kokkos::LayoutRight;
+// Aliases for Kokkos memory layouts
+using MemLayout    = Kokkos::LayoutRight;
+using MemInvLayout = Kokkos::LayoutLeft;
 
+using HostMemSpace     = Kokkos::HostSpace;
+using HostMemLayout    = Kokkos::LayoutRight;
+using HostMemInvLayout = Kokkos::LayoutLeft;
+
+// Default tile configurations
 template <Int N> struct DefaultTile;
 
 template <> struct DefaultTile<1> {
-    static constexpr Int value[] = {64};
+   static constexpr Int value[] = {64};
 };
 
 template <> struct DefaultTile<2> {
-    static constexpr Int value[] = {1, 64};
+   static constexpr Int value[] = {1, 64};
 };
 
 template <> struct DefaultTile<3> {
-    static constexpr Int value[] = {1, 1, 64};
+   static constexpr Int value[] = {1, 1, 64};
 };
 
 template <> struct DefaultTile<4> {
-    static constexpr Int value[] = {1, 1, 1, 64};
+   static constexpr Int value[] = {1, 1, 1, 64};
 };
 
 template <> struct DefaultTile<5> {
-    static constexpr Int value[] = {1, 1, 1, 1, 64};
+   static constexpr Int value[] = {1, 1, 1, 1, 64};
 };
 
 // Aliases for Kokkos device arrays of various dimensions and types
-// by default, all arrays are on the device and use C-ordering.
-
 using Array1DI4   = Kokkos::View<I4 *, MemLayout, MemSpace>;
 using Array1DI8   = Kokkos::View<I8 *, MemLayout, MemSpace>;
 using Array1DR4   = Kokkos::View<R4 *, MemLayout, MemSpace>;

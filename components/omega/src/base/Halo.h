@@ -252,21 +252,22 @@ class Halo {
 
       // Determine the number of array elements per cell, edge, or vertex
       // in the input array
-      //yakl::Dims MyDims = Array.get_dimensions();
-      //I4 NDims          = MyDims.size();
-      I4 NDims          = Array.Rank;
+      // yakl::Dims MyDims = Array.get_dimensions();
+      // I4 NDims          = MyDims.size();
+      // I4 NDims          = Array.rank();
+      I4 NDims = Array.Rank;
       if (NDims == 1) {
          TotSize = 1;
       } else if (NDims == 2) {
-         //TotSize = MyDims[1];
+         // TotSize = MyDims[1];
          TotSize = Array.extent(1);
       } else {
          TotSize = 1;
          for (int I = 0; I < NDims - 2; ++I) {
-            //TotSize *= MyDims[I];
+            // TotSize *= MyDims[I];
             TotSize *= Array.extent(I);
          }
-         //TotSize *= MyDims[NDims - 1];
+         // TotSize *= MyDims[NDims - 1];
          TotSize *= Array.extent(NDims - 1);
       }
 

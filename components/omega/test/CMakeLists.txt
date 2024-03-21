@@ -180,78 +180,78 @@ add_test(
   COMMAND ${MPI_EXEC} -n 8 -- ./${_TestDecompName}
 )
 
-###################
-## Halo test
-###################
-#
-#set(_TestHaloName testHalo.exe)
-#
-## Add halo test
-#add_executable(${_TestHaloName} base/HaloTest.cpp)
-#
-#target_include_directories(
+##################
+# Halo test
+##################
+
+set(_TestHaloName testHalo.exe)
+
+# Add halo test
+add_executable(${_TestHaloName} base/HaloTest.cpp)
+
+target_include_directories(
+  ${_TestHaloName}
+  PRIVATE
+  ${OMEGA_SOURCE_DIR}/src/base
+  ${OMEGA_SOURCE_DIR}/src/infra
+  ${Parmetis_INCLUDE_DIRS}
+)
+
+target_compile_definitions(
+  ${_TestHaloName}
+  PUBLIC
+  OMEGA_ARCH=${OMEGA_ARCH}
+)
+
+#target_compile_options(
 #  ${_TestHaloName}
 #  PRIVATE
-#  ${OMEGA_SOURCE_DIR}/src/base
-#  ${OMEGA_SOURCE_DIR}/src/infra
-#  ${Parmetis_INCLUDE_DIRS}
-#)
-#
-#target_compile_definitions(
-#  ${_TestHaloName}
-#  PUBLIC
-#  OMEGA_ARCH=${OMEGA_ARCH}
-#)
-#
-##target_compile_options(
-##  ${_TestHaloName}
-##  PRIVATE
-##  ${OMEGA_CXX_FLAGS}
-##)
-#
-#target_link_libraries(${_TestHaloName} ${OMEGA_LIB_NAME} Kokkos::kokkos spdlog parmetis metis pioc)
-#
-#add_test(
-#  NAME HALO_TEST
-#  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestHaloName}
+#  ${OMEGA_CXX_FLAGS}
 #)
 
-#################
-## HorzMesh test
-#################
-#
-#set(_TestHorzMeshName testHorzMesh.exe)
-#
-## Add Horizen Mesh test
-#add_executable(${_TestHorzMeshName} ocn/HorzMeshTest.cpp)
-#
-#target_include_directories(
+target_link_libraries(${_TestHaloName} ${OMEGA_LIB_NAME} Kokkos::kokkos spdlog parmetis metis pioc)
+
+add_test(
+  NAME HALO_TEST
+  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestHaloName}
+)
+
+################
+# HorzMesh test
+################
+
+set(_TestHorzMeshName testHorzMesh.exe)
+
+# Add Horizen Mesh test
+add_executable(${_TestHorzMeshName} ocn/HorzMeshTest.cpp)
+
+target_include_directories(
+  ${_TestHorzMeshName}
+  PRIVATE
+  ${OMEGA_SOURCE_DIR}/src/base
+  ${OMEGA_SOURCE_DIR}/src/infra
+  ${OMEGA_SOURCE_DIR}/src/ocn
+  ${Parmetis_INCLUDE_DIRS}
+)
+
+target_compile_definitions(
+  ${_TestHorzMeshName}
+  PUBLIC
+  OMEGA_ARCH=${OMEGA_ARCH}
+)
+
+#target_compile_options(
 #  ${_TestHorzMeshName}
 #  PRIVATE
-#  ${OMEGA_SOURCE_DIR}/src/base
-#  ${OMEGA_SOURCE_DIR}/src/infra
-#  ${OMEGA_SOURCE_DIR}/src/ocn
-#  ${Parmetis_INCLUDE_DIRS}
+#  ${OMEGA_LINK_OPTIONS}
 #)
-#
-#target_compile_definitions(
-#  ${_TestHorzMeshName}
-#  PUBLIC
-#  OMEGA_ARCH=${OMEGA_ARCH}
-#)
-#
-##target_compile_options(
-##  ${_TestHorzMeshName}
-##  PRIVATE
-##  ${OMEGA_LINK_OPTIONS}
-##)
-#
-#target_link_libraries(${_TestHorzMeshName} ${OMEGA_LIB_NAME} spdlog parmetis metis pioc)
-#
-#add_test(
-#  NAME HORZMESH_TEST
-#  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestHorzMeshName}
-#)
+
+target_link_libraries(${_TestHorzMeshName} ${OMEGA_LIB_NAME} Kokkos::kokkos spdlog parmetis metis pioc)
+
+add_test(
+  NAME HORZMESH_TEST
+  COMMAND ${MPI_EXEC} -n 8 -- ./${_TestHorzMeshName}
+)
 
 #############
 # IO test
@@ -408,8 +408,8 @@ set_tests_properties(
   LOGGING_TEST
   CONFIG_TEST
   DECOMP_TEST
-#  HALO_TEST
-#  HORZMESH_TEST
+  HALO_TEST
+  HORZMESH_TEST
   IO_TEST
   METADATA_TEST
   KOKKOS_TEST

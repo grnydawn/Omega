@@ -11,11 +11,11 @@
 
 #include "HorzMesh.h"
 #include "DataTypes.h"
-#include "OmegaKokkos.h"
 #include "Decomp.h"
 #include "IO.h"
 #include "Logging.h"
 #include "MachEnv.h"
+#include "OmegaKokkos.h"
 
 namespace OMEGA {
 
@@ -38,7 +38,6 @@ int HorzMesh::init() {
 
    // Retrieve this mesh and set pointer to DefaultHorzMesh
    HorzMesh::DefaultHorzMesh = HorzMesh::get("Default");
-
    return Err;
 }
 
@@ -512,108 +511,108 @@ void HorzMesh::readCoriolis() {
 // Compute the sign of edge contributions to a cell/vertex for each edge
 void HorzMesh::computeEdgeSign() {
 
-   EdgeSignOnCell = Array2DR8("EdgeSignOnCell", NCellsSize, MaxEdges);
-/*
-   yakl::c::parallel_for(
-       yakl::c::SimpleBounds<1>(NCellsAll), YAKL_LAMBDA(int Cell) {
-          for (int i = 0; i < NEdgesOnCell(Cell); i++) {
-             int Edge = EdgesOnCell(Cell, i);
+   auto EdgeSignOnCell = Array2DR8("EdgeSignOnCell", NCellsSize, MaxEdges);
 
-             // Vector points from cell 0 to cell 1
-             if (Cell == CellsOnEdge(Edge, 0)) {
-                EdgeSignOnCell(Cell, i) = -1.0;
-             } else {
-                EdgeSignOnCell(Cell, i) = 1.0;
-             }
-          }
-       });
-*/
+   //   yakl::c::parallel_for(
+   //       yakl::c::SimpleBounds<1>(NCellsAll), YAKL_LAMBDA(int Cell) {
+   //          for (int i = 0; i < NEdgesOnCell(Cell); i++) {
+   //             int Edge = EdgesOnCell(Cell, i);
+   //
+   //             // Vector points from cell 0 to cell 1
+   //             if (Cell == CellsOnEdge(Edge, 0)) {
+   //                EdgeSignOnCell(Cell, i) = -1.0;
+   //             } else {
+   //                EdgeSignOnCell(Cell, i) = 1.0;
+   //             }
+   //          }
+   //       });
+
+   OMEGA_SCOPE(o_NEdgesOnCell, NEdgesOnCell);
+   OMEGA_SCOPE(o_EdgesOnCell, EdgesOnCell);
+   OMEGA_SCOPE(o_CellsOnEdge, CellsOnEdge);
+   OMEGA_SCOPE(o_EdgeSignOnCell, EdgeSignOnCell);
+
    parallelFor(
        {NCellsAll}, KOKKOS_LAMBDA(int Cell) {
-          for (int i = 0; i < NEdgesOnCell(Cell); i++) {
-             int Edge = EdgesOnCell(Cell, i);
+          for (int i = 0; i < o_NEdgesOnCell(Cell); i++) {
+             int Edge = o_EdgesOnCell(Cell, i);
 
              // Vector points from cell 0 to cell 1
-             if (Cell == CellsOnEdge(Edge, 0)) {
-                EdgeSignOnCell(Cell, i) = -1.0;
+             if (Cell == o_CellsOnEdge(Edge, 0)) {
+                o_EdgeSignOnCell(Cell, i) = -1.0;
              } else {
-                EdgeSignOnCell(Cell, i) = 1.0;
+                o_EdgeSignOnCell(Cell, i) = 1.0;
              }
           }
        });
 
-   //EdgeSignOnCellH = EdgeSignOnCell.createHostCopy();
-   #ifdef OMEGA_TARGET_DEVICE
-       EdgeSignOnCellH = createHostCopy(HostMemSpace(), EdgeSignOnCell);
-   #else
-       EdgeSignOnCellH = EdgeSignOnCell;
-   #endif
+   // EdgeSignOnCellH = EdgeSignOnCell.createHostCopy();
+   EdgeSignOnCellH = createHostCopy(EdgeSignOnCell);
 
    EdgeSignOnVertex =
        Array2DR8("EdgeSignOnVertex", NVerticesSize, VertexDegree);
-/*
-   yakl::c::parallel_for(
-       yakl::c::SimpleBounds<1>(NVerticesAll), YAKL_LAMBDA(int Vertex) {
-          for (int i = 0; i < VertexDegree; i++) {
-             int Edge = EdgesOnVertex(Vertex, i);
+   //   yakl::c::parallel_for(
+   //       yakl::c::SimpleBounds<1>(NVerticesAll), YAKL_LAMBDA(int Vertex) {
+   //          for (int i = 0; i < VertexDegree; i++) {
+   //             int Edge = EdgesOnVertex(Vertex, i);
+   //
+   //             // Vector points from vertex 0 to vertex 1
+   //             if (Vertex == VerticesOnEdge(Edge, 0)) {
+   //                EdgeSignOnVertex(Vertex, i) = -1.0;
+   //             } else {
+   //                EdgeSignOnVertex(Vertex, i) = 1.0;
+   //             }
+   //          }
+   //       });
 
-             // Vector points from vertex 0 to vertex 1
-             if (Vertex == VerticesOnEdge(Edge, 0)) {
-                EdgeSignOnVertex(Vertex, i) = -1.0;
-             } else {
-                EdgeSignOnVertex(Vertex, i) = 1.0;
-             }
-          }
-       });
-*/
+   OMEGA_SCOPE(o_VertexDegree, VertexDegree);
+   OMEGA_SCOPE(o_EdgesOnVertex, EdgesOnVertex);
+   OMEGA_SCOPE(o_VerticesOnEdge, VerticesOnEdge);
+   OMEGA_SCOPE(o_EdgeSignOnVertex, EdgeSignOnVertex);
+
    parallelFor(
        {NVerticesAll}, KOKKOS_LAMBDA(int Vertex) {
-          for (int i = 0; i < VertexDegree; i++) {
-             int Edge = EdgesOnVertex(Vertex, i);
+          for (int i = 0; i < o_VertexDegree; i++) {
+             int Edge = o_EdgesOnVertex(Vertex, i);
 
              // Vector points from vertex 0 to vertex 1
-             if (Vertex == VerticesOnEdge(Edge, 0)) {
-                EdgeSignOnVertex(Vertex, i) = -1.0;
+             if (Vertex == o_VerticesOnEdge(Edge, 0)) {
+                o_EdgeSignOnVertex(Vertex, i) = -1.0;
              } else {
-                EdgeSignOnVertex(Vertex, i) = 1.0;
+                o_EdgeSignOnVertex(Vertex, i) = 1.0;
              }
           }
        });
-   //EdgeSignOnVertexH = EdgeSignOnVertex.createHostCopy();
-   #ifdef OMEGA_TARGET_DEVICE
-       EdgeSignOnVertexH = createHostCopy(HostMemSpace(), EdgeSignOnVertex);
-   #else
-       EdgeSignOnVertexH = EdgeSignOnVertex;
-   #endif
 
+   // EdgeSignOnVertexH = EdgeSignOnVertex.createHostCopy();
+   EdgeSignOnVertexH = createHostCopy(EdgeSignOnVertex);
 } // end computeEdgeSign
 
 //------------------------------------------------------------------------------
 // Perform copy to device for mesh variables
 void HorzMesh::copyToDevice() {
 
-/*
-   AreaCell          = AreaCellH.createDeviceCopy();
-   AreaTriangle      = AreaTriangleH.createDeviceCopy();
-   KiteAreasOnVertex = KiteAreasOnVertexH.createDeviceCopy();
-   DcEdge            = DcEdgeH.createDeviceCopy();
-   DvEdge            = DvEdgeH.createDeviceCopy();
-   AngleEdge         = AngleEdgeH.createDeviceCopy();
-   WeightsOnEdge     = WeightsOnEdgeH.createDeviceCopy();
-   FVertex           = FVertexH.createDeviceCopy();
-   BottomDepth       = BottomDepthH.createDeviceCopy();
-*/
+   /*
+      AreaCell          = AreaCellH.createDeviceCopy();
+      AreaTriangle      = AreaTriangleH.createDeviceCopy();
+      KiteAreasOnVertex = KiteAreasOnVertexH.createDeviceCopy();
+      DcEdge            = DcEdgeH.createDeviceCopy();
+      DvEdge            = DvEdgeH.createDeviceCopy();
+      AngleEdge         = AngleEdgeH.createDeviceCopy();
+      WeightsOnEdge     = WeightsOnEdgeH.createDeviceCopy();
+      FVertex           = FVertexH.createDeviceCopy();
+      BottomDepth       = BottomDepthH.createDeviceCopy();
+   */
 
-   AreaCell          = createDeviceCopy(AreaCellH, "AreaCell");
-   AreaTriangle      = createDeviceCopy(AreaTriangleH, "AreaTriangle");
-   KiteAreasOnVertex = createDeviceCopy(KiteAreasOnVertexH, "KiteAreasOnVertex");
-   DcEdge            = createDeviceCopy(DcEdgeH, "DcEdge");
-   DvEdge            = createDeviceCopy(DvEdgeH, "DvEdge");
-   AngleEdge         = createDeviceCopy(AngleEdgeH, "AngleEdge");
-   WeightsOnEdge     = createDeviceCopy(WeightsOnEdgeH, "WeightsOnEdge");
-   FVertex           = createDeviceCopy(FVertexH, "FVertex");
-   BottomDepth       = createDeviceCopy(BottomDepthH, "BottomDepth");
-
+   AreaCell          = createDeviceCopy(AreaCellH);
+   AreaTriangle      = createDeviceCopy(AreaTriangleH);
+   KiteAreasOnVertex = createDeviceCopy(KiteAreasOnVertexH);
+   DcEdge            = createDeviceCopy(DcEdgeH);
+   DvEdge            = createDeviceCopy(DvEdgeH);
+   AngleEdge         = createDeviceCopy(AngleEdgeH);
+   WeightsOnEdge     = createDeviceCopy(WeightsOnEdgeH);
+   FVertex           = createDeviceCopy(FVertexH);
+   BottomDepth       = createDeviceCopy(BottomDepthH);
 
 } // end copyToDevice
 

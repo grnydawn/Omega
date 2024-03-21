@@ -16,10 +16,10 @@
 
 #include "Decomp.h"
 #include "DataTypes.h"
-#include "OmegaKokkos.h"
 #include "IO.h"
 #include "Logging.h"
 #include "MachEnv.h"
+#include "OmegaKokkos.h"
 #include "mpi.h"
 #include "parmetis.h"
 
@@ -79,7 +79,7 @@ I4 srchVector(HostArray1DI4 InVector, // vector to search
 ) {
 
    // extract the vector length
-   //I4 VecSize  = InVector.totElems();
+   // I4 VecSize  = InVector.totElems();
    I4 VecSize  = InVector.size();
    I4 LocIndex = VecSize; // set default to size (return value if not found)
 
@@ -629,49 +629,49 @@ Decomp::Decomp(
 
    // Create device copies of all arrays
 
-   //NCellsHalo = NCellsHaloH.createDeviceCopy();
-   NCellsHalo = createDeviceCopy(NCellsHaloH, "NCellsHalo");
-   //CellID     = CellIDH.createDeviceCopy();
-   CellID = createDeviceCopy(CellIDH, "CellID");
-   //CellLoc    = CellLocH.createDeviceCopy();
-   CellLoc = createDeviceCopy(CellLocH, "CellLoc");
+   // NCellsHalo = NCellsHaloH.createDeviceCopy();
+   NCellsHalo = createDeviceCopy(NCellsHaloH);
+   // CellID     = CellIDH.createDeviceCopy();
+   CellID = createDeviceCopy(CellIDH);
+   // CellLoc    = CellLocH.createDeviceCopy();
+   CellLoc = createDeviceCopy(CellLocH);
 
-   //NEdgesHalo = NEdgesHaloH.createDeviceCopy();
-   NEdgesHalo = createDeviceCopy(NEdgesHaloH, "NEdgesHalo");
-   //EdgeID     = EdgeIDH.createDeviceCopy();
-   EdgeID = createDeviceCopy(EdgeIDH, "EdgeID");
-   //EdgeLoc    = EdgeLocH.createDeviceCopy();
-   EdgeLoc = createDeviceCopy(EdgeLocH, "EdgeLoc");
+   // NEdgesHalo = NEdgesHaloH.createDeviceCopy();
+   NEdgesHalo = createDeviceCopy(NEdgesHaloH);
+   // EdgeID     = EdgeIDH.createDeviceCopy();
+   EdgeID = createDeviceCopy(EdgeIDH);
+   // EdgeLoc    = EdgeLocH.createDeviceCopy();
+   EdgeLoc = createDeviceCopy(EdgeLocH);
 
-   //NVerticesHalo = NVerticesHaloH.createDeviceCopy();
-   NVerticesHalo = createDeviceCopy(NVerticesHaloH, "NVerticesHalo");
-   //VertexID      = VertexIDH.createDeviceCopy();
-   VertexID = createDeviceCopy(VertexIDH, "VertexID");
-   //VertexLoc     = VertexLocH.createDeviceCopy();
-   VertexLoc = createDeviceCopy(VertexLocH, "VertexLoc");
+   // NVerticesHalo = NVerticesHaloH.createDeviceCopy();
+   NVerticesHalo = createDeviceCopy(NVerticesHaloH);
+   // VertexID      = VertexIDH.createDeviceCopy();
+   VertexID = createDeviceCopy(VertexIDH);
+   // VertexLoc     = VertexLocH.createDeviceCopy();
+   VertexLoc = createDeviceCopy(VertexLocH);
 
-   //CellsOnCell    = CellsOnCellH.createDeviceCopy();
-   CellsOnCell = createDeviceCopy(CellsOnCellH, "CellsOnCell");
-   //EdgesOnCell    = EdgesOnCellH.createDeviceCopy();
-   EdgesOnCell = createDeviceCopy(EdgesOnCellH, "EdgesOnCell");
-   //VerticesOnCell = VerticesOnCellH.createDeviceCopy();
-   VerticesOnCell = createDeviceCopy(VerticesOnCellH, "VerticesOnCell");
-   //NEdgesOnCell   = NEdgesOnCellH.createDeviceCopy();
-   NEdgesOnCell = createDeviceCopy(NEdgesOnCellH, "NEdgesOnCell");
+   // CellsOnCell    = CellsOnCellH.createDeviceCopy();
+   CellsOnCell = createDeviceCopy(CellsOnCellH);
+   // EdgesOnCell    = EdgesOnCellH.createDeviceCopy();
+   EdgesOnCell = createDeviceCopy(EdgesOnCellH);
+   // VerticesOnCell = VerticesOnCellH.createDeviceCopy();
+   VerticesOnCell = createDeviceCopy(VerticesOnCellH);
+   // NEdgesOnCell   = NEdgesOnCellH.createDeviceCopy();
+   NEdgesOnCell = createDeviceCopy(NEdgesOnCellH);
 
-   //CellsOnEdge    = CellsOnEdgeH.createDeviceCopy();
-   CellsOnEdge = createDeviceCopy(CellsOnEdgeH, "CellsOnEdge");
-   //EdgesOnEdge    = EdgesOnEdgeH.createDeviceCopy();
-   EdgesOnEdge = createDeviceCopy(EdgesOnEdgeH, "EdgesOnEdge");
-   //VerticesOnEdge = VerticesOnEdgeH.createDeviceCopy();
-   VerticesOnEdge = createDeviceCopy(VerticesOnEdgeH, "VerticesOnEdge");
-   //NEdgesOnEdge   = NEdgesOnEdgeH.createDeviceCopy();
-   NEdgesOnEdge = createDeviceCopy(NEdgesOnEdgeH, "NEdgesOnEdge");
+   // CellsOnEdge    = CellsOnEdgeH.createDeviceCopy();
+   CellsOnEdge = createDeviceCopy(CellsOnEdgeH);
+   // EdgesOnEdge    = EdgesOnEdgeH.createDeviceCopy();
+   EdgesOnEdge = createDeviceCopy(EdgesOnEdgeH);
+   // VerticesOnEdge = VerticesOnEdgeH.createDeviceCopy();
+   VerticesOnEdge = createDeviceCopy(VerticesOnEdgeH);
+   // NEdgesOnEdge   = NEdgesOnEdgeH.createDeviceCopy();
+   NEdgesOnEdge = createDeviceCopy(NEdgesOnEdgeH);
 
-   //CellsOnVertex = CellsOnVertexH.createDeviceCopy();
-   CellsOnVertex = createDeviceCopy(CellsOnVertexH, "CellsOnVertex");
-   //EdgesOnVertex = EdgesOnVertexH.createDeviceCopy();
-   EdgesOnVertex = createDeviceCopy(EdgesOnVertexH, "EdgesOnVertex");
+   // CellsOnVertex = CellsOnVertexH.createDeviceCopy();
+   CellsOnVertex = createDeviceCopy(CellsOnVertexH);
+   // EdgesOnVertex = EdgesOnVertexH.createDeviceCopy();
+   EdgesOnVertex = createDeviceCopy(EdgesOnVertexH);
 
    // Assign this as the default decomposition
    AllDecomps.emplace(Name, *this);
@@ -1120,7 +1120,7 @@ int Decomp::partEdges(
    NEdgesHaloTmp(0) = HaloCount;
 
    HostArray1DI4 EdgeIDTmp("EdgeID", NEdgesSize);
-   //yakl::memset(EdgeIDTmp, NEdgesGlobal + 1);
+   // yakl::memset(EdgeIDTmp, NEdgesGlobal + 1);
    deepCopy(EdgeIDTmp, NEdgesGlobal + 1);
 
    // The owned and first halo of edges comes from the edges around
@@ -1358,7 +1358,7 @@ int Decomp::partVertices(
    NVerticesHaloTmp(0) = HaloCount;
 
    HostArray1DI4 VertexIDTmp("VertexID", NVerticesSize);
-   //yakl::memset(VertexIDTmp, NVerticesGlobal + 1);
+   // yakl::memset(VertexIDTmp, NVerticesGlobal + 1);
    deepCopy(VertexIDTmp, NVerticesGlobal + 1);
 
    // The owned and first halo of vertices comes from the vertices around
@@ -1502,10 +1502,10 @@ int Decomp::rearrangeCellArrays(
    HostArray2DI4 EdgesOnCellTmp("EdgesOnCell", NCellsSize, MaxEdges);
    HostArray2DI4 VerticesOnCellTmp("VerticesOnCell", NCellsSize, MaxEdges);
    HostArray1DI4 NEdgesOnCellTmp("NEdgesOnCell", NCellsSize);
-//   yakl::memset(CellsOnCellTmp, NCellsGlobal + 1);
-//   yakl::memset(EdgesOnCellTmp, NEdgesGlobal + 1);
-//   yakl::memset(VerticesOnCellTmp, NVerticesGlobal + 1);
-//   yakl::memset(NEdgesOnCellTmp, 0);
+   //   yakl::memset(CellsOnCellTmp, NCellsGlobal + 1);
+   //   yakl::memset(EdgesOnCellTmp, NEdgesGlobal + 1);
+   //   yakl::memset(VerticesOnCellTmp, NVerticesGlobal + 1);
+   //   yakl::memset(NEdgesOnCellTmp, 0);
    deepCopy(CellsOnCellTmp, NCellsGlobal + 1);
    deepCopy(EdgesOnCellTmp, NEdgesGlobal + 1);
    deepCopy(VerticesOnCellTmp, NVerticesGlobal + 1);
@@ -1631,10 +1631,10 @@ int Decomp::rearrangeEdgeArrays(
    HostArray2DI4 EdgesOnEdgeTmp("EdgesOnEdge", NEdgesSize, 2 * MaxEdges);
    HostArray2DI4 VerticesOnEdgeTmp("VerticesOnEdge", NEdgesSize, 2);
    HostArray1DI4 NEdgesOnEdgeTmp("NEdgesOnEdge", NEdgesSize);
-//   yakl::memset(CellsOnEdgeTmp, NCellsGlobal + 1);
-//   yakl::memset(EdgesOnEdgeTmp, NEdgesGlobal + 1);
-//   yakl::memset(VerticesOnEdgeTmp, NVerticesGlobal + 1);
-//   yakl::memset(NEdgesOnEdgeTmp, 0);
+   //   yakl::memset(CellsOnEdgeTmp, NCellsGlobal + 1);
+   //   yakl::memset(EdgesOnEdgeTmp, NEdgesGlobal + 1);
+   //   yakl::memset(VerticesOnEdgeTmp, NVerticesGlobal + 1);
+   //   yakl::memset(NEdgesOnEdgeTmp, 0);
    deepCopy(CellsOnEdgeTmp, NCellsGlobal + 1);
    deepCopy(EdgesOnEdgeTmp, NEdgesGlobal + 1);
    deepCopy(VerticesOnEdgeTmp, NVerticesGlobal + 1);
@@ -1768,8 +1768,8 @@ int Decomp::rearrangeVertexArrays(
    // and initialize to NXxGlobal+1 to denote a non-existent entry
    HostArray2DI4 CellsOnVertexTmp("CellsOnVertex", NVerticesSize, VertexDegree);
    HostArray2DI4 EdgesOnVertexTmp("EdgesOnVertex", NVerticesSize, VertexDegree);
-//   yakl::memset(CellsOnVertexTmp, NCellsGlobal + 1);
-//   yakl::memset(EdgesOnVertexTmp, NEdgesGlobal + 1);
+   //   yakl::memset(CellsOnVertexTmp, NCellsGlobal + 1);
+   //   yakl::memset(EdgesOnVertexTmp, NEdgesGlobal + 1);
    deepCopy(CellsOnVertexTmp, NCellsGlobal + 1);
    deepCopy(EdgesOnVertexTmp, NEdgesGlobal + 1);
 
