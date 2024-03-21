@@ -570,164 +570,162 @@ int main(int argc, char *argv[]) {
       } else {
          LOG_INFO("HorzMeshTest: weightsOnEdge test FAIL");
       }
-      /* YSK
-         // Test edgeSignOnCell
-         // Check that the sign corresponds with convention
-         // Tests that the edge sign values were calculated correctly
-         count = 0;
-         for (int Edge = 0; Edge < LocEdges; Edge++) {
-            int Cell0 = Mesh->CellsOnEdgeH(Edge, 0);
-            int iEdge0;
-            for (int i = 0; i < Mesh->NEdgesOnCellH(Cell0); i++) {
-               if (Mesh->EdgesOnCellH(Cell0, i) == Edge) {
-                  iEdge0 = i;
-                  break;
-               }
-            }
-            if (abs(Mesh->EdgeSignOnCellH(Cell0, iEdge0) + 1.0) > tol) {
-               count++;
-            }
-
-            int Cell1 = Mesh->CellsOnEdgeH(Edge, 1);
-            if (Cell1 < DefDecomp->NCellsAll) {
-               int iEdge1;
-               for (int i = 0; i < Mesh->NEdgesOnCellH(Cell1); i++) {
-                  if (Mesh->EdgesOnCellH(Cell1, i) == Edge) {
-                     iEdge1 = i;
-                     break;
-                  }
-               }
-               if (abs(Mesh->EdgeSignOnCellH(Cell1, iEdge1) - 1.0) > tol) {
-                  count++;
-               }
+      // Test edgeSignOnCell
+      // Check that the sign corresponds with convention
+      // Tests that the edge sign values were calculated correctly
+      count = 0;
+      for (int Edge = 0; Edge < LocEdges; Edge++) {
+         int Cell0 = Mesh->CellsOnEdgeH(Edge, 0);
+         int iEdge0;
+         for (int i = 0; i < Mesh->NEdgesOnCellH(Cell0); i++) {
+            if (Mesh->EdgesOnCellH(Cell0, i) == Edge) {
+               iEdge0 = i;
+               break;
             }
          }
-
-         if (count == 0) {
-            LOG_INFO("HorzMeshTest: edgeSignOnCell test PASS");
-         } else {
-            LOG_INFO("HorzMeshTest: edgeSignOnCell test FAIL");
+         if (abs(Mesh->EdgeSignOnCellH(Cell0, iEdge0) + 1.0) > tol) {
+            count++;
          }
 
-         // Test edgeSignOnVertex
-         // Check that the sign corresponds with convention
-         // Tests that the edge sign vlues were calculated correctly
-         count = 0;
-         for (int Edge = 0; Edge < LocEdges; Edge++) {
-            int Vertex0 = Mesh->VerticesOnEdgeH(Edge, 0);
-            int iEdge0;
-            for (int i = 0; i < Mesh->VertexDegree; i++) {
-               if (Mesh->EdgesOnVertexH(Vertex0, i) == Edge) {
-                  iEdge0 = i;
-                  break;
-               }
-            }
-            if (abs(Mesh->EdgeSignOnVertexH(Vertex0, iEdge0) + 1.0) > tol) {
-               count++;
-            }
-
-            int Vertex1 = Mesh->VerticesOnEdgeH(Edge, 1);
+         int Cell1 = Mesh->CellsOnEdgeH(Edge, 1);
+         if (Cell1 < DefDecomp->NCellsAll) {
             int iEdge1;
-            for (int i = 0; i < Mesh->VertexDegree; i++) {
-               if (Mesh->EdgesOnVertexH(Vertex1, i) == Edge) {
+            for (int i = 0; i < Mesh->NEdgesOnCellH(Cell1); i++) {
+               if (Mesh->EdgesOnCellH(Cell1, i) == Edge) {
                   iEdge1 = i;
                   break;
                }
             }
-            if (abs(Mesh->EdgeSignOnVertex(Vertex1, iEdge1) - 1.0) > tol) {
+            if (abs(Mesh->EdgeSignOnCellH(Cell1, iEdge1) - 1.0) > tol) {
                count++;
             }
          }
+      }
 
-         if (count == 0) {
-            LOG_INFO("HorzMeshTest: edgeSignOnVertex test PASS");
-         } else {
-            LOG_INFO("HorzMeshTest: edgeSignOnVertex test FAIL");
-         }
+      if (count == 0) {
+         LOG_INFO("HorzMeshTest: edgeSignOnCell test PASS");
+      } else {
+         LOG_INFO("HorzMeshTest: edgeSignOnCell test FAIL");
+      }
 
-         // Test cell halo values
-         // Perform halo exhange on owned cell only array and compare
-         // read values
-         // Tests that halo values are read in correctly
-         OMEGA::Halo MyHalo(DefEnv, DefDecomp);
-         OMEGA::HostArray1DR8 XCellTest("XCellTest", Mesh->NCellsSize);
-         //Mesh->XCellH.deep_copy_to(XCellTest);
-         deepCopy(XCellTest, Mesh->XCellH);
-
-         for (int Cell = Mesh->NCellsOwned; Cell < Mesh->NCellsAll; Cell++) {
-            XCellTest(Cell) = 0.0;
-         }
-         MyHalo.exchangeFullArrayHalo(XCellTest, OMEGA::OnCell);
-
-         count = 0;
-         for (int Cell = 0; Cell < Mesh->NCellsAll; Cell++) {
-            if (Mesh->XCellH(Cell) != XCellTest(Cell)) {
-               count++;
+      // Test edgeSignOnVertex
+      // Check that the sign corresponds with convention
+      // Tests that the edge sign vlues were calculated correctly
+      count = 0;
+      for (int Edge = 0; Edge < LocEdges; Edge++) {
+         int Vertex0 = Mesh->VerticesOnEdgeH(Edge, 0);
+         int iEdge0;
+         for (int i = 0; i < Mesh->VertexDegree; i++) {
+            if (Mesh->EdgesOnVertexH(Vertex0, i) == Edge) {
+               iEdge0 = i;
                break;
             }
          }
-
-         if (count == 0) {
-            LOG_INFO("HorzMeshTest: cell halo exhange PASS");
-         } else {
-            LOG_INFO("HorzMeshTest: cell halo exhange FAIL");
+         if (abs(Mesh->EdgeSignOnVertexH(Vertex0, iEdge0) + 1.0) > tol) {
+            count++;
          }
 
-         // Test edge halo values
-         // Perform halo exhange on owned edge only array and compare
-         // read values
-         // Tests that halo values are read in correctly
-         OMEGA::HostArray1DR8 XEdgeTest("XEdgeTest", Mesh->NEdgesSize);
-         //Mesh->XEdgeH.deep_copy_to(XEdgeTest);
-         deepCopy(XEdgeTest, Mesh->XEdgeH);
-
-         for (int Edge = Mesh->NEdgesOwned; Edge < Mesh->NEdgesAll; Edge++) {
-            XEdgeTest(Edge) = 0.0;
-         }
-         MyHalo.exchangeFullArrayHalo(XEdgeTest, OMEGA::OnEdge);
-
-         count = 0;
-         for (int Edge = 0; Edge < Mesh->NEdgesAll; Edge++) {
-            if (Mesh->XEdgeH(Edge) != XEdgeTest(Edge)) {
-               count++;
+         int Vertex1 = Mesh->VerticesOnEdgeH(Edge, 1);
+         int iEdge1;
+         for (int i = 0; i < Mesh->VertexDegree; i++) {
+            if (Mesh->EdgesOnVertexH(Vertex1, i) == Edge) {
+               iEdge1 = i;
                break;
             }
          }
-
-         if (count == 0) {
-            LOG_INFO("HorzMeshTest: edge halo exhange PASS");
-         } else {
-            LOG_INFO("HorzMeshTest: edge halo exhange FAIL");
+         if (abs(Mesh->EdgeSignOnVertex(Vertex1, iEdge1) - 1.0) > tol) {
+            count++;
          }
+      }
 
-         // Test vertex halo values
-         // Perform halo exhange on owned vertex only array and compare
-         // read values
-         // Tests that halo values are read in correctly
-         OMEGA::HostArray1DR8 XVertexTest("XVertexTest", Mesh->NVerticesSize);
-         //Mesh->XVertexH.deep_copy_to(XVertexTest);
-         deepCopy(XVertexTest, Mesh->XVertexH);
+      if (count == 0) {
+         LOG_INFO("HorzMeshTest: edgeSignOnVertex test PASS");
+      } else {
+         LOG_INFO("HorzMeshTest: edgeSignOnVertex test FAIL");
+      }
 
-         for (int Vertex = Mesh->NVerticesOwned; Vertex < Mesh->NVerticesAll;
-              Vertex++) {
-            XVertexTest(Vertex) = 0.0;
+      // Test cell halo values
+      // Perform halo exhange on owned cell only array and compare
+      // read values
+      // Tests that halo values are read in correctly
+      OMEGA::Halo MyHalo(DefEnv, DefDecomp);
+      OMEGA::HostArray1DR8 XCellTest("XCellTest", Mesh->NCellsSize);
+      // Mesh->XCellH.deep_copy_to(XCellTest);
+      deepCopy(XCellTest, Mesh->XCellH);
+
+      for (int Cell = Mesh->NCellsOwned; Cell < Mesh->NCellsAll; Cell++) {
+         XCellTest(Cell) = 0.0;
+      }
+      MyHalo.exchangeFullArrayHalo(XCellTest, OMEGA::OnCell);
+
+      count = 0;
+      for (int Cell = 0; Cell < Mesh->NCellsAll; Cell++) {
+         if (Mesh->XCellH(Cell) != XCellTest(Cell)) {
+            count++;
+            break;
          }
-         MyHalo.exchangeFullArrayHalo(XVertexTest, OMEGA::OnVertex);
+      }
 
-         count = 0;
-         for (int Vertex = 0; Vertex < Mesh->NVerticesAll; Vertex++) {
-            if (Mesh->XVertexH(Vertex) != XVertexTest(Vertex)) {
-               count++;
-               break;
-            }
-         }
+      if (count == 0) {
+         LOG_INFO("HorzMeshTest: cell halo exhange PASS");
+      } else {
+         LOG_INFO("HorzMeshTest: cell halo exhange FAIL");
+      }
 
-         if (count == 0) {
-            LOG_INFO("HorzMeshTest: vertex halo exhange PASS");
-         } else {
-            LOG_INFO("HorzMeshTest: vertex halo exhange FAIL");
+      // Test edge halo values
+      // Perform halo exhange on owned edge only array and compare
+      // read values
+      // Tests that halo values are read in correctly
+      OMEGA::HostArray1DR8 XEdgeTest("XEdgeTest", Mesh->NEdgesSize);
+      // Mesh->XEdgeH.deep_copy_to(XEdgeTest);
+      deepCopy(XEdgeTest, Mesh->XEdgeH);
+
+      for (int Edge = Mesh->NEdgesOwned; Edge < Mesh->NEdgesAll; Edge++) {
+         XEdgeTest(Edge) = 0.0;
+      }
+      MyHalo.exchangeFullArrayHalo(XEdgeTest, OMEGA::OnEdge);
+
+      count = 0;
+      for (int Edge = 0; Edge < Mesh->NEdgesAll; Edge++) {
+         if (Mesh->XEdgeH(Edge) != XEdgeTest(Edge)) {
+            count++;
+            break;
          }
-      YSK */
+      }
+
+      if (count == 0) {
+         LOG_INFO("HorzMeshTest: edge halo exhange PASS");
+      } else {
+         LOG_INFO("HorzMeshTest: edge halo exhange FAIL");
+      }
+
+      // Test vertex halo values
+      // Perform halo exhange on owned vertex only array and compare
+      // read values
+      // Tests that halo values are read in correctly
+      OMEGA::HostArray1DR8 XVertexTest("XVertexTest", Mesh->NVerticesSize);
+      // Mesh->XVertexH.deep_copy_to(XVertexTest);
+      deepCopy(XVertexTest, Mesh->XVertexH);
+
+      for (int Vertex = Mesh->NVerticesOwned; Vertex < Mesh->NVerticesAll;
+           Vertex++) {
+         XVertexTest(Vertex) = 0.0;
+      }
+      MyHalo.exchangeFullArrayHalo(XVertexTest, OMEGA::OnVertex);
+
+      count = 0;
+      for (int Vertex = 0; Vertex < Mesh->NVerticesAll; Vertex++) {
+         if (Mesh->XVertexH(Vertex) != XVertexTest(Vertex)) {
+            count++;
+            break;
+         }
+      }
+
+      if (count == 0) {
+         LOG_INFO("HorzMeshTest: vertex halo exhange PASS");
+      } else {
+         LOG_INFO("HorzMeshTest: vertex halo exhange FAIL");
+      }
       // Finalize Omega objects
       OMEGA::HorzMesh::clear();
       OMEGA::Decomp::clear();
