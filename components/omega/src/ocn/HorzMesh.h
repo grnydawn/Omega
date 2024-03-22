@@ -41,7 +41,7 @@ class HorzMesh {
 
    void readCoriolis();
 
-   void computeEdgeSign();
+   //void computeEdgeSign();
 
    void copyToDevice();
 
@@ -57,6 +57,8 @@ class HorzMesh {
    static std::map<std::string, HorzMesh> AllHorzMeshes;
 
  public:
+   // KOKKOS_LAMBDA does not allow to have parallel_* functions inside of a private function.
+   void computeEdgeSign();
    // Variables
    // Since these are used frequently, we make them public to reduce the
    // number of retrievals required.
