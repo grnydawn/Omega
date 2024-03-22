@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
    // Initialize the global MPI environment
    MPI_Init(&argc, &argv);
    Kokkos::initialize();
-
+   {
    // Call initialization routine to create the default decomposition
    int Err = initDecompTest();
    if (Err != 0)
@@ -136,6 +136,7 @@ int main(int argc, char *argv[]) {
 
    if (Err == 0)
       LOG_INFO("DecompTest: Successful completion");
+   }
    Kokkos::finalize();
    MPI_Finalize();
 
