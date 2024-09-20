@@ -39,18 +39,18 @@ class Tracers {
    static int NumTracers;
 
    // static storage of the tracer arrays and fields
-   static std::vector<Array3DReal> DeviceTracers;
-   static std::vector<HostArray3DReal> HostTracers;
+   static std::vector<Array3DReal> TracerArrays;
+   static std::vector<HostArray3DReal> TracerArraysH;
    static std::vector<Field> TracerFields;
 
    // maps for managing tracer groups
    // Key of this map is a group name and
    // Value is a pair of GroupStartIndex and GroupLength
-   static std::map<std::string, std::pair<int, int>> Groups;
+   static std::map<std::string, std::pair<int, int>> TracerGroups;
 
    // maps for matching tracer names with indices (both directions)
-   static std::map<std::string, int> Index;
-   static std::map<int, std::string> Name;
+   static std::map<std::string, int> TracerIndexes;
+   static std::map<int, std::string> TracerNames;
 
    static int initParallelIO(
       I4 &CellDecompR8,
@@ -77,8 +77,8 @@ class Tracers {
    static I4 NTimeLevels; ///< Number of time levels in tracer variable arrays
    static I4 NVertLevels; ///< Number of vertical levels in tracer variable arrays
 
-   static I4 CurLevel; ///< Time dimension index for current level
-   static I4 NewLevel; ///< Time dimension index for new level
+   static I4 CurTimeLevel; ///< Time dimension index for current level
+   static I4 NewTimeLevel; ///< Time dimension index for new level
 
  public:
    //---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ class Tracers {
    //---------------------------------------------------------------------------
    /// read tracer defintions, allocate tracer arrays and initializes the tracers
    static int init(
-      std::vector<std::string>& args = std::vector<std::string>{}
+      std::vector<std::string>& GroupNames = std::vector<std::string>{}
    );
 
    /// deallocates tracer arrays
