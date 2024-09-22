@@ -19,14 +19,6 @@
 
 #include <string>
 
-#if !defined(OMEGA_MAX_TIMELEVELS)
-#define OMEGA_MAX_TIMELEVELS 5
-#endif
-
-#define DEFINE_TRACER(NAME, ...) \
-    if (SelectedTracers.find(NAME) != SelectedTracers.end()) \
-        OMEGA::Tracers::define(NAME, __VA_ARGS__);
-
 namespace OMEGA {
 
     /// A class for the tracers variable information
@@ -38,10 +30,9 @@ class Tracers {
  private:
    static int NumTracers;
 
-   // static storage of the tracer arrays and fields
-   static std::vector<Array3DReal> TracerArrays;
-   static std::vector<HostArray3DReal> TracerArraysH;
-   static std::vector<Field> TracerFields;
+   // static storage of the tracer arrays
+   static std::vector<Array3DR8> TracerArrays;      ///< TimeLevels -> [Tracer, Cell, Vert]
+   static std::vector<HostArray3DR8> TracerArraysH; ///< TimeLevels -> [Tracer, Cell, Vert]
 
    // maps for managing tracer groups
    // Key of this map is a group name and
@@ -72,29 +63,14 @@ class Tracers {
    static I4 NCellsAll;   ///< Total number of local cells (owned + all halo)
    static I4 NCellsSize;  ///< Array size (incl padding, bndy cell) for cell arrays
 
-   static const I4 MaxTimeLevels = OMEGA_MAX_TIMELEVELS; ///< Maximum number of time levels
+   const std::vector<std::string> TracerDimNames = {"NCells", "NVertLevels"}; // Tracer dimension names
 
    static I4 NTimeLevels; ///< Number of time levels in tracer variable arrays
    static I4 NVertLevels; ///< Number of vertical levels in tracer variable arrays
-
    static I4 CurTimeLevel; ///< Time dimension index for current level
-   static I4 NewTimeLevel; ///< Time dimension index for new level
 
- public:
-   //---------------------------------------------------------------------------
-   // Initialization
-   //---------------------------------------------------------------------------
-   /// read tracer defintions, allocate tracer arrays and initializes the tracers
-   static int init(
-      std::vector<std::string>& GroupNames = std::vector<std::string>{}
-   );
-
-   /// deallocates tracer arrays
-   static int clear();
-
-   //---------------------------------------------------------------------------
-   // Create tracers
-   //---------------------------------------------------------------------------
+   // pack tracer field name 
+   static std::string packTracerFieldName(const std::string &TracerName);
 
    // locally defines all tracers but do not allocates memory
    static int define(
@@ -102,15 +78,20 @@ class Tracers {
       const std::string &Description, ///< [in] Long name or description
       const std::string &Units,       ///< [in] Units
       const std::string &StdName,     ///< [in] CF standard Name
-      OMEGA::Real ValidMin,           ///< [in] min valid field value
-      OMEGA::Real ValidMax,           ///< [in] max valid field value
-      OMEGA::Real FillValue           ///< [in] value for undef entries
+      const R8 ValidMin,            ///< [in] min valid field value
+      const R8 ValidMax,            ///< [in] max valid field value
+      const R8 FillValue            ///< [in] value for undef entries
    );
 
-   // officially select tracers based on configuration and allocate arrays
-   static int register(
-      const std::string &Name ///< [in] Name of tracer
-   );
+ public:
+   //---------------------------------------------------------------------------
+   // Initialization
+   //---------------------------------------------------------------------------
+   /// read tracer defintions, allocate tracer arrays and initializes the tracers
+   static int init();
+
+   /// deallocates tracer arrays
+   static int clear();
 
    //---------------------------------------------------------------------------
    // Query tracers
@@ -124,62 +105,57 @@ class Tracers {
    );
 
    static int getName(
-      const int TracerIndex,  ///< [in] tracer index
-      std::string &TracerName ///< [out] tracer name
+      const int TracerIndex,         ///< [in] tracer index
+      std::string &TracerName        ///< [out] tracer name
    );
 
    // returns all tracer device arrays. If it does not exist, return nullptr
-   static Array3DReal getAll(
-      const int TimeIndx ///< [in] time level index
+   static Array3DR8 getAll(
+      const int TimeLevel            ///< [in] time level index
    );
 
    // returns a tracer device array by tracer index. If it does not exist, return nullptr
-   static Array2dReal getByIndex(
-      const int TracerIndex, ///< [in] global tracer index
-      const int TimeIndex    ///< [in] time level index
+   static Array2DR8 getByIndex(
+      const int TimeLevel            ///< [in] time level index
+      const int TracerIndex,         ///< [in] global tracer index
    );
 
    // returns a tracer device array by tracer name. If it does not exist, return nullptr
-   static Array2dReal getByName(
+   static Array2DR8 getByName(
+      const int TimeLevel            ///< [in] time level index
       const std::string &TracerName, ///< [in] global tracer name
-      const int TimeIndex           ///< [in] time level index
    );
 
    // returns all tracer device arrays. If it does not exist, return nullptr
-   static HostArray3DReal getAllHost(
-      const int TimeIndx ///< [in] time level index
+   static HostArray3DR8 getAllHost(
+      const int TimeLevel            ///< [in] time level index
    );
 
    // returns a tracer host array by tracer index. If it does not exist, return nullptr
-   static HostArray2dReal getHostByIndex(
-      const int TracerIndex, ///< [in] global tracer index
-      const int TimeIndex    ///< [in] time level index
+   static HostArray2DR8 getHostByIndex(
+      const int TimeLevel            ///< [in] time level index
+      const int TracerIndex,         ///< [in] global tracer index
    );
 
    // returns a tracer host array by tracer name. If it does not exist, return nullptr
-   static HostArray2dReal getHostByName(
+   static HostArray2DR8 getHostByName(
+      const int TimeLevel            ///< [in] time level index
       const std::string &TracerName, ///< [in] global tracer name
-      const int TimeIndex            ///< [in] time level index
    );
 
    // returns a field by tracer index. If it does not exist, return nullptr
-   static Field getFieldByIndex(
+   static std::shared_ptr<Field> getFieldByIndex(
       const int TracerIndex ///< [in] global tracer index
    );
 
    // returns a field by tracer name. If it does not exist, return nullptr
-   static Field getFieldByName(
+   static std::shared_ptr<Field> getFieldByName(
       const std::string &TracerName ///< [in] global tracer name
    );
 
    //---------------------------------------------------------------------------
-   // Add a tracer to a group
+   // Tracer group query
    //---------------------------------------------------------------------------
-   // add a tracer into a tracer group
-   static int addToGroup(
-      const std::string &GroupName, ///< [in] name of group
-      const std::string &TracerName ///< [in] name of tracer to add
-   );
 
    // return a vector of group names.
    static std::vector<std::string> getGroupNames();
@@ -223,24 +199,24 @@ class Tracers {
    //---------------------------------------------------------------------------
 
    /// Exchange halo
-   static void exchangeHalo(
+   static int exchangeHalo(
       const int TimeLevel ///< [in] tracer time level
    );
 
    /// Swap time levels to update tracer arrays
-   static void updateTimeLevels();
+   static int updateTimeLevels();
 
    //---------------------------------------------------------------------------
    // Device-Host data movement
    //---------------------------------------------------------------------------
 
    /// Copy tracers variables from host to device
-   static void copyToDevice(
+   static int copyToDevice(
       const int TimeLevel ///< [in] tracer time level
    );
 
    /// Copy tracers variables from device to host
-   static void copyToHost(
+   static int copyToHost(
       const int TimeLevel ///< [in] tracer time level
    );
 
