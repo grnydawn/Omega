@@ -300,12 +300,13 @@ int main(int argc, char *argv[]) {
          OrgTracerArraysH.push_back(Tracers::getAllHost(TimeLevel));
       }
 
+      //
+      HostArray3DReal OrgTimeLevel0H = Tracers::getAllHost(0);
+
       // TODO: 2.5 Requirement: Tracer restart and IO
       //       - save tracers in a file
       //       - Check if OceanTracers correctly read/write tracer data
       //       into/from files
-      //       - QUESTON: is it ok to randomly initialize the trace data for
-      //       this unit-testing?
       const std::string TracersFileName = "tracers-unittest.nc";
 
       Ret = Tracers::saveTracersToFile(TracersFileName, DefDecomp);
@@ -362,61 +363,49 @@ int main(int argc, char *argv[]) {
                    "updateTimeLevels() FAIL");
       }
 
-      /*
-            // read tracer data from the exported file
-            Ret = Tracers::loadTracersFromFile(TracersFileName, DefDecomp);
-            if (Ret == 0) {
-               LOG_INFO("Tracers: loadTracersFromFile success PASS");
-            } else {
-               RetVal += 1;
-               LOG_ERROR("Tracers: loadTracersFromFile failre FAIL");
-            }
+      // read tracer data from the exported file
+      Ret = Tracers::loadTracersFromFile(TracersFileName, DefDecomp);
+      if (Ret == 0) {
+         LOG_INFO("Tracers: loadTracersFromFile success PASS");
+      } else {
+         RetVal += 1;
+         LOG_ERROR("Tracers: loadTracersFromFile failre FAIL");
+      }
 
-            // create history arrays to compare with original arrays
-            std::vector<HostArray3DReal> HistoryTracerArraysH;
+      // create history arrays to compare with original arrays
 
-            for (int TimeLevel = 0; TimeLevel + Tracers::NTimeLevels > 0;
-         --TimeLevel) {
-               HistoryTracerArraysH.push_back(Tracers::getAllHost(TimeLevel));
-            }
+      HostArray3DReal HistoryTimeLevel0H = Tracers::getAllHost(0);
 
-            count = 0;
+      count = 0;
 
-            // check if Tracers.updateTimeLevels() worked as expected
-            for (int TimeIndex = 0; TimeIndex <  Tracers::NTimeLevels;
-         ++TimeIndex) {
-
-               HostArray3DReal HistoryTrcrArrayH =
-         HistoryTracerArraysH[TimeIndex]; HostArray3DReal OrgTrcrArrayH  =
-         OrgTracerArraysH[TimeIndex];
-
-               for (int TracerIndex=0; TracerIndex < Tracers::getNumTracers();
-         ++TracerIndex) { for (int Cell = 0; Cell < Tracers::NCellsAll; Cell++)
-         { for (int VertLevel = 0; VertLevel < Tracers::NVertLevels;
-         VertLevel++) { if (HistoryTrcrArrayH(TracerIndex, Cell, VertLevel) !=
-                           OrgTrcrArrayH(TracerIndex, Cell, VertLevel)) {
-                           count++;
-                        }
-                     }
-                  }
+      for (int TracerIndex=0; TracerIndex < Tracers::getNumTracers(); ++TracerIndex) {
+         for (int Cell = 0; Cell < Tracers::NCellsOwned; Cell++) {
+            for (int VertLevel = 0; VertLevel < Tracers::NVertLevels; VertLevel++) {
+               if (HistoryTimeLevel0H(TracerIndex, Cell, VertLevel) != OrgTimeLevel0H(TracerIndex, Cell, VertLevel)) {
+                  count++;
                }
             }
+         }
+      }
 
 
-            if (count == 0) {
-               LOG_INFO("Tracers: All tracer data match after
-         loadTracersFromFile() PASS"); } else { RetVal += 1; LOG_ERROR("Tracers:
-         Not all tracer data match after loadTracersFromFile() FAIL");
-            }
+      if (count == 0) {
+         LOG_INFO("Tracers: All tracer data match after loadTracersFromFile() PASS");
+      } else {
+         RetVal += 1;
+         LOG_ERROR("Tracers: {} tracer elements didn't match after loadTracersFromFile() FAIL", count);
+      }
 
-            // TODO: 2.7 Requirement: Acceleration or supercycling
-            //       - T.B.D.
+      // TODO: add more tests on validating each tracer data
 
-            // TODO: 2.7 Desired: Per-tracer/group algorithmic requirements
-            //       - T.B.D.
-            // Finalize Omega objects
 
-      */
+      // TODO: 2.7 Requirement: Acceleration or supercycling
+      //       - T.B.D.
+
+      // TODO: 2.7 Desired: Per-tracer/group algorithmic requirements
+      //       - T.B.D.
+      // Finalize Omega objects
+
       Tracers::clear();
 
       TimeStepper::clear();

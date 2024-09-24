@@ -478,9 +478,9 @@ int Tracers::updateTimeLevels() {
 
       std::shared_ptr<Field> TracerField = Field::get(TracerFieldName);
 
-      auto TracerSubview2D = Kokkos::subview(
+      HostArray2DR8 TracerSubviewH = Kokkos::subview(
           TracerArraysH[CurTimeIndex], TracerIndex, Kokkos::ALL, Kokkos::ALL);
-      int Err = TracerField->attachData<Array2DR8>(TracerSubview2D);
+      int Err = TracerField->attachData<HostArray2DR8>(TracerSubviewH);
       if (Err != 0) {
          LOG_ERROR("Error attaching data array to field {}", TracerFieldName);
          return Err;
@@ -494,15 +494,8 @@ int Tracers::updateTimeLevels() {
 
 int Tracers::loadTracersFromFile(const std::string &TracerFileName,
                                  Decomp *MeshDecomp) {
-   int TracerFileID;
    I4 CellDecompR8;
    I4 Err;
-   // Open the state file for reading (assume IO has already been initialized)
-   Err = IO::openFile(TracerFileID, TracerFileName, IO::ModeRead);
-   if (Err != 0) {
-      LOG_CRITICAL("Tracers: error opening tracer file");
-      return -1;
-   }
 
    // Create the parallel IO decompositions required to read in state variables
    Err = initParallelIO(CellDecompR8, MeshDecomp);
@@ -512,7 +505,7 @@ int Tracers::loadTracersFromFile(const std::string &TracerFileName,
    }
 
    // Read layerThickness and normalVelocity
-   Err = read(TracerFileID, CellDecompR8);
+   Err = read(TracerFileName, CellDecompR8);
    if (Err != 0) {
       LOG_CRITICAL("Tracers: error reading a file using parallel io");
       return -3;
@@ -534,54 +527,11 @@ int Tracers::loadTracersFromFile(const std::string &TracerFileName,
 int Tracers::saveTracersToFile(const std::string &TracerFileName,
                                Decomp *MeshDecomp) {
 
-   int TracerFileID;
    I4 CellDecompR8;
    I4 Err;
 
    // Sync with device
    copyToHost(0);
-
-   // Open the state file for reading (assume IO has already been initialized)
-   Err = IO::openFile(TracerFileID, TracerFileName, IO::ModeWrite);
-   if (Err != 0) {
-      LOG_CRITICAL("Tracers: error opening tracer file");
-      return -1;
-   }
-
-   I4 NCellsGlobal = MeshDecomp->NCellsGlobal;
-
-   // Define array dimensions
-   int DimTracerID;
-   int DimCellID;
-   int DimVertID;
-
-   Err = IO::defineDim(TracerFileID, "NumTracers", NumTracers, DimTracerID);
-   if (Err != 0) {
-      LOG_ERROR("Tracers: error defining tracer dimension FAIL");
-      return -2;
-   }
-
-   Err = IO::defineDim(TracerFileID, "NCells", NCellsGlobal, DimCellID);
-   if (Err != 0) {
-      LOG_ERROR("Tracers: error defining Cell dimension FAIL");
-      return -3;
-   }
-
-   Err = IO::defineDim(TracerFileID, "NVertLevels", NVertLevels, DimVertID);
-   if (Err != 0) {
-      LOG_ERROR("Tracers: error defining vertical dimension FAIL");
-      return -4;
-   }
-
-   int TracerDimIDs[3] = {DimTracerID, DimCellID, DimVertID};
-   int TracerIDCellR8;
-
-   Err = IO::defineVar(TracerFileID, "TracerArraysH", IO::IOTypeR8, 3,
-                       TracerDimIDs, TracerIDCellR8);
-   if (Err != 0) {
-      LOG_ERROR("Tracers: Error defining TracerArraysH array");
-      return -5;
-   }
 
    Err = initParallelIO(CellDecompR8, MeshDecomp);
    if (Err != 0) {
@@ -589,24 +539,18 @@ int Tracers::saveTracersToFile(const std::string &TracerFileName,
       return -6;
    }
 
-   Err = write(TracerFileID, CellDecompR8, TracerIDCellR8);
+   Err = write(TracerFileName, MeshDecomp->NCellsGlobal, CellDecompR8);
    if (Err != 0) {
       LOG_CRITICAL("Tracers: error writing a file using parallel io");
       return -7;
    }
 
-   // Destroy the parallel IO decompositions
    Err = finalizeParallelIO(CellDecompR8);
    if (Err != 0) {
       LOG_CRITICAL("Tracers: error finalzing parallel io");
       return -8;
    }
 
-   Err = IO::closeFile(TracerFileID);
-   if (Err != 0) {
-      LOG_CRITICAL("Tracers: error closing file");
-      return -9;
-   }
    return 0;
 }
 
@@ -615,35 +559,30 @@ int Tracers::initParallelIO(I4 &CellDecompR8, Decomp *MeshDecomp) {
    I4 Err;
    I4 NDims             = 3;
    IO::Rearranger Rearr = IO::RearrBox;
-   // IO::Rearranger Rearr = IO::RearrDefault;
-   // IO::Rearranger Rearr = IO::RearrSubset;
 
    I4 NCellsGlobal = MeshDecomp->NCellsGlobal;
-   LOG_ERROR("NCellsGlobal = {}", NCellsGlobal);
 
    // Create the IO decomp for arrays with (NCells) dimensions
-   std::vector<I4> CellDims{NumTracers, NCellsGlobal, NVertLevels};
-   std::vector<I4> CellID(NumTracers * NCellsSize * NVertLevels, -1);
+   std::vector<I4> CellDims{NCellsGlobal, NumTracers, NVertLevels};
+   std::vector<I4> CellID(NCellsSize * NumTracers * NVertLevels, -1);
 
-   for (int Tracer = 0; Tracer < NumTracers; ++Tracer) {
-      for (int Cell = 0; Cell < NCellsOwned; ++Cell) {
-         I4 CellIDH = MeshDecomp->CellIDH(Cell) - 1;
+   for (int Cell = 0; Cell < NCellsOwned; ++Cell) {
+      I4 CellIDH = MeshDecomp->CellIDH(Cell) - 1;
 
+      for (int Tracer = 0; Tracer < NumTracers; ++Tracer) {
          for (int Level = 0; Level < NVertLevels; ++Level) {
-            // NOTE: this line may cause error: NCellsOwned is different from
-            // each rank...
-            I4 GlobalID = Tracer * NCellsOwned * NVertLevels +
-                          CellIDH * NVertLevels + Level;
-            CellID[Tracer * NCellsSize * NVertLevels + Cell * NVertLevels +
-                   Level] = GlobalID;
+
+            I4 GlobalID = CellIDH * NumTracers * NVertLevels + Tracer * NVertLevels + Level;
+            CellID[Tracer * NCellsSize * NVertLevels + Cell * NVertLevels + Level] = GlobalID;
          }
       }
    }
 
    Err = IO::createDecomp(CellDecompR8, IO::IOTypeR8, NDims, CellDims,
-                          NumTracers * NCellsSize * NVertLevels, CellID, Rearr);
+                          NumTracers * NCellsOwned * NVertLevels, CellID, Rearr);
    if (Err != 0)
       LOG_ERROR("Tracers: IO::createDecomp failed with error code {}", Err);
+
 
    return Err;
 }
@@ -660,10 +599,17 @@ int Tracers::finalizeParallelIO(I4 CellDecompR8) {
 }
 
 // Read Tracers
-int Tracers::read(int TracerFileID, I4 CellDecompR8) {
+int Tracers::read(const std::string &TracerFileName, I4 CellDecompR8) {
    I4 Err;
-
+   int TracerFileID;
    int TracerIDCellR8;
+
+   // Open the state file for reading (assume IO has already been initialized)
+   Err = IO::openFile(TracerFileID, TracerFileName, IO::ModeRead);
+   if (Err != 0) {
+      LOG_CRITICAL("Tracers: error opening tracer file");
+      return -1;
+   }
 
    Err = IO::readArray(TracerArraysH[CurTimeIndex].data(),
                        NumTracers * NCellsSize * NVertLevels, "TracerArraysH",
@@ -671,23 +617,74 @@ int Tracers::read(int TracerFileID, I4 CellDecompR8) {
    if (Err != 0)
       LOG_CRITICAL("Tracers: error reading TracerArrays");
 
+   // Finished writing, close file
+   Err = IO::closeFile(TracerFileID);
+   if (Err != 0) {           
+      LOG_ERROR("Tracers: error closing output file");
+   }  
+
    return Err;
 }
 
 // Write Tracers
-int Tracers::write(int TracerFileID, I4 CellDecompR8, int TracerIDCellR8) {
-   I4 Err = 0;
+int Tracers::write(const std::string &TracerFileName, int NCellsGlobal, I4 CellDecompR8) {
 
+   I4 Err = 0;
+   int TracerFileID;
    R8 FillR8 = -1.23456789e30;
 
-   LOG_ERROR("TracerFileID = {}, CellDecompR8 = {}, TracerIDCellR8 = {}",
-             TracerFileID, CellDecompR8, TracerIDCellR8);
+   // Open the state file for reading (assume IO has already been initialized)
+   Err = IO::openFile(TracerFileID, TracerFileName, IO::ModeWrite);
+   if (Err != 0) {
+      LOG_CRITICAL("Tracers: error opening tracer file");
+      return -1;
+   }
+
+   // Define array dimensions
+   int DimTracerID;
+   int DimCellID;
+   int DimVertID;
+
+   Err = IO::defineDim(TracerFileID, "NCells", NCellsGlobal, DimCellID);
+   if (Err != 0) {
+      LOG_ERROR("Tracers: error defining Cell dimension FAIL");
+      return -3;
+   }
+
+   Err = IO::defineDim(TracerFileID, "NumTracers", NumTracers, DimTracerID);
+   if (Err != 0) {
+      LOG_ERROR("Tracers: error defining tracer dimension FAIL");
+      return -2;
+   }
+
+   Err = IO::defineDim(TracerFileID, "NVertLevels", NVertLevels, DimVertID);
+   if (Err != 0) {
+      LOG_ERROR("Tracers: error defining vertical dimension FAIL");
+      return -4;
+   }
+
+   int TracerDimIDs[3] = {DimCellID, DimTracerID, DimVertID};
+   int TracerIDCellR8;
+
+   Err = IO::defineVar(TracerFileID, "TracerArraysH", IO::IOTypeR8, 3,
+                       TracerDimIDs, TracerIDCellR8);
+   if (Err != 0) {
+      LOG_ERROR("Tracers: Error defining TracerArraysH array");
+      return -5;
+   }
+
    Err = IO::writeArray(TracerArraysH[CurTimeIndex].data(),
                         NumTracers * NCellsSize * NVertLevels, &FillR8,
                         TracerFileID, CellDecompR8, TracerIDCellR8);
    if (Err != 0) {
       LOG_ERROR("Tracers: error writing TracerArrays");
    }
+
+   // Finished writing, close file
+   Err = IO::closeFile(TracerFileID);
+   if (Err != 0) {           
+      LOG_ERROR("Tracers: error closing output file");
+   }  
 
    return Err;
 }

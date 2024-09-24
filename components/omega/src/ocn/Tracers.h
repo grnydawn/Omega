@@ -46,9 +46,9 @@ class Tracers {
 
    static int finalizeParallelIO(I4 CellDecompR8);
 
-   static int read(int TracersFileID, I4 CellDecompR8);
+   static int read(const std::string &TracerFileName, I4 CellDecompR8);
 
-   static int write(int TracersFileID, I4 CellDecompR8, int TracerIDCellR8);
+   static int write(const std::string &TracerFileName, I4 NCellsGlobal, I4 CellDecompR8);
 
    static Halo *MeshHalo;
 
