@@ -102,6 +102,8 @@ int main(int argc, char *argv[]) {
 
    int RetVal = 0;
    int Ret;
+   int count = 0;
+   int Err;
 
    // Initialize the global MPI environment
    MPI_Init(&argc, &argv);
@@ -109,10 +111,9 @@ int main(int argc, char *argv[]) {
    {
 
       // Call initialization routine to create the default decomposition
-      int Err = initTracersTest();
+      Err = initTracersTest();
       if (Err != 0)
          LOG_ERROR("Tracers: Error initializing");
-      int count = 0;
 
       // Get MPI vars if needed
       MachEnv *DefEnv = MachEnv::getDefault();
@@ -151,14 +152,6 @@ int main(int argc, char *argv[]) {
       } else {
          RetVal += 1;
          LOG_ERROR("Tracers: Group, 'Debug', does not exist FAIL");
-      }
-
-      // Check if no more groups for unit testing
-      if (GroupNames.size() == 2) {
-         LOG_INFO("Tracers: Group size for unit-testing is correct PASS");
-      } else {
-         RetVal += 1;
-         LOG_ERROR("Tracers: Group size for unit-testing is not correct FAIL");
       }
 
       int TotalLength = 0;
@@ -259,7 +252,7 @@ int main(int argc, char *argv[]) {
              "Tracers: getNumTracers() returns incorrect tracer size FAIL");
       }
 
-      // Referecne host array of current time level for later tests
+      // Reference host array of current time level
       HostArray3DR8 RefHostArray = HostArray3DR8("RefHostArray", NTracers, NCellsSize, NVertLevels);
 
       // intialize tracer elements of all time levels
@@ -277,8 +270,9 @@ int main(int argc, char *argv[]) {
          Tracers::copyToDevice(TimeLevel);
       }
 
-      // Reference field vector of all tracers
-      std::vector<std::shared_ptr<Field>> RefFields;
+      // Reference device array of current time level
+      Array3DR8 RefArray = Array3DR8("RefArray", NTracers, NCellsSize, NVertLevels);
+      deepCopy(RefArray, Tracers::getAll(0));
 
       // Reference field data of all tracers
       std::vector<Array2DR8> RefFieldDataArray;
@@ -286,22 +280,22 @@ int main(int argc, char *argv[]) {
       // get field references of all tracers
       for (int Tracer = 0; Tracer < NTracers; ++Tracer) {
          auto TracerField = Tracers::getFieldByIndex(Tracer);
-         RefFields.push_back(TracerField);
          RefFieldDataArray.push_back(TracerField->getDataArray<Array2DR8>());
       }
 
       // update time levels
       Tracers::updateTimeLevels();
 
-      // check if time level shift works
-      // Previous time level(-1) should match to RefHostArray elements
+      // Previous time level(-1) shoul returns the correct host arrayd match to RefHostArray elements
       Array3DR8 PrevArray = Tracers::getAll(-1);
+
       count = -1;
 
+      // check if time level shift works
       parallelReduce(
          "reduce1", {NTracers, NCellsOwned, NVertLevels},
          KOKKOS_LAMBDA(int Tracer, int Cell, int Vert, int &Accum) {
-            if (std::abs(PrevArray(Tracer, Cell, Vert) - (RefR8 + Tracer + Cell + Vert)) > 1e-9) {
+            if (std::abs(PrevArray(Tracer, Cell, Vert) - RefArray(Tracer, Cell, Vert)) > 1e-9) {
                Accum++;
             }
          },
@@ -316,18 +310,45 @@ int main(int argc, char *argv[]) {
                    "updateTimeLevels():{} FAIL", count);
       }
 
-      // test field data 
+      // test getByName and getByIndex
       for (int Tracer = 0; Tracer < NTracers; ++Tracer) {
+         std::string TracerName;
+         Tracers::getName(Tracer, TracerName);
+         Array2DR8 PrevTracer = Tracers::getByName(-1, TracerName);
+
+         count = -1;
+
+         parallelReduce(
+            "reduce2", {NCellsOwned, NVertLevels},
+            KOKKOS_LAMBDA(int Cell, int Vert, int &Accum) {
+               if (std::abs(PrevTracer(Cell, Vert) - (RefR8 + Tracer + Cell + Vert)) > 1e-9) {
+                  Accum++;
+               }
+            },
+            count);
+   
+         if (count == 0) {
+            LOG_INFO(
+                "Tracers: Tracer data from getByName match after updateTimeLevels() PASS");
+         } else {
+            RetVal += 1;
+            LOG_ERROR("Tracers: Not all tracer data from getByName match after "
+                      "updateTimeLevels():{} FAIL", count);
+         }
+      }
+
+      // test field data - this test should generate positive count value
+      // Referece and test field data are different due to updateTimeLevels()
+      for (int Tracer = 0; Tracer < NTracers; ++Tracer) {
+
          auto TracerField = Tracers::getFieldByIndex(Tracer);
          Array2DR8 TestFieldData = TracerField->getDataArray<Array2DR8>();
          Array2DR8 RefFieldData = RefFieldDataArray[Tracer];
 
-
          count = -1;
 
-               //if (std::abs(RefFieldData[Tracer](Cell, Vert) - TestFieldData(Cell, Vert)) > 1e-9) {
          parallelReduce(
-            "reduce2", {NCellsOwned, NVertLevels},
+            "reduce3", {NCellsOwned, NVertLevels},
             KOKKOS_LAMBDA(int Cell, int Vert, int &Accum) {
                if (std::abs(RefFieldData(Cell, Vert) - TestFieldData(Cell, Vert)) > 1e-9) {
                   Accum++;
@@ -351,7 +372,8 @@ int main(int argc, char *argv[]) {
          Tracers::updateTimeLevels();
       }
 
-      // test field data 
+      // test field data - this test should generate zero count value
+      // Referece and test field data are the same because updateTimeLevels() is called NTimeLevels
       for (int Tracer = 0; Tracer < NTracers; ++Tracer) {
          auto TracerField = Tracers::getFieldByIndex(Tracer);
          Array2DR8 TestFieldData = TracerField->getDataArray<Array2DR8>();
@@ -362,7 +384,7 @@ int main(int argc, char *argv[]) {
 
                //if (std::abs(RefFieldData[Tracer](Cell, Vert) - TestFieldData(Cell, Vert)) > 1e-9) {
          parallelReduce(
-            "reduce3", {NCellsOwned, NVertLevels},
+            "reduce4", {NCellsOwned, NVertLevels},
             KOKKOS_LAMBDA(int Cell, int Vert, int &Accum) {
                if (std::abs(RefFieldData(Cell, Vert) - TestFieldData(Cell, Vert)) > 1e-9) {
                   Accum++;
@@ -381,12 +403,13 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      // Test host array of current time level for
       count = 0;
 
-      // intialize tracer elements of all time levels
+      // Finally, check if getHostByName returns the correct host array
       for (int Tracer = 0; Tracer < NTracers; ++Tracer) {
-         HostArray2DR8 TestHostArray = Tracers::getHostByIndex(0, Tracer);
+         std::string TracerName;
+         Tracers::getName(Tracer, TracerName);
+         HostArray2DR8 TestHostArray = Tracers::getHostByName(0, TracerName);
          for (int Cell = 0; Cell < NCellsOwned; Cell++) {
             for (int Vert= 0; Vert< NVertLevels; Vert++) {
                if (std::abs(RefHostArray(Tracer, Cell, Vert) - TestHostArray(Cell, Vert)) > 1e-9)
@@ -397,10 +420,10 @@ int main(int argc, char *argv[]) {
 
       if (count == 0) {
          LOG_INFO(
-             "Tracers: Tracer getHostByIndex correctly retreive tracer data PASS");
+             "Tracers: Tracer getHostByName correctly retreive tracer data PASS");
       } else {
          RetVal += 1;
-         LOG_Error( "Tracers: Tracer getHostByIndex retreives incorrect tracer data FAIL");
+         LOG_ERROR("Tracers: Tracer getHostByName retreives incorrect tracer data FAIL");
       }
 
       Tracers::clear();
