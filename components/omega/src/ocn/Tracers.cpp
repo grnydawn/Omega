@@ -172,9 +172,9 @@ int Tracers::init() {
          int TracerIndex                    = TracerIndexes[_TracerName];
          std::shared_ptr<Field> TracerField = Field::get(TracerFieldName);
          // Create a 2D subview by fixing the first dimension (TracerIndex)
-         auto TracerSubview2D = Kokkos::subview(
+         Array2DR8 TracerSubview = Kokkos::subview(
              TracerArrays[CurTimeIndex], TracerIndex, Kokkos::ALL, Kokkos::ALL);
-         Err = TracerField->attachData<Array2DR8>(TracerSubview2D);
+         Err = TracerField->attachData<Array2DR8>(TracerSubview);
          if (Err != 0) {
             LOG_ERROR("Error attaching data array to field {}",
                       TracerFieldName);
@@ -459,10 +459,13 @@ int Tracers::copyToHost(const int TimeLevel) {
 }
 
 int Tracers::exchangeHalo(const int TimeLevel) {
+   // TODO: copy only halo cells
    copyToHost(TimeLevel);
 
    int TimeIndex = (TimeLevel + CurTimeIndex + NTimeLevels) % NTimeLevels;
    MeshHalo->exchangeFullArrayHalo(TracerArraysH[TimeIndex], OnCell);
+
+   // TODO: copy only halo cells
    copyToDevice(TimeLevel);
 }
 
@@ -471,6 +474,9 @@ int Tracers::updateTimeLevels() {
    // Exchange halo
    exchangeHalo(0);
 
+   CurTimeIndex = (CurTimeIndex + 1) % NTimeLevels;
+
+
    // Update TracerField data associations
    for (const auto &TracerPair : TracerIndexes) {
       auto TracerFieldName = packTracerFieldName(TracerPair.first);
@@ -478,16 +484,14 @@ int Tracers::updateTimeLevels() {
 
       std::shared_ptr<Field> TracerField = Field::get(TracerFieldName);
 
-      HostArray2DR8 TracerSubviewH = Kokkos::subview(
-          TracerArraysH[CurTimeIndex], TracerIndex, Kokkos::ALL, Kokkos::ALL);
-      int Err = TracerField->attachData<HostArray2DR8>(TracerSubviewH);
+      Array2DR8 TracerSubview = Kokkos::subview(
+          TracerArrays[CurTimeIndex], TracerIndex, Kokkos::ALL, Kokkos::ALL);
+      int Err = TracerField->attachData<Array2DR8>(TracerSubview);
       if (Err != 0) {
          LOG_ERROR("Error attaching data array to field {}", TracerFieldName);
          return Err;
       }
    }
-
-   CurTimeIndex = (CurTimeIndex + 1) % NTimeLevels;
 
    return 0;
 }

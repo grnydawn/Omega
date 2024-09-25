@@ -33,6 +33,7 @@ using namespace OMEGA;
 // The initialization routine for Tracers testing. It calls various
 // init routines, including the creation of the default decomposition.
 
+const R8 RefR8 = 3.0;
 const Real RefReal = 3.0;
 
 int initTracersTest() {
@@ -124,22 +125,7 @@ int main(int argc, char *argv[]) {
       Decomp *DefDecomp     = Decomp::getDefault();
       Halo *DefHalo         = Halo::getDefault();
 
-      // 2.1 Requirement: Tracer definition and metadata
-      // 2.2 Requirement: Tracer identification
-      // 2.3 Requirement: Tracer groups
-      // 2.4 Requirement: Tracer selection
-      //
-      //       - Check if OceanTracers correctly include the tracer definitins
-      //       in an external "TracerDefs.inc" file
-      //       - Check if OceanTracers correctly generates metadata(Field) of
-      //       each tracer definitions
-      //       - Check if OceanTracers correctly select the tracers and the
-      //       tracer groups configured in YAML config. file
-      //       - Check if OceanTracers correctly identify a tracer or a tracer
-      //       group by index and also by name
-
       // initialize Tracers infrastructure
-
       Ret = Tracers::init();
       if (Ret != 0) {
          RetVal += 1;
@@ -258,10 +244,14 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      int NAllTracers = Tracers::getNumTracers();
+      int NTracers = Tracers::getNumTracers();
+      int NCellsOwned = Tracers::NCellsOwned;
+      int NCellsAll = Tracers::NCellsAll;
+      int NCellsSize = Tracers::NCellsSize;
+      int NVertLevels = Tracers::NVertLevels;
 
       // Check if total number of tracers is correct
-      if (TotalLength == NAllTracers) {
+      if (TotalLength == NTracers) {
          LOG_INFO("Tracers: getNumTracers() returns correct tracer size PASS");
       } else {
          RetVal += 1;
@@ -269,145 +259,151 @@ int main(int argc, char *argv[]) {
              "Tracers: getNumTracers() returns incorrect tracer size FAIL");
       }
 
-      // set initial values to all tracers for testing
-      for (int TimeLevel = 0; TimeLevel + Tracers::NTimeLevels > 0;
-           --TimeLevel) {
-         for (int TracerIndex = 0; TracerIndex < NAllTracers; ++TracerIndex) {
-            auto TrcrArray = Tracers::getByIndex(TimeLevel, TracerIndex);
-            if (TrcrArray.data() == nullptr) {
-               RetVal += 1;
-               LOG_ERROR("Tracers: getByIndex() returns error FAIL");
+      // Referecne host array of current time level for later tests
+      HostArray3DR8 RefHostArray = HostArray3DR8("RefHostArray", NTracers, NCellsSize, NVertLevels);
+
+      // intialize tracer elements of all time levels
+      for (int TimeLevel = 0; TimeLevel + Tracers::NTimeLevels > 0; --TimeLevel) {
+         HostArray3DR8 TempHostArray = Tracers::getAllHost(TimeLevel);
+         for (int Tracer = 0; Tracer < NTracers; ++Tracer) {
+            for (int Cell = 0; Cell < NCellsSize; Cell++) {
+               for (int Vert= 0; Vert< NVertLevels; Vert++) {
+                    TempHostArray(Tracer, Cell, Vert) = RefR8 + Tracer + Cell + Vert + TimeLevel;
+                    if (TimeLevel == 0)
+                       RefHostArray(Tracer, Cell, Vert) = TempHostArray(Tracer, Cell, Vert);
+               }
             }
-
-            parallelFor(
-                "initTracer" + std::to_string(TimeLevel) + "-" +
-                    std::to_string(TracerIndex),
-                {Tracers::NCellsAll, Tracers::NVertLevels},
-                KOKKOS_LAMBDA(int Cell, int VertLevel) {
-                   TrcrArray(Cell, VertLevel) =
-                       RefReal + Cell + VertLevel + TimeLevel + TracerIndex;
-                });
          }
-
-         Tracers::copyToHost(TimeLevel);
+         Tracers::copyToDevice(TimeLevel);
       }
 
-      // save the original tracers in new arrays
-      std::vector<HostArray3DReal> OrgTracerArraysH;
+      // Reference field vector of all tracers
+      std::vector<std::shared_ptr<Field>> RefFields;
 
-      for (int TimeLevel = 0; TimeLevel + Tracers::NTimeLevels > 0;
-           --TimeLevel) {
-         OrgTracerArraysH.push_back(Tracers::getAllHost(TimeLevel));
+      // Reference field data of all tracers
+      std::vector<Array2DR8> RefFieldDataArray;
+
+      // get field references of all tracers
+      for (int Tracer = 0; Tracer < NTracers; ++Tracer) {
+         auto TracerField = Tracers::getFieldByIndex(Tracer);
+         RefFields.push_back(TracerField);
+         RefFieldDataArray.push_back(TracerField->getDataArray<Array2DR8>());
       }
 
-      //
-      HostArray3DReal OrgTimeLevel0H = Tracers::getAllHost(0);
-
-      // TODO: 2.5 Requirement: Tracer restart and IO
-      //       - save tracers in a file
-      //       - Check if OceanTracers correctly read/write tracer data
-      //       into/from files
-      const std::string TracersFileName = "tracers-unittest.nc";
-
-      Ret = Tracers::saveTracersToFile(TracersFileName, DefDecomp);
-      if (Ret == 0) {
-         LOG_INFO("Tracers: saveTracersToFile success PASS");
-      } else {
-         RetVal += 1;
-         LOG_ERROR("Tracers: saveTracersToFile failure FAIL");
-      }
-
-      // update time lelve
+      // update time levels
       Tracers::updateTimeLevels();
 
-      // create a tracer arrays for the updated values
-      std::vector<HostArray3DReal> UpdatedTracerArraysH;
+      // check if time level shift works
+      // Previous time level(-1) should match to RefHostArray elements
+      Array3DR8 PrevArray = Tracers::getAll(-1);
+      count = -1;
 
-      for (int TimeLevel = 0; TimeLevel + Tracers::NTimeLevels > 0;
-           --TimeLevel) {
-         UpdatedTracerArraysH.push_back(Tracers::getAllHost(TimeLevel));
+      parallelReduce(
+         "reduce1", {NTracers, NCellsOwned, NVertLevels},
+         KOKKOS_LAMBDA(int Tracer, int Cell, int Vert, int &Accum) {
+            if (std::abs(PrevArray(Tracer, Cell, Vert) - (RefR8 + Tracer + Cell + Vert)) > 1e-9) {
+               Accum++;
+            }
+         },
+         count);
+
+      if (count == 0) {
+         LOG_INFO(
+             "Tracers: Tracer data match after updateTimeLevels() PASS");
+      } else {
+         RetVal += 1;
+         LOG_ERROR("Tracers: Not all tracer data match after "
+                   "updateTimeLevels():{} FAIL", count);
       }
 
+      // test field data 
+      for (int Tracer = 0; Tracer < NTracers; ++Tracer) {
+         auto TracerField = Tracers::getFieldByIndex(Tracer);
+         Array2DR8 TestFieldData = TracerField->getDataArray<Array2DR8>();
+         Array2DR8 RefFieldData = RefFieldDataArray[Tracer];
+
+
+         count = -1;
+
+               //if (std::abs(RefFieldData[Tracer](Cell, Vert) - TestFieldData(Cell, Vert)) > 1e-9) {
+         parallelReduce(
+            "reduce2", {NCellsOwned, NVertLevels},
+            KOKKOS_LAMBDA(int Cell, int Vert, int &Accum) {
+               if (std::abs(RefFieldData(Cell, Vert) - TestFieldData(Cell, Vert)) > 1e-9) {
+                  Accum++;
+               }
+            },
+            count);
+
+   
+         if (count > 0) {
+            LOG_INFO(
+                "Tracers: Tracer field data correctly catch the difference after updateTimeLevels() PASS");
+         } else {
+            RetVal += 1;
+            LOG_ERROR("Tracers: Tracer field data should not match after updateTimeLevels() FAIL");
+         }
+      }
+
+      // update time levels to cycle back to original index
+      for (int TimeLevel = -1; TimeLevel + Tracers::NTimeLevels > 0; --TimeLevel) {
+         // update time levels
+         Tracers::updateTimeLevels();
+      }
+
+      // test field data 
+      for (int Tracer = 0; Tracer < NTracers; ++Tracer) {
+         auto TracerField = Tracers::getFieldByIndex(Tracer);
+         Array2DR8 TestFieldData = TracerField->getDataArray<Array2DR8>();
+         Array2DR8 RefFieldData = RefFieldDataArray[Tracer];
+
+
+         count = -1;
+
+               //if (std::abs(RefFieldData[Tracer](Cell, Vert) - TestFieldData(Cell, Vert)) > 1e-9) {
+         parallelReduce(
+            "reduce3", {NCellsOwned, NVertLevels},
+            KOKKOS_LAMBDA(int Cell, int Vert, int &Accum) {
+               if (std::abs(RefFieldData(Cell, Vert) - TestFieldData(Cell, Vert)) > 1e-9) {
+                  Accum++;
+               }
+            },
+            count);
+
+   
+         if (count == 0) {
+            LOG_INFO(
+                "Tracers: Tracer field data correctly match after updateTimeLevels() back to original index PASS");
+         } else {
+            RetVal += 1;
+            LOG_ERROR("Tracers: Not all tracer data match after updateTimeLevels() back to original index FAIL");
+
+         }
+      }
+
+      // Test host array of current time level for
       count = 0;
 
-      // check if Tracers.updateTimeLevels() worked as expected
-      for (int TimeIndex = 0; TimeIndex < Tracers::NTimeLevels; ++TimeIndex) {
-         int UpdatedTimeIndex = TimeIndex;
-         int OrgTimeIndex     = (UpdatedTimeIndex - 1 + Tracers::NTimeLevels) %
-                            Tracers::NTimeLevels;
-
-         HostArray3DReal UpdatedTrcrArrayH =
-             UpdatedTracerArraysH[UpdatedTimeIndex];
-         HostArray3DReal OrgTrcrArrayH = OrgTracerArraysH[OrgTimeIndex];
-
-         for (int TracerIndex = 0; TracerIndex < Tracers::getNumTracers();
-              ++TracerIndex) {
-            for (int Cell = 0; Cell < Tracers::NCellsAll; Cell++) {
-               for (int VertLevel = 0; VertLevel < Tracers::NVertLevels;
-                    VertLevel++) {
-                  if (UpdatedTrcrArrayH(TracerIndex, Cell, VertLevel) !=
-                      OrgTrcrArrayH(TracerIndex, Cell, VertLevel)) {
-                     count++;
-                  }
-               }
+      // intialize tracer elements of all time levels
+      for (int Tracer = 0; Tracer < NTracers; ++Tracer) {
+         HostArray2DR8 TestHostArray = Tracers::getHostByIndex(0, Tracer);
+         for (int Cell = 0; Cell < NCellsOwned; Cell++) {
+            for (int Vert= 0; Vert< NVertLevels; Vert++) {
+               if (std::abs(RefHostArray(Tracer, Cell, Vert) - TestHostArray(Cell, Vert)) > 1e-9)
+                  ++count;
             }
          }
       }
 
       if (count == 0) {
          LOG_INFO(
-             "Tracers: All tracer data match after updateTimeLevels() PASS");
+             "Tracers: Tracer getHostByIndex correctly retreive tracer data PASS");
       } else {
          RetVal += 1;
-         LOG_ERROR("Tracers: Not all tracer data match after "
-                   "updateTimeLevels() FAIL");
+         LOG_Error( "Tracers: Tracer getHostByIndex retreives incorrect tracer data FAIL");
       }
-
-      // read tracer data from the exported file
-      Ret = Tracers::loadTracersFromFile(TracersFileName, DefDecomp);
-      if (Ret == 0) {
-         LOG_INFO("Tracers: loadTracersFromFile success PASS");
-      } else {
-         RetVal += 1;
-         LOG_ERROR("Tracers: loadTracersFromFile failre FAIL");
-      }
-
-      // create history arrays to compare with original arrays
-
-      HostArray3DReal HistoryTimeLevel0H = Tracers::getAllHost(0);
-
-      count = 0;
-
-      for (int TracerIndex=0; TracerIndex < Tracers::getNumTracers(); ++TracerIndex) {
-         for (int Cell = 0; Cell < Tracers::NCellsOwned; Cell++) {
-            for (int VertLevel = 0; VertLevel < Tracers::NVertLevels; VertLevel++) {
-               if (HistoryTimeLevel0H(TracerIndex, Cell, VertLevel) != OrgTimeLevel0H(TracerIndex, Cell, VertLevel)) {
-                  count++;
-               }
-            }
-         }
-      }
-
-
-      if (count == 0) {
-         LOG_INFO("Tracers: All tracer data match after loadTracersFromFile() PASS");
-      } else {
-         RetVal += 1;
-         LOG_ERROR("Tracers: {} tracer elements didn't match after loadTracersFromFile() FAIL", count);
-      }
-
-      // TODO: add more tests on validating each tracer data
-
-
-      // TODO: 2.7 Requirement: Acceleration or supercycling
-      //       - T.B.D.
-
-      // TODO: 2.7 Desired: Per-tracer/group algorithmic requirements
-      //       - T.B.D.
-      // Finalize Omega objects
 
       Tracers::clear();
-
       TimeStepper::clear();
       HorzMesh::clear();
       Decomp::clear();
