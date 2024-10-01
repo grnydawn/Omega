@@ -60,7 +60,8 @@ class Tracers {
           const std::string &StdName,     ///< [in] CF standard Name
           const Real ValidMin,            ///< [in] min valid field value
           const Real ValidMax,            ///< [in] max valid field value
-          const Real FillValue            ///< [in] value for undef entries
+          const Real FillValue,           ///< [in] value for undef entries
+          I4 *index = nullptr             ///< [out] (optional) index value
    );
 
  public:
@@ -78,6 +79,8 @@ class Tracers {
    /// read tracer defintions, allocate tracer arrays and initializes the
    /// tracers
    static I4 init();
+
+#include "TracerDefs.inc"
 
    /// deallocates tracer arrays
    static I4 clear();
