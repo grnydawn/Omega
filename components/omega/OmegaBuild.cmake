@@ -287,8 +287,9 @@ macro(init_standalone_build)
   set(_RunScript ${OMEGA_BUILD_DIR}/omega_run.sh)
   file(WRITE ${_RunScript}  "#!/usr/bin/env bash\n\n")
   file(APPEND ${_RunScript} "source ./omega_env.sh\n\n")
+  file(WRITE ${_RunScript}  "cd test\n\n")
   list(JOIN OMEGA_MPI_ARGS " " OMEGA_MPI_ARGS_STR)
-  file(APPEND ${_RunScript} "${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS_STR} -n 8 -- ./src/omega.exe\n\n")
+  file(APPEND ${_RunScript} "${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS_STR} -n 8 -- ../src/omega.exe\n\n")
 
   # create a ctest script
   set(_CtestScript ${OMEGA_BUILD_DIR}/omega_ctest.sh)
