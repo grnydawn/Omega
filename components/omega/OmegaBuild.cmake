@@ -289,7 +289,11 @@ macro(init_standalone_build)
   file(APPEND ${_RunScript} "source ./omega_env.sh\n\n")
   file(WRITE ${_RunScript}  "cd test\n\n")
   list(JOIN OMEGA_MPI_ARGS " " OMEGA_MPI_ARGS_STR)
-  file(APPEND ${_RunScript} "${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS_STR} -n 8 -- ../src/omega.exe\n\n")
+  file(APPEND ${_RunScript} "if [ \"$#\" -gt 0 ]; then\n")
+  file(APPEND ${_RunScript} "${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS_STR} -n 8 -- ../$*\n")
+  file(APPEND ${_RunScript} "else\n")
+  file(APPEND ${_RunScript} "${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS_STR} -n 8 -- ../src/omega.exe\n")
+  file(APPEND ${_RunScript} "fi\n")
 
   # create a ctest script
   set(_CtestScript ${OMEGA_BUILD_DIR}/omega_ctest.sh)
@@ -679,6 +683,8 @@ endmacro()
 # Prepare output               #
 ################################
 macro(wrap_outputs)
+
+  include(${CMAKE_CURRENT_SOURCE_DIR}/perf/OmegaPerf.cmake)
 
   if(OMEGA_INSTALL_PREFIX)
 

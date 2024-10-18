@@ -1,5 +1,6 @@
 # Omega Unit Tests
 
+set(_CTESTS "" PARENT_SCOPE)
 
 #####################
 # Omega Test Function
@@ -20,19 +21,29 @@ function(add_omega_test test_name exe_name source_files mpi_args)
 
   set_target_properties(${exe_name} PROPERTIES LINKER_LANGUAGE C)
 
+  if (_CTESTS)
+    set(_CTESTS "${_CTESTS};")
+  endif()
+
   # Add the test command
   if (mpi_args)
+    set(mpi_command "${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS} ${mpi_args}")
     add_test(
       NAME ${test_name}
-      COMMAND ${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS} ${mpi_args} -- ./${exe_name}
+      COMMAND ${mpi_command} -- ./${exe_name}
     )
+    string(REPLACE ";" "_SEMICOLON_" _mpi_command "${mpi_command}")
+    set(_CTESTS "${_CTESTS}${test_name}|${exe_name}|${_mpi_command}")
 
   else()
     add_test(
       NAME ${test_name}
       COMMAND ./${exe_name}
     )
+    set(_CTESTS "${_CTESTS}${test_name}|${exe_name}|")
   endif()
+
+  set(_CTESTS "${_CTESTS}" PARENT_SCOPE)
 
 endfunction()
 
@@ -360,3 +371,5 @@ add_omega_test(
     ocn/TracersTest.cpp
     "-n;8"
 )
+
+set(_CTESTS "${_CTESTS}" PARENT_SCOPE)
