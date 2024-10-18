@@ -20,10 +20,17 @@ foreach(_SUBLIST IN LISTS _CTESTS)
 
 endforeach()
 
-file(APPEND ${_Script} "for f in `ls test/*.exe+pat+*`; do\n")
-file(APPEND ${_Script} "    pat_report $f > $f_report.txt\n")
+file(APPEND ${_Script} "\n\n")
+file(APPEND ${_Script} "datadirs=$(find test -type d -name \"*.exe+pat+*\")\n")
+file(APPEND ${_Script} "for datadir in ${datadirs}; do\n")
+file(APPEND ${_Script} "  if [[ -d \"$datadir/ap2-files\" || -f \"$datadir/index.ap2\" ]]; then\n")
+file(APPEND ${_Script} "    rm -rf $datadir/ap2-files $datadir/index.ap2\n")
+file(APPEND ${_Script} "  fi\n")
+file(APPEND ${_Script} "  dirbase=$(basename \"$datadir\")\n")
+file(APPEND ${_Script} "  bash -c \"cd test; pat_report ./${dirbase} > ${dirbase}_report.txt\"\n")
 file(APPEND ${_Script} "done\n")
 
+file(APPEND ${_Script} "\n\n")
 file(APPEND ${_Script} "# run app2 on X-windows for visual profiling\n\n")
 
 execute_process(COMMAND chmod +x ${_Script})

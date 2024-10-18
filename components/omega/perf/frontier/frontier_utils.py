@@ -1,5 +1,5 @@
-import sys
 import re
+import sys
 
 # Define the functions for string parsing
 
@@ -25,17 +25,17 @@ def get_ctests(ctest_output):
 
         line = lines[index]
         index += 1
-        
+
         DirStr = ": Working Directory:"
         posDir = line.find(DirStr)
         if posDir < 0:
             continue
 
         Dir = line[posDir+len(DirStr):]
- 
+
         line = lines[index]
         index += 1
-        
+
         TestStr = "Test"
         posTest = line.find(TestStr)
         if posTest < 0:
@@ -43,7 +43,7 @@ def get_ctests(ctest_output):
 
         Test = line.split()[-1]
         ctests.append(f"{Cmd},{Exe},{Dir},{Test}")
-    
+
     return ";".join(ctests)
 
 def reverse_words(input_str):
@@ -79,13 +79,12 @@ def main():
             raise ValueError(f"{function_name} is not callable")
     except KeyError:
         raise ValueError(f"No function named '{function_name}' found.")
-    
+
     # Call the selected function with the input argument
     result = func(input_argument)
-    
+
     # Print the result
     print(result)
 
 if __name__ == "__main__":
     main()
-
