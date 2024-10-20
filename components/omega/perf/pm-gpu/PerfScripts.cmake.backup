@@ -1,0 +1,24 @@
+
+set(_FUNCNAME "get_ctests")
+run_bash_command("cd ${OMEGA_BUILD_DIR} && ctest -N -V" _RAWSTR)
+#set(_RAWSTR [[
+#27: Test command: /usr/bin/srun "-l" "-K" "--ntasks-per-gpu=1" "--gpu-bind=closest" "-n" "8" "--" "./testDriver.exe"
+#27: Working Directory: /lustre/orion/cli115/proj-shared/grnydawn/frontier/omega/standalone_crayomegagpu_HIP/test
+#  Test #27: DRIVER_TEST
+#
+#28: Test command: /usr/bin/srun "-l" "-K" "--ntasks-per-gpu=1" "--gpu-bind=closest" "-n" "8" "--" "./testTracers.exe"
+#28: Working Directory: /lustre/orion/cli115/proj-shared/grnydawn/frontier/omega/standalone_crayomegagpu_HIP/test
+#  Test #28: TRACERS_TEST
+#]])
+
+string(REPLACE "\n" "_NEWLINE_" _INPUTSTR1 "${_RAWSTR}")
+string(REPLACE "#" " " _INPUTSTR "${_INPUTSTR1}")
+
+run_bash_command("python ${CMAKE_CURRENT_LIST_DIR}/frontier_utils.py ${_FUNCNAME} ${_INPUTSTR}" _CTESTS)
+
+# Start the loop
+foreach(_CTEST IN LISTS _CTESTS)
+    message(STATUS "Current element: ${_CTEST}")
+endforeach()
+
+include(${CMAKE_CURRENT_LIST_DIR}/cray-perftools/Perftools.cmake)
