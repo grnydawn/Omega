@@ -3,7 +3,7 @@ set(_Script ${OMEGA_BUILD_DIR}/omega_profile_rocprof.sh)
 
 file(WRITE ${_Script}  "#!/usr/bin/env bash\n\n")
 file(APPEND ${_Script} "source omega_env.sh\n\n")
-file(APPEND ${_Script} "make -j 8\n\n")
+file(APPEND ${_Script} "make -j ${GMAKE_J}\n\n")
 
 foreach(_SUBLIST IN LISTS _CTESTS)
 
