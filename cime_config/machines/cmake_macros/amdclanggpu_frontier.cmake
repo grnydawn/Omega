@@ -1,4 +1,4 @@
-set(MPICC "cc")
+set(MPICC "mpicc")
 set(MPICXX "mpicxx")
 set(MPIFC "ftn")
 set(SCC "cc")
