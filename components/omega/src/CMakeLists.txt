@@ -102,6 +102,6 @@ if(OMEGA_BUILD_EXECUTABLE)
     OmegaLibFlags
   )
 
-  set_target_properties(${OMEGA_EXE_NAME} PROPERTIES LINKER_LANGUAGE C)
+#  set_target_properties(${OMEGA_EXE_NAME} PROPERTIES LINKER_LANGUAGE C)
 
 endif()
