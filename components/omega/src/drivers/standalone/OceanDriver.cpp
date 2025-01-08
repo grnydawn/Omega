@@ -23,12 +23,12 @@ int main(int argc, char **argv) {
    int ErrCurr;
    int ErrFinalize;
 
-   roctxRangePush("main()");
-
    MPI_Init(&argc, &argv); // initialize MPI
    Kokkos::initialize();   // initialize Kokkos
    Pacer::initialize(MPI_COMM_WORLD);
    Pacer::setPrefix("Omega:");
+
+   roctxRangePush("OmegaSimulation");
 
    Pacer::start("Init");
    ErrCurr = OMEGA::ocnInit(MPI_COMM_WORLD);
@@ -70,10 +70,10 @@ int main(int argc, char **argv) {
    Pacer::print("omega");
    Pacer::finalize();
 
+   roctxRangePop();
+
    Kokkos::finalize();
    MPI_Finalize();
-
-   roctxRangePop();
 
    if (ErrAll >= 256)
       ErrAll = 255;

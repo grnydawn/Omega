@@ -36,11 +36,15 @@ int ocnRun(TimeInstant &CurrTime ///< [inout] current sim time
 
    // time loop, integrate until EndAlarm or error encountered
    I8 IStep = 0;
-   roctxRangePush("TimeLoop");
+   std::string timeloopstr;
    while (Err == 0 && !(EndAlarm->isRinging())) {
 
       // track step count
       ++IStep;
+
+      // const std::string timeloopstr = "TimeLoop-" + std::to_string(IStep);
+      timeloopstr = "TimeLoop-" + std::to_string(IStep);
+      roctxRangePush(timeloopstr.c_str());
 
       // call forcing routines, anything needed pre-timestep
 
@@ -48,6 +52,7 @@ int ocnRun(TimeInstant &CurrTime ///< [inout] current sim time
       DefTimeStepper->doStep(DefOceanState, SimTime);
 
       // write restart file/output, anything needed post-timestep
+      roctxRangePop();
 
       Err = IOStream::writeAll(OmegaClock);
       if (Err != 0) {
@@ -58,7 +63,6 @@ int ocnRun(TimeInstant &CurrTime ///< [inout] current sim time
       LOG_INFO("ocnRun: Time step {} complete, clock time: {}", IStep,
                SimTime.getString(4, 4, "-"));
    }
-   roctxRangePop();
 
    return Err;
 
