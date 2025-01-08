@@ -12,6 +12,8 @@
 #include "OmegaKokkos.h"
 #include "mpi.h"
 
+#include "roctracer/roctx.h"
+
 #include <cmath>
 
 using namespace OMEGA;
@@ -177,6 +179,7 @@ int testDivergence(Real RTol) {
    const int NVertLevels = 16;
 
    // Prepare operator input
+   roctxRangePush("setVectorEdge()-Div");
    Array2DReal VecEdge("VecEdge", Mesh->NEdgesSize, NVertLevels);
    Err += setVectorEdge(
        KOKKOS_LAMBDA(Real(&VecField)[2], Real X, Real Y) {
@@ -184,28 +187,35 @@ int testDivergence(Real RTol) {
           VecField[1] = Setup.exactVecY(X, Y);
        },
        VecEdge, EdgeComponent::Normal, Geom, Mesh, NVertLevels);
+   roctxRangePop();
 
    // Compute exact result
+   roctxRangePush("setScalar()-Div");
    Array2DReal ExactDivCell("ExactDivCell", Mesh->NCellsOwned, NVertLevels);
    Err += setScalar(
        KOKKOS_LAMBDA(Real X, Real Y) { return Setup.exactDivVec(X, Y); },
        ExactDivCell, Geom, Mesh, OnCell, NVertLevels, ExchangeHalos::No);
+   roctxRangePop();
 
    // Compute numerical result
+   roctxRangePush("DivergenceCell-Div");
    Array2DReal NumDivCell("NumDivCell", Mesh->NCellsOwned, NVertLevels);
    DivergenceOnCell DivergenceCell(Mesh);
    parallelFor(
        {Mesh->NCellsOwned, NVertLevels}, KOKKOS_LAMBDA(int ICell, int K) {
           DivergenceCell(NumDivCell, ICell, K, VecEdge);
        });
+   roctxRangePop();
 
    // Compute error measures
+   roctxRangePush("checkResults-Div");
    ErrorMeasures DivErrors;
    Err += computeErrors(DivErrors, NumDivCell, ExactDivCell, Mesh, OnCell,
                         NVertLevels);
    // Check error values
    Err += checkErrors("OperatorsTest", "Divergence", DivErrors,
                       Setup.ExpectedDivErrors, RTol);
+   roctxRangePop();
 
    if (Err == 0) {
       LOG_INFO("OperatorsTest: Divergence PASS");
@@ -222,14 +232,17 @@ int testGradient(Real RTol) {
    const int NVertLevels = 16;
 
    // Prepare operator input
+   roctxRangePush("setScalar()-Grad");
    Array2DReal ScalarCell("ScalarCell", Mesh->NCellsSize, NVertLevels);
    Err += setScalar(
        KOKKOS_LAMBDA(Real Coord1, Real Coord2) {
           return Setup.exactScalar(Coord1, Coord2);
        },
        ScalarCell, Geom, Mesh, OnCell, NVertLevels);
+   roctxRangePop();
 
    // Compute exact result
+   roctxRangePush("ExactGradEdge-Grad");
    Array2DReal ExactGradEdge("ExactGradEdge", Mesh->NEdgesOwned, NVertLevels);
    Err += setVectorEdge(
        KOKKOS_LAMBDA(Real(&VecField)[2], Real X, Real Y) {
@@ -238,22 +251,27 @@ int testGradient(Real RTol) {
        },
        ExactGradEdge, EdgeComponent::Normal, Geom, Mesh, NVertLevels,
        ExchangeHalos::No);
+   roctxRangePop();
 
    // Compute numerical result
+   roctxRangePush("GradientEdge-Grad");
    GradientOnEdge GradientEdge(Mesh);
    Array2DReal NumGradEdge("NumGradEdge", Mesh->NEdgesOwned, NVertLevels);
    parallelFor(
        {Mesh->NEdgesOwned, NVertLevels}, KOKKOS_LAMBDA(int IEdge, int K) {
           GradientEdge(NumGradEdge, IEdge, K, ScalarCell);
        });
+   roctxRangePop();
 
    // Compute error measures
+   roctxRangePush("CheckResults-Grad");
    ErrorMeasures GradErrors;
    Err += computeErrors(GradErrors, NumGradEdge, ExactGradEdge, Mesh, OnEdge,
                         NVertLevels);
    // Check error values
    Err += checkErrors("OperatorsTest", "Gradient", GradErrors,
                       Setup.ExpectedGradErrors, RTol);
+   roctxRangePop();
 
    if (Err == 0) {
       LOG_INFO("OperatorsTest: Gradient PASS");
@@ -269,6 +287,7 @@ int testCurl(Real RTol) {
    const int NVertLevels = 16;
 
    // Prepare operator input
+   roctxRangePush("setVectorEdge()-Curl");
    Array2DReal VecEdge("VecEdge", Mesh->NEdgesSize, NVertLevels);
    Err += setVectorEdge(
        KOKKOS_LAMBDA(Real(&VecField)[2], Real X, Real Y) {
@@ -276,15 +295,19 @@ int testCurl(Real RTol) {
           VecField[1] = Setup.exactVecY(X, Y);
        },
        VecEdge, EdgeComponent::Normal, Geom, Mesh, NVertLevels);
+   roctxRangePop();
 
    // Compute exact result
+   roctxRangePush("setScalar()-Curl");
    Array2DReal ExactCurlVertex("ExactCurlVertex", Mesh->NVerticesOwned,
                                NVertLevels);
    Err += setScalar(
        KOKKOS_LAMBDA(Real X, Real Y) { return Setup.exactCurlVec(X, Y); },
        ExactCurlVertex, Geom, Mesh, OnVertex, NVertLevels, ExchangeHalos::No);
+   roctxRangePop();
 
    // Compute numerical result
+   roctxRangePush("CurlVertex-Curl");
    Array2DReal NumCurlVertex("NumCurlVertex", Mesh->NVerticesOwned,
                              NVertLevels);
    CurlOnVertex CurlVertex(Mesh);
@@ -292,14 +315,17 @@ int testCurl(Real RTol) {
        {Mesh->NVerticesOwned, NVertLevels}, KOKKOS_LAMBDA(int IVertex, int K) {
           CurlVertex(NumCurlVertex, IVertex, K, VecEdge);
        });
+   roctxRangePop();
 
    // Compute error measures
+   roctxRangePush("CheckResults-Curl");
    ErrorMeasures CurlErrors;
    Err += computeErrors(CurlErrors, NumCurlVertex, ExactCurlVertex, Mesh,
                         OnVertex, NVertLevels);
    // Check error values
    Err += checkErrors("OperatorsTest", "Curl", CurlErrors,
                       Setup.ExpectedCurlErrors, RTol);
+   roctxRangePop();
 
    if (Err == 0) {
       LOG_INFO("OperatorsTest: Curl PASS");
@@ -316,6 +342,7 @@ int testRecon(Real RTol) {
    const int NVertLevels = 16;
 
    // Prepare operator input
+   roctxRangePush("setVectorEdge1()-Rec");
    Array2DReal VecEdge("VecEdge", Mesh->NEdgesSize, NVertLevels);
    Err += setVectorEdge(
        KOKKOS_LAMBDA(Real(&VecField)[2], Real X, Real Y) {
@@ -323,8 +350,10 @@ int testRecon(Real RTol) {
           VecField[1] = Setup.exactVecY(X, Y);
        },
        VecEdge, EdgeComponent::Normal, Geom, Mesh, NVertLevels);
+   roctxRangePop();
 
    // Compute exact result
+   roctxRangePush("setVectorEdge2()-Rec");
    Array2DReal ExactReconEdge("ExactReconEdge", Mesh->NEdgesOwned, NVertLevels);
 
    Err += setVectorEdge(
@@ -334,22 +363,27 @@ int testRecon(Real RTol) {
        },
        ExactReconEdge, EdgeComponent::Tangential, Geom, Mesh, NVertLevels,
        ExchangeHalos::No);
+   roctxRangePop();
 
    // Compute numerical result
+   roctxRangePush("TanReconEdge-Rec");
    Array2DReal NumReconEdge("NumReconEdge", Mesh->NEdgesOwned, NVertLevels);
    TangentialReconOnEdge TanReconEdge(Mesh);
    parallelFor(
        {Mesh->NEdgesOwned, NVertLevels}, KOKKOS_LAMBDA(int IEdge, int K) {
           TanReconEdge(NumReconEdge, IEdge, K, VecEdge);
        });
+   roctxRangePop();
 
    // Compute error measures
+   roctxRangePush("CheckResults-Rec");
    ErrorMeasures ReconErrors;
    Err += computeErrors(ReconErrors, NumReconEdge, ExactReconEdge, Mesh, OnEdge,
                         NVertLevels);
    // Check error values
    Err += checkErrors("OperatorsTest", "Recon", ReconErrors,
                       Setup.ExpectedReconErrors, RTol);
+   roctxRangePop();
 
    if (Err == 0) {
       LOG_INFO("OperatorsTest: Recon PASS");
@@ -421,10 +455,38 @@ int operatorsTest(const std::string &MeshFile = DefaultMeshFile) {
 
    const Real RTol = sizeof(Real) == 4 ? 1e-2 : 1e-10;
 
+   roctxRangePush("testDivergence()-1st");
    Err += testDivergence(RTol);
+   roctxRangePop();
+
+   roctxRangePush("testGradient()-1st");
    Err += testGradient(RTol);
+   roctxRangePop();
+
+   roctxRangePush("testCurl()-1st");
    Err += testCurl(RTol);
+   roctxRangePop();
+
+   roctxRangePush("testRecon()-1st");
    Err += testRecon(RTol);
+   roctxRangePop();
+
+   // 2nd tests
+   roctxRangePush("testDivergence()-2nd");
+   Err += testDivergence(RTol);
+   roctxRangePop();
+
+   roctxRangePush("testGradient()-2nd");
+   Err += testGradient(RTol);
+   roctxRangePop();
+
+   roctxRangePush("testCurl()-2nd");
+   Err += testCurl(RTol);
+   roctxRangePop();
+
+   roctxRangePush("testRecon()-2nd");
+   Err += testRecon(RTol);
+   roctxRangePop();
 
    if (Err == 0) {
       LOG_INFO("OperatorsTest: Successful completion");
@@ -441,7 +503,9 @@ int main(int argc, char *argv[]) {
    MPI_Init(&argc, &argv);
    Kokkos::initialize(argc, argv);
 
+   roctxRangePush("operatorsTest()");
    RetVal += operatorsTest();
+   roctxRangePop();
 
    Kokkos::finalize();
    MPI_Finalize();
