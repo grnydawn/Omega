@@ -15,11 +15,15 @@
 
 #include <iostream>
 
+#include "roctracer/roctx.h"
+
 int main(int argc, char **argv) {
 
    int ErrAll;
    int ErrCurr;
    int ErrFinalize;
+
+   roctxRangePush("main()");
 
    MPI_Init(&argc, &argv); // initialize MPI
    Kokkos::initialize();   // initialize Kokkos
@@ -39,6 +43,7 @@ int main(int argc, char **argv) {
    OMEGA::TimeInstant CurrTime    = ModelClock->getCurrentTime();
 
    Pacer::start("RunLoop");
+   roctxRangePush("RunLoop");
    while (ErrCurr == 0 && !(EndAlarm->isRinging())) {
 
       ErrCurr = OMEGA::ocnRun(CurrTime);
@@ -46,6 +51,7 @@ int main(int argc, char **argv) {
       if (ErrCurr != 0)
          LOG_ERROR("Error advancing Omega run interval");
    }
+   roctxRangePop();
    Pacer::stop("RunLoop");
 
    Pacer::start("Finalize");
@@ -66,6 +72,8 @@ int main(int argc, char **argv) {
 
    Kokkos::finalize();
    MPI_Finalize();
+
+   roctxRangePop();
 
    if (ErrAll >= 256)
       ErrAll = 255;

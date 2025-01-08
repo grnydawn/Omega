@@ -11,6 +11,8 @@
 #include "TimeMgr.h"
 #include "TimeStepper.h"
 
+#include "roctracer/roctx.h"
+
 namespace OMEGA {
 
 int ocnRun(TimeInstant &CurrTime ///< [inout] current sim time
@@ -34,6 +36,7 @@ int ocnRun(TimeInstant &CurrTime ///< [inout] current sim time
 
    // time loop, integrate until EndAlarm or error encountered
    I8 IStep = 0;
+   roctxRangePush("TimeLoop");
    while (Err == 0 && !(EndAlarm->isRinging())) {
 
       // track step count
@@ -55,6 +58,7 @@ int ocnRun(TimeInstant &CurrTime ///< [inout] current sim time
       LOG_INFO("ocnRun: Time step {} complete, clock time: {}", IStep,
                SimTime.getString(4, 4, "-"));
    }
+   roctxRangePop();
 
    return Err;
 

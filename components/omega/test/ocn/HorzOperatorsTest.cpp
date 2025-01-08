@@ -500,6 +500,8 @@ int main(int argc, char *argv[]) {
 
    int RetVal = 0;
 
+   roctxRangePush("main()");
+
    MPI_Init(&argc, &argv);
    Kokkos::initialize(argc, argv);
 
@@ -509,6 +511,8 @@ int main(int argc, char *argv[]) {
 
    Kokkos::finalize();
    MPI_Finalize();
+
+   roctxRangePop();
 
    if (RetVal >= 256)
       RetVal = 255;
