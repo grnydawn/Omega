@@ -31,16 +31,29 @@ int main(int argc, char **argv) {
    roctxRangePush("OmegaSimulation");
 
    Pacer::start("Init");
+   roctxRangePush("ocnInit()");
    ErrCurr = OMEGA::ocnInit(MPI_COMM_WORLD);
+   roctxRangePop();
    if (ErrCurr != 0)
       LOG_ERROR("Error initializing OMEGA");
    Pacer::stop("Init");
 
    // Get time information
+   roctxRangePush("TimeStepper::getDefault()");
    OMEGA::TimeStepper *DefStepper = OMEGA::TimeStepper::getDefault();
-   OMEGA::Alarm *EndAlarm         = DefStepper->getEndAlarm();
-   OMEGA::Clock *ModelClock       = DefStepper->getClock();
-   OMEGA::TimeInstant CurrTime    = ModelClock->getCurrentTime();
+   roctxRangePop();
+
+   roctxRangePush("DefStepper->getEndAlarm()");
+   OMEGA::Alarm *EndAlarm = DefStepper->getEndAlarm();
+   roctxRangePop();
+
+   roctxRangePush("DefStepper->getClock()");
+   OMEGA::Clock *ModelClock = DefStepper->getClock();
+   roctxRangePop();
+
+   roctxRangePush("ModelClock->getCurrentTime()");
+   OMEGA::TimeInstant CurrTime = ModelClock->getCurrentTime();
+   roctxRangePop();
 
    Pacer::start("RunLoop");
    roctxRangePush("RunLoop");
