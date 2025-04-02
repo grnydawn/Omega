@@ -1,5 +1,10 @@
 # Omega Unit Tests
 
+# create a ctest script
+set(_CtestScript ${OMEGA_BUILD_DIR}/omega_ctest.sh)
+file(WRITE ${_CtestScript}  "#!/usr/bin/env bash\n\n")
+file(APPEND ${_CtestScript} "source ./omega_env.sh\n\n")
+
 #####################
 # Omega Test Function
 #####################
@@ -45,7 +50,12 @@ function(add_omega_test test_name exe_name source_files mpi_args)
     )
   endif()
 
-  set_target_properties(${exe_name} PROPERTIES LINKER_LANGUAGE CXX)
+#  set_target_properties(${exe_name} PROPERTIES LINKER_LANGUAGE CXX)
+#
+#      add_test(
+#        NAME ${test_name}
+#        COMMAND ./${exe_name}
+#      )
 
   # Add the test command
   if (mpi_args)
@@ -70,6 +80,10 @@ function(add_omega_test test_name exe_name source_files mpi_args)
   endif()
 
   set_tests_properties(${test_name} PROPERTIES LABELS "${OMEGA_ARCH};Omega-0")
+
+  #file(APPEND ${_CtestScript} "#${mpi_args}\n")
+  #file(APPEND ${_CtestScript} "ctest -R ${test_name}\n\n")
+  file(APPEND ${_CtestScript} "${OMEGA_MPI_EXEC} ${mpi_args} ${OMEGA_MPI_ARGS} ./${exe_name}\n\n")
 
 endfunction()
 
@@ -405,3 +419,5 @@ add_omega_test(
     ocn/TracersTest.cpp
     "-n;8"
 )
+
+execute_process(COMMAND chmod +x ${_CtestScript})

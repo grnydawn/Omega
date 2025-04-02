@@ -305,15 +305,15 @@ macro(init_standalone_build)
   list(JOIN OMEGA_MPI_ARGS " " OMEGA_MPI_ARGS_STR)
   file(APPEND ${_RunScript} "cd test; ${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS_STR} -n 8 -- ../src/omega.exe\n\n")
 
-  # create a ctest script
-  set(_CtestScript ${OMEGA_BUILD_DIR}/omega_ctest.sh)
-  file(WRITE ${_CtestScript}  "#!/usr/bin/env bash\n\n")
-  file(APPEND ${_CtestScript} "source ./omega_env.sh\n\n")
-  if(OMEGA_DEBUG)
-    file(APPEND ${_CtestScript} "ctest --output-on-failure --verbose $* # --rerun-failed\n\n")
-  else()
-    file(APPEND ${_CtestScript} "ctest --output-on-failure $* # --rerun-failed\n\n")
-  endif()
+#  # create a ctest script
+#  set(_CtestScript ${OMEGA_BUILD_DIR}/omega_ctest.sh)
+#  file(WRITE ${_CtestScript}  "#!/usr/bin/env bash\n\n")
+#  file(APPEND ${_CtestScript} "source ./omega_env.sh\n\n")
+#  if(OMEGA_DEBUG)
+#    file(APPEND ${_CtestScript} "ctest --output-on-failure --verbose $* # --rerun-failed\n\n")
+#  else()
+#    file(APPEND ${_CtestScript} "ctest --output-on-failure $* # --rerun-failed\n\n")
+#  endif()
 
   # create a profile script
   set(_ProfileScript ${OMEGA_BUILD_DIR}/omega_profile.sh)
@@ -462,7 +462,7 @@ macro(init_standalone_build)
   execute_process(COMMAND chmod +x ${_EnvScript})
   execute_process(COMMAND chmod +x ${_BuildScript})
   execute_process(COMMAND chmod +x ${_RunScript})
-  execute_process(COMMAND chmod +x ${_CtestScript})
+#  execute_process(COMMAND chmod +x ${_CtestScript})
   execute_process(COMMAND chmod +x ${_ProfileScript})
 
   if(KOKKOS_OPTIONS)
