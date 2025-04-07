@@ -29,6 +29,7 @@ macro(common)
   option(OMEGA_DEBUG "Turn on error message throwing (default OFF)." OFF)
   option(OMEGA_LOG_FLUSH "Turn on unbuffered logging (default OFF)." OFF)
   option(OMEGA_TEST_CDASH "Turn on CDash support (default ON)." ON)
+  option(OMEGA_TEST_MEMCHECK "Turn on memory check testing (default OFF)." OFF)
 
   if("${OMEGA_BUILD_TYPE}" STREQUAL "Debug" OR "${OMEGA_BUILD_TYPE}" STREQUAL "DEBUG")
     set(OMEGA_DEBUG ON)
@@ -290,7 +291,33 @@ macro(init_standalone_build)
       file(APPEND ${_EnvScript} "export OMP_PLACES=threads\n\n")
     endif()
   endif()
-  file(APPEND ${_EnvScript} "module try-load valgrind\n\n")
+
+  if (OMEGA_TEST_MEMCHECK)
+    file(APPEND ${_EnvScript}
+    "
+    # Check if valgrind is already in PATH
+    if command -v valgrind &> /dev/null; then
+      echo \"valgrind is already available in the environment.\"
+    else
+      echo \"valgrind not found in PATH. Trying to load via module...\"
+
+      # Try to load valgrind
+      module load valgrind
+      if [[ \$? -ne 0 ]]; then
+          echo \"valgrind module not found, trying valgrind4hpc...\"
+          module load valgrind4hpc
+          if [[ \$? -ne 0 ]]; then
+              echo \"Neither valgrind nor valgrind4hpc could be loaded.\"
+          else
+              echo \"valgrind4hpc module loaded.\"
+          fi
+      else
+          echo \"valgrind module loaded.\"
+      fi
+    fi
+    ")
+  endif()
+
 
   # create a build script
   set(_BuildScript ${OMEGA_BUILD_DIR}/omega_build.sh)
@@ -673,8 +700,6 @@ macro(update_variables)
   if(OMEGA_MPI_ON_DEVICE)
     add_definitions(-DOMEGA_MPI_ON_DEVICE)
   endif()
-
-  file(APPEND ${_EnvScript} "$*\n")
 
   # Include the findParmetis script
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
