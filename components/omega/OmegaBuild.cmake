@@ -289,8 +289,8 @@ macro(init_standalone_build)
     else()
       file(APPEND ${_EnvScript} "export OMP_PLACES=threads\n\n")
     endif()
-
   endif()
+  file(APPEND ${_EnvScript} "module try-load valgrind\n\n")
 
   # create a build script
   set(_BuildScript ${OMEGA_BUILD_DIR}/omega_build.sh)
