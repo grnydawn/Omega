@@ -151,7 +151,9 @@ cd ..
 
 ### Running CTests
 
-Omega includes several unit tests that run through CTest. The unit tests need to be run on a compute node.
+Omega includes several types of tests that run through CTest.
+Unit testing is the default test type, and the unit tests need
+to be run on a compute node.
 
 To run the tests:
 ```sh
@@ -185,7 +187,10 @@ Test project /gpfs/fs1/home/ac.xylar/e3sm_work/polaris/add-omega-ctest-util/buil
 Total Test time (real) =   8.91 sec
 ```
 
-To add memory checks to the Omega unit-test suite, add `-DOMEGA_TEST_MEMCHECK=ON`
+To skip unit testing, add `-DOMEGA_TEST_MEMCHECK=OFF` to the CMake
+command line.
+
+To add memory checks to the Omega test suite, add `-DOMEGA_TEST_MEMCHECK=ON`
 to the CMake command line.
 
 ### Debugging tips

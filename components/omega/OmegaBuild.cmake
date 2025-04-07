@@ -28,7 +28,8 @@ macro(common)
 
   option(OMEGA_DEBUG "Turn on error message throwing (default OFF)." OFF)
   option(OMEGA_LOG_FLUSH "Turn on unbuffered logging (default OFF)." OFF)
-  option(OMEGA_TEST_CDASH "Turn on CDash support (default ON)." ON)
+  option(OMEGA_BUILD_TEST"Enable Omega Testing (default OFF)." OFF)
+  option(OMEGA_TEST_UNIT "Turn on unit testing (default ON)." ON)
   option(OMEGA_TEST_MEMCHECK "Turn on memory check testing (default OFF)." OFF)
 
   if("${OMEGA_BUILD_TYPE}" STREQUAL "Debug" OR "${OMEGA_BUILD_TYPE}" STREQUAL "DEBUG")
