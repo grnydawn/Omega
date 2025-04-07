@@ -185,6 +185,9 @@ Test project /gpfs/fs1/home/ac.xylar/e3sm_work/polaris/add-omega-ctest-util/buil
 Total Test time (real) =   8.91 sec
 ```
 
+To add memory checks to the Omega unit-test suite, add `-DOMEGA_TEST_MEMCHECK=ON`
+to the CMake command line.
+
 ### Debugging tips
 
 If Omega CTests are failing or simulations are crashing, setting
