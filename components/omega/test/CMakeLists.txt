@@ -1,5 +1,9 @@
 # Omega Unit Tests
 
+list(APPEND CMAKE_MODULE_PATH "${E3SM_EXTERNALS_ROOT}/ekat/cmake")
+
+include("${E3SM_EXTERNALS_ROOT}/ekat/cmake/EkatCreateUnitTest.cmake")
+
 #####################
 # Omega Test Function
 #####################
@@ -416,4 +420,33 @@ add_omega_test(
     testTracers.exe
     ocn/TracersTest.cpp
     "-n;8"
+)
+
+##################
+# Ekat Unit Tests
+##################
+
+#set(ecute_INCLUDE_DIRS "${OmegaLibFlags}"  CACHE INTERNAL "")
+#list(APPEND ecute_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/drivers")
+#set(ecute_INCLUDE_DIRS "${OMEGA_SOURCE_DIR}/src/ocn"  CACHE INTERNAL "")
+set(
+    ecute_INCLUDE_DIRS
+    ${OMEGA_SOURCE_DIR}/src/base
+    ${OMEGA_SOURCE_DIR}/src/infra
+    ${OMEGA_SOURCE_DIR}/src/ocn
+    ${OMEGA_SOURCE_DIR}/src/timeStepping
+    ${E3SM_ROOT}/share/timing
+    ${E3SM_ROOT}/share/pacer
+    ${PIOC_SOURCE_DIR}
+    ${PIOC_BINARY_DIR}
+    ${Parmetis_INCLUDE_DIRS}
+    CACHE INTERNAL ""
+)
+
+set(ecute_LIBS_DIRS "${OMEGA_LIB_NAME}"  CACHE INTERNAL "")
+EkatCreateUnitTestExec(EkatTestDriver.exe
+    drivers/StandaloneDriverTest.cpp
+)
+
+EkatCreateUnitTestFromExec(EkatUT EkatTestDriver.exe
 )
