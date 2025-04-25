@@ -444,9 +444,10 @@ set(
 )
 
 set(ecute_LIBS_DIRS "${OMEGA_LIB_NAME}"  CACHE INTERNAL "")
-EkatCreateUnitTestExec(EkatTestDriver.exe
-    drivers/StandaloneDriverTest.cpp
+
+EkatCreateUnitTestExec(EkatKokkosTest.exe
+    infra/OmegaKokkosTest.cpp
 )
 
-EkatCreateUnitTestFromExec(EkatUT EkatTestDriver.exe
+EkatCreateUnitTestFromExec(EkatUT EkatKokkosTest.exe
 )
