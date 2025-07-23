@@ -184,6 +184,9 @@ class VelocityDiffusionOnEdge {
    /// constructor declaration
    VelocityDiffusionOnEdge(const HorzMesh *Mesh);
 
+   /// constructor declaration for F2C
+   VelocityDiffusionOnEdge(const int NEdgesSize, const int MaxCellsOnEdge, const int NVertLevels);
+
    /// The functor takes edge index, vertical chunk index, and arrays for
    /// divergence of horizontal velocity (defined at cell centers) and relative
    /// vorticity (defined at vertices), outputs tendency array

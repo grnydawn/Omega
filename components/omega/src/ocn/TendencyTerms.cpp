@@ -38,6 +38,25 @@ VelocityDiffusionOnEdge::VelocityDiffusionOnEdge(const HorzMesh *Mesh)
       DcEdge(Mesh->DcEdge), DvEdge(Mesh->DvEdge),
       MeshScalingDel2(Mesh->MeshScalingDel2), EdgeMask(Mesh->EdgeMask) {}
 
+/// F2C
+VelocityDiffusionOnEdge::VelocityDiffusionOnEdge(const int NEdgesSize, const int MaxCellsOnEdge, const int NVertLevels) {
+
+   //CellsOnEdge = MeshDecomp->CellsOnEdge; HostArray2DI4 CellsOnEdgeTmp("CellsOnEdge", NEdgesSize, MaxCellsOnEdge);
+   //VerticesOnEdge = MeshDecomp->VerticesOnEdge; HostArray2DI4 VerticesOnEdgeTmp("VerticesOnEdge", NEdgesSize, 2); 
+   //DcEdge = readEdgeArray(DcEdgeH, "dcEdge"); HostArray1DR8 TmpArrayR8(OmegaName + "Tmp", NEdgesSize);
+   //DvEdge = readEdgeArray(DvEdgeH, "dvEdge"); HostArray1DR8 TmpArrayR8(OmegaName + "Tmp", NEdgesSize);
+   //MeshScalingDel2 = Array1DReal("MeshScalingDel2", NEdgesSize);
+   //EdgeMask = Array2DReal("EdgeMask", NEdgesSize, NVertLevels);
+
+   CellsOnEdge = Array2DI4("CellsOnEdge", NEdgesSize, MaxCellsOnEdge);
+   VerticesOnEdge = Array2DI4("VerticesOnEdge", NEdgesSize, 2); 
+   DcEdge = Array1DReal("DcEdge", NEdgesSize);
+   DvEdge = Array1DReal("DvEdge", NEdgesSize);
+   MeshScalingDel2 = Array1DReal("MeshScalingDel2", NEdgesSize);
+   EdgeMask = Array2DReal("EdgeMask", NEdgesSize, NVertLevels);
+
+}
+
 VelocityHyperDiffOnEdge::VelocityHyperDiffOnEdge(const HorzMesh *Mesh)
     : CellsOnEdge(Mesh->CellsOnEdge), VerticesOnEdge(Mesh->VerticesOnEdge),
       DcEdge(Mesh->DcEdge), DvEdge(Mesh->DvEdge),
