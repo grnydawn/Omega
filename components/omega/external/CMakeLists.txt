@@ -67,6 +67,7 @@ if (NOT TARGET pioc)
 	endif()
 
 	option(PIO_ENABLE_TOOLS "" OFF)
+	option(PIO_ENABLE_FORTRAN "" OFF)
 
 	add_subdirectory(
 	  ${E3SM_EXTERNALS_ROOT}/scorpio

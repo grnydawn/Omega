@@ -108,6 +108,7 @@ endforeach()
 # Include function definitions
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_util.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build_mpas_model.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build_omega.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build_eamxx.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build_model.cmake)
 
@@ -127,6 +128,8 @@ build_eamxx()
 set(BUILDCONF ${CASEROOT}/Buildconf)
 
 build_mpas_models()
+
+build_omega()
 
 # Set global cmake settings
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
