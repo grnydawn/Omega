@@ -1,5 +1,22 @@
 # Add external packages
 
+function(print_all_targets dir)
+    get_property(targets DIRECTORY ${dir} PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(t ${targets})
+        # You can also query TYPE here if needed
+        get_target_property(type ${t} TYPE)
+        message(STATUS "Target in ${dir}: ${t} (${type})")
+    endforeach()
+
+    get_property(subdirs DIRECTORY ${dir} PROPERTY SUBDIRECTORIES)
+    foreach(subdir ${subdirs})
+        print_all_targets(${subdir})
+    endforeach()
+endfunction()
+
+# Important: start at top-level, not just your subdir
+print_all_targets(${CMAKE_SOURCE_DIR})
+
 include(ExternalProject)
 
 # Add GSW-C project
