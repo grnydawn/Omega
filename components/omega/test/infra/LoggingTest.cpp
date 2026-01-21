@@ -49,14 +49,14 @@ int outputTestResult(std::string const &TestName, std::string const &Expected,
    std::vector<std::string> Msgs = TestSink->last_formatted();
 
    if (Expected.length() == 0) {
-      if (Msgs.size() == 0) {
+      if (Msgs.empty()) {
          std::cout << TestName << ": PASS" << std::endl;
       } else {
          std::cout << TestName << ": FAIL" << std::endl;
          RetVal = 1;
       }
    } else {
-      if (Msgs.size() == 0) {
+      if (Msgs.empty()) {
          std::cout << TestName << ": FAIL" << std::endl;
          RetVal = 1;
       } else {
