@@ -74,8 +74,10 @@ void IOStream::init(Clock *&ModelClock //< [inout] Omega model clock
 void IOStream::init(void) {
 
    // Create an empty dummy clock on the stack (avoids memory leak)
+   // Need a pointer variable since init() takes Clock *& (reference to pointer)
    Clock ModelClock;
-   init(&ModelClock);
+   Clock *ModelClockPtr = &ModelClock;
+   init(ModelClockPtr);
 
 } // End initialize(void)
 
