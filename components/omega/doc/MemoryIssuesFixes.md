@@ -274,11 +274,61 @@ if (FmtCompare == "netcdf4") { // NetCDF4 - use compressed serial for compatibil
 }
 ```
 
-Also added explicit `IO::endDefinePhase()` call in `IOStream::writeStream()` before writing data.
-
 ### Files Modified
 - `src/base/IO.cpp` - Changed default netcdf4 format mapping
-- `src/infra/IOStream.cpp` - Added endDefinePhase call
+
+---
+
+## Issue 11: Define-Mode Operations in Multiframe Files
+
+### Description
+For multiframe NetCDF files (files that store multiple time slices), the first frame (Frame == 0) creates the file in **define mode**, but subsequent frames (Frame > 0) open the existing file in **data mode**. Several operations require define mode:
+- Writing global metadata attributes
+- Writing variable metadata attributes
+- Defining new dimensions and variables
+- Calling `endDefinePhase()`
+
+When these operations were called unconditionally for all frames, NetCDF would fail with:
+```
+NetCDF: Operation not allowed in data mode.
+```
+
+### Fix Applied
+Guarded all define-mode operations with `if (Frame < 1)` checks in `IOStream::writeStream()`:
+
+```cpp
+// Write Metadata for global metadata (Code and Simulation)
+// Only needs to be written for a new file (Frame < 1)
+// NetCDF requires define mode for adding attributes
+if (Frame < 1) {
+   writeFieldMeta(CodeMeta, OutFileID, IO::GlobalID);
+   writeFieldMeta(SimMeta, OutFileID, IO::GlobalID);
+
+   // Create and write a field for any global data that is file-specific
+   std::shared_ptr<Field> FileField = Field::create("FileField");
+   std::string SimTimeName = "SimulationTime";
+   FileField->addMetadata(SimTimeName, SimTimeStr);
+   writeFieldMeta("FileField", OutFileID, IO::GlobalID);
+   Field::destroy("FileField");
+}
+
+// ... define dimensions and variables (these functions check if already exists)
+
+// Write field metadata only for new files
+if (Frame < 1) {
+   writeFieldMeta(FieldName, OutFileID, FieldID);
+}
+
+// End define phase before writing data (only for new files/first frame)
+if (Frame < 1) {
+   IO::endDefinePhase(OutFileID);
+}
+```
+
+The `defineAllDims()` and `defineVar()` functions already have built-in checks to skip definition if the dimension/variable already exists, so they work correctly in data mode.
+
+### Files Modified
+- `src/infra/IOStream.cpp` - Added Frame < 1 guards for define-mode operations
 
 ---
 
@@ -320,7 +370,7 @@ The codebase generally follows good memory management practices:
 
 | File | Changes |
 |------|---------|
-| `src/infra/IOStream.cpp` | Fixed 3 memory leaks; Fixed FmtDefault bug; Added endDefinePhase call |
+| `src/infra/IOStream.cpp` | Fixed 3 memory leaks; Fixed FmtDefault bug; Added Frame < 1 guards for define-mode operations |
 | `src/infra/Logging.h` | Added `finalizeLogging()` declaration |
 | `src/infra/Logging.cpp` | Added `finalizeLogging()` implementation |
 | `src/ocn/OceanFinal.cpp` | Added singleton cleanup, IOStream/IO/Logging finalize, removed duplicate call |
