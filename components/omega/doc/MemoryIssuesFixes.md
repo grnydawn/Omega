@@ -200,6 +200,57 @@ Added the function declaration to `IO.h` and called it from `ocnFinalize()`.
 
 ---
 
+## Issue 8: IOStream Uses Wrong File Format Constant
+
+### Description
+In `IOStream.cpp`, the `readStream()` and `writeStream()` functions were using `IO::FmtDefault` (a hardcoded enum constant equal to `PIO_IOTYPE_NETCDF4C`) instead of `IO::DefaultFileFmt` (the configurable global variable that gets set from the configuration file).
+
+This meant that even if the user specified a different file format in the configuration (e.g., `IODefaultFormat: NetCDF4`), the streams would always use `NetCDF4c` (compressed).
+
+### Affected Locations
+| File | Line | Function |
+|------|------|----------|
+| `src/infra/IOStream.cpp` | 2290 | `IOStream::readStream()` |
+| `src/infra/IOStream.cpp` | 2443 | `IOStream::writeStream()` |
+
+### Original Code
+```cpp
+IO::openFile(InFileID, InFileName, Mode, IO::FmtDefault, ExistAction);
+```
+
+### Fix Applied
+Changed to use the configurable global variable:
+```cpp
+IO::openFile(InFileID, InFileName, Mode, IO::DefaultFileFmt, ExistAction);
+```
+
+### Files Modified
+- `src/infra/IOStream.cpp`
+
+---
+
+## Issue 9: Missing SysID Validation and Debug Logging
+
+### Description
+The PIO system ID (`SysID`) is critical for all PIO operations. If `IO::init()` is not called before other IO functions, or if `IO::finalize()` has already been called, the SysID would be invalid (0 or negative), leading to cryptic PIO errors like "invalid IO type".
+
+### Fix Applied
+1. Added debug logging to `IO::init()`, `IO::openFile()`, and `IO::finalize()` to trace SysID values
+2. Added SysID validation checks in `IO::openFile()`, `IO::createDecomp()`, and `IO::destroyDecomp()` with clear error messages
+
+Example validation:
+```cpp
+if (SysID <= 0) {
+   ABORT_ERROR("IO::openFile: Invalid SysID ({}) - IO system not initialized "
+               "or already finalized", SysID);
+}
+```
+
+### Files Modified
+- `src/base/IO.cpp`
+
+---
+
 ## Positive Patterns Observed
 
 The codebase generally follows good memory management practices:
@@ -238,11 +289,11 @@ The codebase generally follows good memory management practices:
 
 | File | Changes |
 |------|---------|
-| `src/infra/IOStream.cpp` | Fixed 3 memory leaks (lines 77, 116, 272) |
+| `src/infra/IOStream.cpp` | Fixed 3 memory leaks (lines 77, 116, 272); Fixed FmtDefault vs DefaultFileFmt bug |
 | `src/infra/Logging.h` | Added `finalizeLogging()` declaration |
 | `src/infra/Logging.cpp` | Added `finalizeLogging()` implementation |
 | `src/ocn/OceanFinal.cpp` | Added singleton cleanup, IOStream/IO/Logging finalize, removed duplicate call |
-| `src/base/IO.cpp` | Fixed variable shadowing bug, added `IO::finalize()` implementation |
+| `src/base/IO.cpp` | Fixed variable shadowing bug, added `IO::finalize()`, added SysID validation and debug logging |
 | `src/base/IO.h` | Added `IO::finalize()` declaration |
 
 ---

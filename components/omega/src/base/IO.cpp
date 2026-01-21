@@ -221,10 +221,15 @@ void init(const MPI_Comm &InComm // [in] MPI communicator to use
 
    // Call PIO routine to initialize
    DefaultRearr = Rearrange;
-   int PIOErr   = PIOc_Init_Intracomm(InComm, NumIOTasks, IOStride, IOBaseTask,
-                                      Rearrange, &SysID);
+   LOG_INFO("IO::init: Initializing PIO with NumIOTasks={}, IOStride={}, "
+            "IOBaseTask={}, Rearrange={}",
+            NumIOTasks, IOStride, IOBaseTask, static_cast<int>(Rearrange));
+   int PIOErr = PIOc_Init_Intracomm(InComm, NumIOTasks, IOStride, IOBaseTask,
+                                    Rearrange, &SysID);
    if (PIOErr != 0)
       ABORT_ERROR("IO::init: Error initializing SCORPIO");
+
+   LOG_INFO("IO::init: PIO initialized successfully, SysID={}", SysID);
 
    return;
 
@@ -249,6 +254,16 @@ void openFile(
 
    int PIOErr = 0;        // internal SCORPIO/PIO return call
    int Format = InFormat; // coerce to integer for PIO calls
+
+   // Debug logging to help diagnose PIO issues
+   LOG_DEBUG("IO::openFile: Opening file '{}', SysID={}, Format={}, Mode={}",
+             Filename, SysID, Format, static_cast<int>(InMode));
+
+   if (SysID <= 0) {
+      ABORT_ERROR("IO::openFile: Invalid SysID ({}) - IO system not initialized "
+                  "or already finalized",
+                  SysID);
+   }
 
    switch (InMode) {
 
@@ -722,6 +737,13 @@ int createDecomp(
    int DecompID = -1;
    int PIOErr   = 0; // internal error code for PIO calls
 
+   // Validate SysID
+   if (SysID <= 0) {
+      ABORT_ERROR("IO::createDecomp: Invalid SysID ({}) - IO system not "
+                  "initialized or already finalized",
+                  SysID);
+   }
+
    // Convert global index array into an offset array expected by PIO
    std::vector<PIO_Offset> CompMap;
    CompMap.resize(Size);
@@ -746,6 +768,13 @@ int createDecomp(
 // Removes a defined PIO decomposition description to free memory
 void destroyDecomp(int &DecompID // [inout] ID for decomposition to be removed
 ) {
+
+   // Validate SysID
+   if (SysID <= 0) {
+      LOG_WARN("IO::destroyDecomp: Invalid SysID ({}) - skipping decomp cleanup",
+               SysID);
+      return;
+   }
 
    int Err = PIOc_freedecomp(SysID, DecompID);
    if (Err != PIO_NOERR)
@@ -933,12 +962,18 @@ void writeNDVar(void *Variable, // [in] variable to be written
 // Finalizes the IO system and cleans up PIO resources
 void finalize() {
 
+   LOG_INFO("IO::finalize: Finalizing PIO system, current SysID={}", SysID);
+
    // Only finalize if the IO system was initialized (SysID > 0)
    if (SysID > 0) {
       int PIOErr = PIOc_finalize(SysID);
       if (PIOErr != PIO_NOERR)
          LOG_WARN("IO::finalize: Error finalizing PIO system");
       SysID = 0; // Reset to indicate uninitialized state
+      LOG_INFO("IO::finalize: PIO system finalized, SysID reset to 0");
+   } else {
+      LOG_WARN("IO::finalize: SysID was already 0 or negative, "
+               "PIO system may not have been initialized");
    }
 
 } // end finalize
