@@ -2562,8 +2562,13 @@ void IOStream::writeStream(
       }
    }
 
+   // End define phase before writing data (only for new files/first frame)
+   // For multiframe files on subsequent frames, the file is already in data mode
+   if (Frame < 1) {
+      IO::endDefinePhase(OutFileID);
+   }
+
    // Now write data arrays for all fields in contents
-   // Note: PIO handles the define/data mode transition internally
    for (auto IFld = Contents.begin(); IFld != Contents.end(); ++IFld) {
 
       // Retrieve the field pointer and FieldID
