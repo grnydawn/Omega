@@ -2489,27 +2489,21 @@ void IOStream::writeStream(
    } // end if multiframe
 
    // Write Metadata for global metadata (Code and Simulation)
-   // Only needs to be written for a new file
+   // Only needs to be written for a new file (Frame < 1)
+   // NetCDF requires define mode for adding attributes
    if (Frame < 1) {
       writeFieldMeta(CodeMeta, OutFileID, IO::GlobalID);
       writeFieldMeta(SimMeta, OutFileID, IO::GlobalID);
-   }
 
-   // Create and write a field for any global data that is file or time
-   // specific.
-   std::shared_ptr<Field> FileField = Field::create("FileField");
-   // Add the current simulation time
-   std::string SimTimeName = "SimulationTime";
-   FileField->addMetadata(SimTimeName, SimTimeStr);
-
-   // If it is a multi-frame file, add the time for this frame
-   if (Multiframe) {
-      SimTimeName = SimTimeName + std::to_string(Frame);
+      // Create and write a field for any global data that is file-specific
+      std::shared_ptr<Field> FileField = Field::create("FileField");
+      // Add the current simulation time
+      std::string SimTimeName = "SimulationTime";
       FileField->addMetadata(SimTimeName, SimTimeStr);
+      // Write and then destroy temporary field
+      writeFieldMeta("FileField", OutFileID, IO::GlobalID);
+      Field::destroy("FileField");
    }
-   // Write and then destroy temporary field
-   writeFieldMeta("FileField", OutFileID, IO::GlobalID);
-   Field::destroy("FileField");
 
    // Assign dimension IDs for all defined dimensions
    std::map<std::string, int> AllDimIDs;
