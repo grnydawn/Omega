@@ -2562,10 +2562,8 @@ void IOStream::writeStream(
       }
    }
 
-   // End define phase before writing data
-   IO::endDefinePhase(OutFileID);
-
    // Now write data arrays for all fields in contents
+   // Note: PIO handles the define/data mode transition internally
    for (auto IFld = Contents.begin(); IFld != Contents.end(); ++IFld) {
 
       // Retrieve the field pointer and FieldID
