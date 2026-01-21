@@ -249,14 +249,6 @@ int defineVar(int FileID, ///< [in] ID of the file containing dim
               int *DimIDs ///< [in] vector of NDims dimension IDs
 );
 
-/// Sets collective access mode for a variable. This is required for
-/// NetCDF4 parallel I/O when writing to variables with unlimited dimensions.
-/// Should be called after defineVar and before writeNDVar for time-dependent
-/// non-distributed variables.
-void setVarCollective(int FileID, ///< [in] ID of the file
-                      int VarID   ///< [in] variable ID from defineVar
-);
-
 /// Ends define mode signifying all field definitions and metadata
 /// have been written and the larger data sets can now be written
 void endDefinePhase(int FileID ///< [in] ID of the file being written

@@ -13,7 +13,6 @@
 #include "Error.h"
 #include "Logging.h"
 #include "mpi.h"
-#include "netcdf.h"
 #include "pio.h"
 
 #include <filesystem>
@@ -78,17 +77,21 @@ FileFmtFromString(const std::string &Format // [in] choice of IO file format
 
    // Determine the appropriate enum to use based on the input string
    // Check most likely options first
+   // Note: "netcdf4" maps to compressed serial (FmtNetCDF4c) by default because
+   // true parallel NetCDF4 (FmtNetCDF4p) has issues with unlimited dimensions
+   // requiring collective mode that PIO doesn't handle automatically.
+   // Users who want true parallel NetCDF4 can explicitly specify "netcdf4p".
 
-   if (FmtCompare == "netcdf4") { // NetCDF4 variants
-      ReturnFileFmt = FmtNetCDF4;
+   if (FmtCompare == "netcdf4") { // NetCDF4 - use compressed serial for compatibility
+      ReturnFileFmt = FmtNetCDF4c;
 
    } else if (FmtCompare == "adios") { // ADIOS
       ReturnFileFmt = FmtADIOS;
 
-   } else if (FmtCompare == "netcdf4c") { // netcdf4 variant - compressed
+   } else if (FmtCompare == "netcdf4c") { // netcdf4 variant - compressed serial
       ReturnFileFmt = FmtNetCDF4c;
 
-   } else if (FmtCompare == "netcdf4p") { // netcdf4 variant - parallel
+   } else if (FmtCompare == "netcdf4p") { // netcdf4 variant - true parallel
       ReturnFileFmt = FmtNetCDF4p;
 
    } else if (FmtCompare == "netcdf3") { // Older netcdf
@@ -722,32 +725,6 @@ void endDefinePhase(int FileID ///< [in] ID of the file being written
       ABORT_ERROR("IO::endDefinePhase: PIO error in enddef");
 
 } // End endDefinePhase
-
-//------------------------------------------------------------------------------
-// Sets collective access mode for a variable. Required for NetCDF4 parallel
-// I/O when writing to variables with unlimited dimensions.
-void setVarCollective(int FileID, // [in] ID of the file
-                      int VarID   // [in] variable ID from defineVar
-) {
-   // NC_COLLECTIVE is defined in netcdf.h (value 0)
-   // NC_INDEPENDENT is also defined (value 1)
-   // For safety, define locally if not available
-#ifndef NC_COLLECTIVE
-#define NC_COLLECTIVE 0
-#endif
-
-   // Use the NetCDF4 function directly since PIOc_set_var_par_access
-   // may not be available in all SCORPIO versions
-   int Err = nc_var_par_access(FileID, VarID, NC_COLLECTIVE);
-   if (Err != NC_NOERR) {
-      // Log warning but don't abort - this may not be critical for all formats
-      // or the file may not be using parallel NetCDF4
-      LOG_DEBUG("IO::setVarCollective: Could not set collective mode for "
-                "variable {} in file {} (err={})",
-                VarID, FileID, Err);
-   }
-
-} // End setVarCollective
 
 //------------------------------------------------------------------------------
 // Creates a PIO decomposition description to describe the layout of

@@ -261,32 +261,24 @@ Use nc_var_par_access to set mode NC_COLLECTIVE before extending variable.
 ```
 
 ### Fix Applied
-1. Added new `IO::setVarCollective()` function that calls `PIOc_set_var_par_access()` with `NC_COLLECTIVE` mode
-2. Modified `IOStream::writeStream()` to:
-   - Explicitly call `IO::endDefinePhase()` after all variables are defined
-   - Set collective mode for time-dependent non-distributed variables before writing data
+Changed the default file format mapping so `"netcdf4"` uses `PIO_IOTYPE_NETCDF4C` (compressed serial) instead of `PIO_IOTYPE_NETCDF4P` (true parallel). The compressed serial format doesn't have the collective mode issue because actual writes happen on IO tasks only after data gathering.
+
+Users who explicitly need true parallel NetCDF4 can still specify `"netcdf4p"` in their configuration.
 
 ```cpp
-// In IO.cpp
-void setVarCollective(int FileID, int VarID) {
-   int Err = PIOc_set_var_par_access(FileID, VarID, NC_COLLECTIVE);
-   // ...
-}
-
-// In IOStream.cpp writeStream()
-IO::endDefinePhase(OutFileID);
-for (auto IFld = Contents.begin(); IFld != Contents.end(); ++IFld) {
-   // Set collective mode for time-dependent non-distributed fields
-   if (ThisField->isTimeDependent() and !ThisField->isDistributed()) {
-      IO::setVarCollective(OutFileID, FieldID);
-   }
+// In IO.cpp FileFmtFromString()
+if (FmtCompare == "netcdf4") { // NetCDF4 - use compressed serial for compatibility
+   ReturnFileFmt = FmtNetCDF4c;  // Changed from FmtNetCDF4 (parallel)
+} else if (FmtCompare == "netcdf4p") { // netcdf4 variant - true parallel
+   ReturnFileFmt = FmtNetCDF4p;  // Explicitly request parallel
 }
 ```
 
+Also added explicit `IO::endDefinePhase()` call in `IOStream::writeStream()` before writing data.
+
 ### Files Modified
-- `src/base/IO.h` - Added `setVarCollective()` declaration
-- `src/base/IO.cpp` - Added `setVarCollective()` implementation
-- `src/infra/IOStream.cpp` - Added endDefinePhase and collective mode calls
+- `src/base/IO.cpp` - Changed default netcdf4 format mapping
+- `src/infra/IOStream.cpp` - Added endDefinePhase call
 
 ---
 
@@ -328,12 +320,12 @@ The codebase generally follows good memory management practices:
 
 | File | Changes |
 |------|---------|
-| `src/infra/IOStream.cpp` | Fixed 3 memory leaks; Fixed FmtDefault bug; Added endDefinePhase and collective mode calls |
+| `src/infra/IOStream.cpp` | Fixed 3 memory leaks; Fixed FmtDefault bug; Added endDefinePhase call |
 | `src/infra/Logging.h` | Added `finalizeLogging()` declaration |
 | `src/infra/Logging.cpp` | Added `finalizeLogging()` implementation |
 | `src/ocn/OceanFinal.cpp` | Added singleton cleanup, IOStream/IO/Logging finalize, removed duplicate call |
-| `src/base/IO.cpp` | Fixed variable shadowing bug, added `IO::finalize()`, SysID validation, `setVarCollective()` |
-| `src/base/IO.h` | Added `IO::finalize()` and `IO::setVarCollective()` declarations |
+| `src/base/IO.cpp` | Fixed variable shadowing bug, added `IO::finalize()`, SysID validation, changed netcdf4 format mapping |
+| `src/base/IO.h` | Added `IO::finalize()` declaration |
 
 ---
 
