@@ -13,6 +13,7 @@
 #include "Error.h"
 #include "Logging.h"
 #include "mpi.h"
+#include "netcdf.h"
 #include "pio.h"
 
 #include <filesystem>
@@ -735,12 +736,15 @@ void setVarCollective(int FileID, // [in] ID of the file
 #define NC_COLLECTIVE 0
 #endif
 
-   int Err = PIOc_set_var_par_access(FileID, VarID, NC_COLLECTIVE);
-   if (Err != PIO_NOERR) {
+   // Use the NetCDF4 function directly since PIOc_set_var_par_access
+   // may not be available in all SCORPIO versions
+   int Err = nc_var_par_access(FileID, VarID, NC_COLLECTIVE);
+   if (Err != NC_NOERR) {
       // Log warning but don't abort - this may not be critical for all formats
-      LOG_WARN("IO::setVarCollective: Could not set collective mode for "
-               "variable {} in file {}",
-               VarID, FileID);
+      // or the file may not be using parallel NetCDF4
+      LOG_DEBUG("IO::setVarCollective: Could not set collective mode for "
+                "variable {} in file {} (err={})",
+                VarID, FileID, Err);
    }
 
 } // End setVarCollective
