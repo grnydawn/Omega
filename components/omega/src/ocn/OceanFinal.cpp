@@ -45,8 +45,9 @@ int ocnFinalize(const TimeInstant &CurrTime ///< [in] current sim time
    Eos::destroyInstance();
    VertMix::destroyInstance();
 
-   // Clean up I/O streams and logging
+   // Clean up I/O streams, IO system, and logging
    IOStream::finalize();
+   IO::finalize();
    finalizeLogging();
 
    VertCoord::clear();

@@ -139,6 +139,9 @@ IfExists IfExistsFromString(
 void init(const MPI_Comm &InComm ///< [in] MPI communicator to use
 );
 
+/// Finalizes the IO system and cleans up PIO resources
+void finalize();
+
 /// This routine opens a file for reading or writing, depending on the
 /// Mode argument. The filename with full path must be supplied and
 /// a FileID is returned to be used by other IO functions.

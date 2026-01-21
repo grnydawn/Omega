@@ -145,6 +145,61 @@ finalizeLogging();
 
 ---
 
+## Issue 6: Variable Shadowing Bug in IO.cpp
+
+### Description
+In `IO::init()`, a local variable `DefaultFileFmt` was declared that shadowed the global variable of the same name. This meant the global `DefaultFileFmt` was never updated from the configuration file.
+
+### Affected Location
+| File | Line | Issue |
+|------|------|-------|
+| `src/base/IO.cpp` | 196 | Local variable shadows global |
+
+### Original Code
+```cpp
+FileFmt DefaultFileFmt = FileFmtFromString(InFileFmt);  // Creates LOCAL variable
+```
+
+### Fix Applied
+Removed the type declaration to assign to the global variable instead:
+
+```cpp
+DefaultFileFmt = FileFmtFromString(InFileFmt);  // Assigns to GLOBAL variable
+```
+
+### Files Modified
+- `src/base/IO.cpp`
+
+---
+
+## Issue 7: Missing IO::finalize() Function
+
+### Description
+The PIO (Parallel I/O) system was never properly finalized during shutdown. This could cause resource leaks and potential issues if the IO system needed to be re-initialized.
+
+### Fix Applied
+Added a new `IO::finalize()` function to properly clean up PIO resources:
+
+```cpp
+void finalize() {
+   if (SysID > 0) {
+      int PIOErr = PIOc_finalize(SysID);
+      if (PIOErr != PIO_NOERR)
+         LOG_WARN("IO::finalize: Error finalizing PIO system");
+      SysID = 0;
+   }
+}
+```
+
+Added the function declaration to `IO.h` and called it from `ocnFinalize()`.
+
+### Files Modified
+- `src/base/IO.h` - Added function declaration
+- `src/base/IO.cpp` - Added function implementation
+- `src/ocn/OceanFinal.cpp` - Added call to `IO::finalize()`
+
+---
+
 ## Positive Patterns Observed
 
 The codebase generally follows good memory management practices:
@@ -186,7 +241,9 @@ The codebase generally follows good memory management practices:
 | `src/infra/IOStream.cpp` | Fixed 3 memory leaks (lines 77, 116, 272) |
 | `src/infra/Logging.h` | Added `finalizeLogging()` declaration |
 | `src/infra/Logging.cpp` | Added `finalizeLogging()` implementation |
-| `src/ocn/OceanFinal.cpp` | Added singleton cleanup, IOStream/Logging finalize, removed duplicate call |
+| `src/ocn/OceanFinal.cpp` | Added singleton cleanup, IOStream/IO/Logging finalize, removed duplicate call |
+| `src/base/IO.cpp` | Fixed variable shadowing bug, added `IO::finalize()` implementation |
+| `src/base/IO.h` | Added `IO::finalize()` declaration |
 
 ---
 

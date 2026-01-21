@@ -193,7 +193,7 @@ void init(const MPI_Comm &InComm // [in] MPI communicator to use
    Err                   = IOConfig.get("IODefaultFormat", InFileFmt);
    CHECK_ERROR_WARN(Err, "IO: DefaultFileFmt not found in Config - using {}",
                     InFileFmt);
-   FileFmt DefaultFileFmt = FileFmtFromString(InFileFmt);
+   DefaultFileFmt = FileFmtFromString(InFileFmt);
 
    // Read parallel IO settings - default to single-task if config
    // values do not exist
@@ -928,6 +928,20 @@ void writeNDVar(void *Variable, // [in] variable to be written
    return;
 
 } // end writeNDVar
+
+//------------------------------------------------------------------------------
+// Finalizes the IO system and cleans up PIO resources
+void finalize() {
+
+   // Only finalize if the IO system was initialized (SysID > 0)
+   if (SysID > 0) {
+      int PIOErr = PIOc_finalize(SysID);
+      if (PIOErr != PIO_NOERR)
+         LOG_WARN("IO::finalize: Error finalizing PIO system");
+      SysID = 0; // Reset to indicate uninitialized state
+   }
+
+} // end finalize
 
 //------------------------------------------------------------------------------
 
