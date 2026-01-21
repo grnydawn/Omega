@@ -200,5 +200,20 @@ int initLogging(
    return RetVal;
 }
 
+//------------------------------------------------------------------------------
+// Finalize logging and close log file stream
+void finalizeLogging() {
+
+   // Close the log file stream if it is open
+   if (LogFileStream.is_open()) {
+      // Flush any remaining output
+      LogFileStream.flush();
+      LogFileStream.close();
+   }
+
+   // Shutdown spdlog
+   spdlog::shutdown();
+}
+
 } // namespace OMEGA
 //===----------------------------------------------------------------------===//

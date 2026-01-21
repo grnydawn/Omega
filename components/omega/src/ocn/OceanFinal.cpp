@@ -7,10 +7,13 @@
 
 #include "AuxiliaryState.h"
 #include "Decomp.h"
+#include "Eos.h"
 #include "Field.h"
 #include "Halo.h"
 #include "HorzMesh.h"
 #include "IO.h"
+#include "IOStream.h"
+#include "Logging.h"
 #include "MachEnv.h"
 #include "OceanDriver.h"
 #include "OceanState.h"
@@ -19,6 +22,7 @@
 #include "TimeStepper.h"
 #include "Tracers.h"
 #include "VertCoord.h"
+#include "VertMix.h"
 
 namespace OMEGA {
 
@@ -36,11 +40,19 @@ int ocnFinalize(const TimeInstant &CurrTime ///< [in] current sim time
    Tendencies::clear();
    AuxiliaryState::clear();
    OceanState::clear();
+
+   // Destroy singleton instances
+   Eos::destroyInstance();
+   VertMix::destroyInstance();
+
+   // Clean up I/O streams and logging
+   IOStream::finalize();
+   finalizeLogging();
+
    VertCoord::clear();
    Dimension::clear();
    Field::clear();
    HorzMesh::clear();
-   VertCoord::clear();
    Halo::clear();
    Decomp::clear();
    MachEnv::removeAll();

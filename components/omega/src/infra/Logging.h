@@ -164,6 +164,9 @@ int initLogging(
     std::shared_ptr<spdlog::logger> Logger ///< [in] Logger to use
 );
 
+/// Finalize logging and close log file stream
+void finalizeLogging();
+
 /// Utility function to create a log message with prefix
 std::string
 _PackLogMsg(const char *file, ///< [in] file where log called (cpp __FILE__)
