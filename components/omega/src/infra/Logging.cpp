@@ -211,8 +211,9 @@ void finalizeLogging() {
       LogFileStream.close();
    }
 
-   // Shutdown spdlog
-   spdlog::shutdown();
+   // Note: We do NOT call spdlog::shutdown() here because logging may still
+   // be needed after ocean model finalization (e.g., in test drivers).
+   // spdlog will be cleaned up automatically at program exit.
 }
 
 } // namespace OMEGA

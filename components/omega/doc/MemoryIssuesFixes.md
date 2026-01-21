@@ -79,7 +79,7 @@ The `LogFileStream` (a static `std::ofstream`) was opened in `initLogging()` to 
 | `src/infra/Logging.cpp` | 193 | `LogFileStream.open(...)` |
 
 ### Fix Applied
-Created a new `finalizeLogging()` function that properly closes the log file stream and shuts down the spdlog library:
+Created a new `finalizeLogging()` function that properly closes the log file stream:
 
 ```cpp
 void finalizeLogging() {
@@ -87,11 +87,15 @@ void finalizeLogging() {
       LogFileStream.flush();
       LogFileStream.close();
    }
-   spdlog::shutdown();
+   // Note: We do NOT call spdlog::shutdown() here because logging may still
+   // be needed after ocean model finalization (e.g., in test drivers).
+   // spdlog will be cleaned up automatically at program exit.
 }
 ```
 
 Added the function declaration to `Logging.h` and called it from `ocnFinalize()`.
+
+**Note:** We intentionally do not call `spdlog::shutdown()` because test drivers and other code may still need to log messages after the ocean model has finalized.
 
 ### Files Modified
 - `src/infra/Logging.h` - Added function declaration
