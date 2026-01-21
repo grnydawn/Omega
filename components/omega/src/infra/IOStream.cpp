@@ -2562,6 +2562,22 @@ void IOStream::writeStream(
       }
    }
 
+   // End define phase before writing data
+   IO::endDefinePhase(OutFileID);
+
+   // For NetCDF4 parallel I/O, set collective mode for time-dependent
+   // non-distributed variables to allow extending the unlimited dimension
+   for (auto IFld = Contents.begin(); IFld != Contents.end(); ++IFld) {
+      std::string FieldName            = *IFld;
+      std::shared_ptr<Field> ThisField = Field::get(FieldName);
+      int FieldID                      = FieldIDs[FieldName];
+
+      // Set collective mode for time-dependent non-distributed fields
+      if (ThisField->isTimeDependent() and !ThisField->isDistributed()) {
+         IO::setVarCollective(OutFileID, FieldID);
+      }
+   }
+
    // Now write data arrays for all fields in contents
    for (auto IFld = Contents.begin(); IFld != Contents.end(); ++IFld) {
 

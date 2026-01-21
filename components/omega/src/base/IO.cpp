@@ -723,6 +723,29 @@ void endDefinePhase(int FileID ///< [in] ID of the file being written
 } // End endDefinePhase
 
 //------------------------------------------------------------------------------
+// Sets collective access mode for a variable. Required for NetCDF4 parallel
+// I/O when writing to variables with unlimited dimensions.
+void setVarCollective(int FileID, // [in] ID of the file
+                      int VarID   // [in] variable ID from defineVar
+) {
+   // NC_COLLECTIVE is defined in netcdf.h (value 0)
+   // NC_INDEPENDENT is also defined (value 1)
+   // For safety, define locally if not available
+#ifndef NC_COLLECTIVE
+#define NC_COLLECTIVE 0
+#endif
+
+   int Err = PIOc_set_var_par_access(FileID, VarID, NC_COLLECTIVE);
+   if (Err != PIO_NOERR) {
+      // Log warning but don't abort - this may not be critical for all formats
+      LOG_WARN("IO::setVarCollective: Could not set collective mode for "
+               "variable {} in file {}",
+               VarID, FileID);
+   }
+
+} // End setVarCollective
+
+//------------------------------------------------------------------------------
 // Creates a PIO decomposition description to describe the layout of
 // a distributed array of given type. It returns an ID for future use.
 int createDecomp(

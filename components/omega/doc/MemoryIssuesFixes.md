@@ -251,6 +251,45 @@ if (SysID <= 0) {
 
 ---
 
+## Issue 10: NetCDF4 Parallel I/O Collective Mode for Unlimited Dimensions
+
+### Description
+When using NetCDF4 parallel I/O (`PIO_IOTYPE_NETCDF4P`), extending an unlimited dimension (like "time") requires **collective mode**, but PIO's `PIOc_put_vara()` function (used for non-distributed variables) defaults to **independent mode**. This causes the error:
+```
+NetCDF: Attempt to extend dataset during NC_INDEPENDENT I/O operation.
+Use nc_var_par_access to set mode NC_COLLECTIVE before extending variable.
+```
+
+### Fix Applied
+1. Added new `IO::setVarCollective()` function that calls `PIOc_set_var_par_access()` with `NC_COLLECTIVE` mode
+2. Modified `IOStream::writeStream()` to:
+   - Explicitly call `IO::endDefinePhase()` after all variables are defined
+   - Set collective mode for time-dependent non-distributed variables before writing data
+
+```cpp
+// In IO.cpp
+void setVarCollective(int FileID, int VarID) {
+   int Err = PIOc_set_var_par_access(FileID, VarID, NC_COLLECTIVE);
+   // ...
+}
+
+// In IOStream.cpp writeStream()
+IO::endDefinePhase(OutFileID);
+for (auto IFld = Contents.begin(); IFld != Contents.end(); ++IFld) {
+   // Set collective mode for time-dependent non-distributed fields
+   if (ThisField->isTimeDependent() and !ThisField->isDistributed()) {
+      IO::setVarCollective(OutFileID, FieldID);
+   }
+}
+```
+
+### Files Modified
+- `src/base/IO.h` - Added `setVarCollective()` declaration
+- `src/base/IO.cpp` - Added `setVarCollective()` implementation
+- `src/infra/IOStream.cpp` - Added endDefinePhase and collective mode calls
+
+---
+
 ## Positive Patterns Observed
 
 The codebase generally follows good memory management practices:
@@ -289,12 +328,12 @@ The codebase generally follows good memory management practices:
 
 | File | Changes |
 |------|---------|
-| `src/infra/IOStream.cpp` | Fixed 3 memory leaks (lines 77, 116, 272); Fixed FmtDefault vs DefaultFileFmt bug |
+| `src/infra/IOStream.cpp` | Fixed 3 memory leaks; Fixed FmtDefault bug; Added endDefinePhase and collective mode calls |
 | `src/infra/Logging.h` | Added `finalizeLogging()` declaration |
 | `src/infra/Logging.cpp` | Added `finalizeLogging()` implementation |
 | `src/ocn/OceanFinal.cpp` | Added singleton cleanup, IOStream/IO/Logging finalize, removed duplicate call |
-| `src/base/IO.cpp` | Fixed variable shadowing bug, added `IO::finalize()`, added SysID validation and debug logging |
-| `src/base/IO.h` | Added `IO::finalize()` declaration |
+| `src/base/IO.cpp` | Fixed variable shadowing bug, added `IO::finalize()`, SysID validation, `setVarCollective()` |
+| `src/base/IO.h` | Added `IO::finalize()` and `IO::setVarCollective()` declarations |
 
 ---
 
