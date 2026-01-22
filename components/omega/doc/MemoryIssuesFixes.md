@@ -342,11 +342,23 @@ if (Frame < 1) {
 }
 ```
 
+5. **Added `IO::reenterDefineMode()` function** to handle files from previous runs:
+```cpp
+// For Frame < 1, ensure we're in define mode. If the file was opened
+// (rather than created) due to existing from a previous run, it may
+// be in data mode. Call reenterDefineMode to switch back to define mode.
+if (Frame < 1) {
+   IO::reenterDefineMode(OutFileID);
+}
+```
+
+This handles the edge case where a multiframe file exists from a previous test/simulation run. When opened with Append mode, such files start in data mode, but Frame would be 0 (first frame), requiring define mode operations.
+
 ### Files Modified
-- `src/infra/IOStream.cpp` - Added Frame-based logic for define/query operations
+- `src/infra/IOStream.cpp` - Added Frame-based logic for define/query operations, reenterDefineMode call
 - `src/infra/IOStream.h` - Added AllowDefine parameter to defineAllDims
-- `src/base/IO.cpp` - Added getVarID() function
-- `src/base/IO.h` - Added getVarID() declaration
+- `src/base/IO.cpp` - Added getVarID() and reenterDefineMode() functions
+- `src/base/IO.h` - Added getVarID() and reenterDefineMode() declarations
 
 ---
 
@@ -388,13 +400,13 @@ The codebase generally follows good memory management practices:
 
 | File | Changes |
 |------|---------|
-| `src/infra/IOStream.cpp` | Fixed 3 memory leaks; Fixed FmtDefault bug; Added Frame-based logic for define/query operations |
+| `src/infra/IOStream.cpp` | Fixed 3 memory leaks; Fixed FmtDefault bug; Added Frame-based logic for define/query operations; Added reenterDefineMode call |
 | `src/infra/IOStream.h` | Added AllowDefine parameter to defineAllDims |
 | `src/infra/Logging.h` | Added `finalizeLogging()` declaration |
 | `src/infra/Logging.cpp` | Added `finalizeLogging()` implementation |
 | `src/ocn/OceanFinal.cpp` | Added singleton cleanup, IOStream/IO/Logging finalize, removed duplicate call |
-| `src/base/IO.cpp` | Fixed variable shadowing bug, added `IO::finalize()`, `IO::getVarID()`, SysID validation, changed netcdf4 format mapping |
-| `src/base/IO.h` | Added `IO::finalize()` and `IO::getVarID()` declarations |
+| `src/base/IO.cpp` | Fixed variable shadowing bug, added `IO::finalize()`, `IO::getVarID()`, `IO::reenterDefineMode()`, SysID validation, changed netcdf4 format mapping |
+| `src/base/IO.h` | Added `IO::finalize()`, `IO::getVarID()`, `IO::reenterDefineMode()` declarations |
 
 ---
 
