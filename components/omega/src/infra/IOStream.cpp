@@ -2497,11 +2497,11 @@ void IOStream::writeStream(
 
    // For Frame < 1, we need to be in define mode to write metadata,
    // define dimensions, and define variables. If the file existed and was
-   // opened (rather than created), it will be in data mode. Call
-   // reenterDefineMode to switch back to define mode.
-   // Only call this if the file existed - newly created files are already
-   // in define mode, and calling PIOc_redef on them may have unexpected effects.
-   if (Frame < 1 && FileExisted) {
+   // opened with Append mode, it will be in data mode. Call reenterDefineMode
+   // to switch back to define mode.
+   // Only call this for Append mode with existing files - Replace mode recreates
+   // the file in define mode, and Fail mode would have already aborted.
+   if (Frame < 1 && FileExisted && ExistAction == IO::IfExists::Append) {
       IO::reenterDefineMode(OutFileID);
    }
 
