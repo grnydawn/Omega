@@ -294,41 +294,59 @@ NetCDF: Operation not allowed in data mode.
 ```
 
 ### Fix Applied
-Guarded all define-mode operations with `if (Frame < 1)` checks in `IOStream::writeStream()`:
+A comprehensive fix was implemented to properly handle the two modes:
 
+1. **Modified `defineAllDims()` to accept `AllowDefine` parameter**:
 ```cpp
-// Write Metadata for global metadata (Code and Simulation)
-// Only needs to be written for a new file (Frame < 1)
-// NetCDF requires define mode for adding attributes
+void IOStream::defineAllDims(
+    int FileID,
+    std::map<std::string, int> &AllDimIDs,
+    bool AllowDefine  // [in] if true, define new dims; if false, query only
+);
+```
+
+2. **Added `IO::getVarID()` function** to query existing variable IDs without attempting to define:
+```cpp
+int getVarID(int FileID, const std::string &VarName);
+```
+
+3. **Updated `writeStream()` to use Frame-based logic**:
+```cpp
+// Assign dimension IDs - only allow defining for new files
+defineAllDims(OutFileID, AllDimIDs, Frame < 1);
+
+// For variables: define for new files, query for existing files
+int FieldID;
 if (Frame < 1) {
-   writeFieldMeta(CodeMeta, OutFileID, IO::GlobalID);
-   writeFieldMeta(SimMeta, OutFileID, IO::GlobalID);
-
-   // Create and write a field for any global data that is file-specific
-   std::shared_ptr<Field> FileField = Field::create("FileField");
-   std::string SimTimeName = "SimulationTime";
-   FileField->addMetadata(SimTimeName, SimTimeStr);
-   writeFieldMeta("FileField", OutFileID, IO::GlobalID);
-   Field::destroy("FileField");
-}
-
-// ... define dimensions and variables (these functions check if already exists)
-
-// Write field metadata only for new files
-if (Frame < 1) {
+   // New file in define mode - define the variable
+   FieldID = defineVar(OutFileID, FieldName, MyIOType, NDims, FieldDims.data());
+   // Write field metadata only for new files
    writeFieldMeta(FieldName, OutFileID, FieldID);
+} else {
+   // Existing file in data mode - just get the variable ID
+   FieldID = IO::getVarID(OutFileID, FieldName);
 }
 
-// End define phase before writing data (only for new files/first frame)
+// End define phase only for new files
 if (Frame < 1) {
    IO::endDefinePhase(OutFileID);
 }
 ```
 
-The `defineAllDims()` and `defineVar()` functions already have built-in checks to skip definition if the dimension/variable already exists, so they work correctly in data mode.
+4. **Global metadata writing is guarded**:
+```cpp
+if (Frame < 1) {
+   writeFieldMeta(CodeMeta, OutFileID, IO::GlobalID);
+   writeFieldMeta(SimMeta, OutFileID, IO::GlobalID);
+   // ... FileField metadata
+}
+```
 
 ### Files Modified
-- `src/infra/IOStream.cpp` - Added Frame < 1 guards for define-mode operations
+- `src/infra/IOStream.cpp` - Added Frame-based logic for define/query operations
+- `src/infra/IOStream.h` - Added AllowDefine parameter to defineAllDims
+- `src/base/IO.cpp` - Added getVarID() function
+- `src/base/IO.h` - Added getVarID() declaration
 
 ---
 
@@ -370,12 +388,13 @@ The codebase generally follows good memory management practices:
 
 | File | Changes |
 |------|---------|
-| `src/infra/IOStream.cpp` | Fixed 3 memory leaks; Fixed FmtDefault bug; Added Frame < 1 guards for define-mode operations |
+| `src/infra/IOStream.cpp` | Fixed 3 memory leaks; Fixed FmtDefault bug; Added Frame-based logic for define/query operations |
+| `src/infra/IOStream.h` | Added AllowDefine parameter to defineAllDims |
 | `src/infra/Logging.h` | Added `finalizeLogging()` declaration |
 | `src/infra/Logging.cpp` | Added `finalizeLogging()` implementation |
 | `src/ocn/OceanFinal.cpp` | Added singleton cleanup, IOStream/IO/Logging finalize, removed duplicate call |
-| `src/base/IO.cpp` | Fixed variable shadowing bug, added `IO::finalize()`, SysID validation, changed netcdf4 format mapping |
-| `src/base/IO.h` | Added `IO::finalize()` declaration |
+| `src/base/IO.cpp` | Fixed variable shadowing bug, added `IO::finalize()`, `IO::getVarID()`, SysID validation, changed netcdf4 format mapping |
+| `src/base/IO.h` | Added `IO::finalize()` and `IO::getVarID()` declarations |
 
 ---
 
