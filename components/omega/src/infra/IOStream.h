@@ -116,6 +116,7 @@ class IOStream {
    std::string Filename;     ///< filename or filename template (with path)
    bool FilenameIsTemplate;  ///< true if the filename is a template
    IO::IfExists ExistAction; ///< action if file exists (write only)
+   IO::FileFmt Format;       ///< file format (NetCDF, etc)
 
    IO::Mode Mode;        ///< mode (read or write)
    bool ReducePrecision; ///< flag to use 32-bit precision for 64-bit floats

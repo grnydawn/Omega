@@ -338,6 +338,7 @@ IOStream::IOStream() {
    PtrFilename        = " ";
    UseStartEnd        = false;
    Validated          = false;
+   Format             = IO::FmtDefault;
 }
 
 //------------------------------------------------------------------------------
@@ -406,6 +407,16 @@ void IOStream::create(const std::string &StreamName, //< [in] name of stream
    }
    // Add filename to stream
    NewStream->Filename = StreamFilename;
+
+   // Set file format if provided
+   std::string FormatStr;
+   Err += StreamConfig.get("Format", FormatStr);
+   if (Err.isSuccess()) {
+      NewStream->Format = IO::FileFmtFromString(FormatStr);
+   } else {
+      NewStream->Format = IO::FmtDefault;
+      Err.reset(); // Clear error as this is optional
+   }
 
    // Set flag to reduce precision for double precision reals. If no flag
    // present, assume full (double) precision
@@ -2285,7 +2296,7 @@ Error IOStream::readStream(
 
    // Open input file
    int InFileID;
-   IO::openFile(InFileID, InFileName, Mode, IO::FmtDefault, ExistAction);
+   IO::openFile(InFileID, InFileName, Mode, Format, ExistAction);
 
    // Read any requested global metadata
    for (auto Iter = ReqMetadata.begin(); Iter != ReqMetadata.end(); ++Iter) {
@@ -2438,7 +2449,7 @@ void IOStream::writeStream(
 
    // Open output file
    int OutFileID;
-   IO::openFile(OutFileID, OutFileName, Mode, IO::FmtDefault, ExistAction);
+   IO::openFile(OutFileID, OutFileName, Mode, Format, ExistAction);
 
    // For files with multiple frames or time slices, we need to determine the
    // default Frame number for time-dependent fields. If the frame/time already
