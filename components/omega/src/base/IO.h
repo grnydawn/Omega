@@ -256,6 +256,13 @@ int getVarID(int FileID,               ///< [in] ID of the file containing var
              const std::string &VarName ///< [in] name of variable
 );
 
+/// Re-enters define mode for a file that may be in data mode.
+/// This is needed when an existing file needs to be refreshed (e.g.,
+/// multiframe file from a previous run that needs to be overwritten).
+/// Safe to call on files already in define mode.
+void reenterDefineMode(int FileID ///< [in] ID of the file
+);
+
 /// Ends define mode signifying all field definitions and metadata
 /// have been written and the larger data sets can now be written
 void endDefinePhase(int FileID ///< [in] ID of the file being written

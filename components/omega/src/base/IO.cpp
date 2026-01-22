@@ -734,6 +734,27 @@ int getVarID(int FileID,               // [in] ID of the file containing var
 } // End getVarID
 
 //------------------------------------------------------------------------------
+/// Re-enters define mode for a file that may be in data mode.
+/// This is needed when an existing file needs to be refreshed (e.g.,
+/// multiframe file from a previous run that needs to be overwritten).
+/// Safe to call on files already in define mode (PIOc_redef returns an
+/// error which we ignore since we just want to ensure define mode).
+void reenterDefineMode(int FileID // [in] ID of the file
+) {
+   // Try to reenter define mode. If already in define mode, this will
+   // return an error (NC_EINDEFINE = -39) which is fine - we just want
+   // to ensure we're in define mode one way or another.
+   int Err = PIOc_redef(FileID);
+   // Only log a warning for unexpected errors (not "already in define mode")
+   // NC_EINDEFINE is -39, but we'll just accept any result since the goal
+   // is just to be in define mode
+   if (Err != PIO_NOERR) {
+      LOG_DEBUG("IO::reenterDefineMode: PIOc_redef returned {} for file {} "
+                "(may already be in define mode)", Err, FileID);
+   }
+} // End reenterDefineMode
+
+//------------------------------------------------------------------------------
 /// Ends define phase signifying all field definitions and metadata
 /// have been written and the larger data sets can now be written
 void endDefinePhase(int FileID ///< [in] ID of the file being written

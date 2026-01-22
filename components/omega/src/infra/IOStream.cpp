@@ -2490,6 +2490,14 @@ void IOStream::writeStream(
       } // end if nframes
    } // end if multiframe
 
+   // For Frame < 1, we need to be in define mode to write metadata,
+   // define dimensions, and define variables. If the file was opened
+   // (rather than created) due to existing from a previous run, it may
+   // be in data mode. Call reenterDefineMode to ensure we're in define mode.
+   if (Frame < 1) {
+      IO::reenterDefineMode(OutFileID);
+   }
+
    // Write Metadata for global metadata (Code and Simulation)
    // Only needs to be written for a new file (Frame < 1)
    // NetCDF requires define mode for adding attributes
