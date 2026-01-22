@@ -2440,6 +2440,10 @@ void IOStream::writeStream(
       OutFileName = Filename;
    }
 
+   // Check if file exists before opening - needed to determine if we need
+   // to reenter define mode later
+   bool FileExisted = std::filesystem::exists(OutFileName);
+
    // Open output file
    int OutFileID;
    IO::openFile(OutFileID, OutFileName, Mode, IO::DefaultFileFmt, ExistAction);
@@ -2491,10 +2495,12 @@ void IOStream::writeStream(
    } // end if multiframe
 
    // For Frame < 1, we need to be in define mode to write metadata,
-   // define dimensions, and define variables. If the file was opened
-   // (rather than created) due to existing from a previous run, it may
-   // be in data mode. Call reenterDefineMode to ensure we're in define mode.
-   if (Frame < 1) {
+   // define dimensions, and define variables. If the file existed and was
+   // opened (rather than created), it will be in data mode. Call
+   // reenterDefineMode to switch back to define mode.
+   // Only call this if the file existed - newly created files are already
+   // in define mode, and calling PIOc_redef on them may have unexpected effects.
+   if (Frame < 1 && FileExisted) {
       IO::reenterDefineMode(OutFileID);
    }
 
