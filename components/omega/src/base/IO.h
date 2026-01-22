@@ -249,6 +249,13 @@ int defineVar(int FileID, ///< [in] ID of the file containing dim
               int *DimIDs ///< [in] vector of NDims dimension IDs
 );
 
+/// Gets the ID of an existing variable in a file. Returns -1 if the
+/// variable does not exist. Use this for querying variables in existing
+/// files that are in data mode (Frame > 0 for multiframe files).
+int getVarID(int FileID,               ///< [in] ID of the file containing var
+             const std::string &VarName ///< [in] name of variable
+);
+
 /// Ends define mode signifying all field definitions and metadata
 /// have been written and the larger data sets can now be written
 void endDefinePhase(int FileID ///< [in] ID of the file being written

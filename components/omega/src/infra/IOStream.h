@@ -156,10 +156,11 @@ class IOStream {
    );
 
    /// Define all dimensions used. Returns a map of dimension names to defined
-   /// dimension IDs.
+   /// dimension IDs. If allowDefine is false, only queries existing dims.
    void defineAllDims(
        int FileID, ///< [in] id assigned to the IO file
-       std::map<std::string, int> &AllDimIDs ///< [out] dim name, assigned ID
+       std::map<std::string, int> &AllDimIDs, ///< [out] dim name, assigned ID
+       bool AllowDefine = true ///< [in] if true, define new dims; if false, query only
    );
 
    /// Computes the parallel decomposition (offsets) for a field.

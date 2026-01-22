@@ -714,6 +714,26 @@ int defineVar(int FileID,                 // [in] ID of the file containing var
 } // End defineVar
 
 //------------------------------------------------------------------------------
+/// Gets the ID of an existing variable in a file. Returns -1 if the
+/// variable does not exist. Use this for querying variables in existing
+/// files that are in data mode (Frame > 0 for multiframe files).
+int getVarID(int FileID,               // [in] ID of the file containing var
+             const std::string &VarName // [in] name of variable
+) {
+
+   int VarID  = -1;
+   int PIOErr = PIOc_inq_varid(FileID, VarName.c_str(), &VarID);
+
+   if (PIOErr != PIO_NOERR) {
+      // Variable not found - this is an error for existing files
+      ABORT_ERROR("IO::getVarID: Variable {} not found in file", VarName);
+   }
+
+   return VarID;
+
+} // End getVarID
+
+//------------------------------------------------------------------------------
 /// Ends define phase signifying all field definitions and metadata
 /// have been written and the larger data sets can now be written
 void endDefinePhase(int FileID ///< [in] ID of the file being written

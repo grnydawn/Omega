@@ -628,7 +628,8 @@ void IOStream::create(const std::string &StreamName, //< [in] name of stream
 // dimension IDs.
 void IOStream::defineAllDims(
     int FileID,                           ///< [in] id assigned to the IO file
-    std::map<std::string, int> &AllDimIDs ///< [out] dim name, assigned ID
+    std::map<std::string, int> &AllDimIDs, ///< [out] dim name, assigned ID
+    bool AllowDefine                       ///< [in] if true, define new dims
 ) {
 
    Error Err;
@@ -662,11 +663,11 @@ void IOStream::defineAllDims(
                         DimName, Name);
 
          // If dim is not found, define the dimension from the dim class if
-         // it is a write operation, otherwise assume the dimension is not
-         // needed
+         // it is a write operation and definition is allowed (file in define mode),
+         // otherwise assume the dimension is not needed
       } else {
 
-         if (Mode == IO::Mode::ModeWrite) {
+         if (Mode == IO::Mode::ModeWrite && AllowDefine) {
             DimID = IO::defineDim(FileID, DimName, Length);
          }
 
@@ -2344,8 +2345,9 @@ Error IOStream::readStream(
    } // end loop over requested metadata
 
    // Get dimensions from file and check that file has same dimension lengths
+   // For reading, we never define - just query existing dimensions
    std::map<std::string, int> AllDimIDs;
-   defineAllDims(InFileID, AllDimIDs);
+   defineAllDims(InFileID, AllDimIDs, false);
 
    // For each field in the contents, define field and read field data
    for (auto IFld = Contents.begin(); IFld != Contents.end(); ++IFld) {
@@ -2506,8 +2508,10 @@ void IOStream::writeStream(
    }
 
    // Assign dimension IDs for all defined dimensions
+   // For Frame < 1 (new file in define mode), allow defining new dimensions
+   // For Frame >= 1 (existing file in data mode), only query existing dimensions
    std::map<std::string, int> AllDimIDs;
-   defineAllDims(OutFileID, AllDimIDs);
+   defineAllDims(OutFileID, AllDimIDs, Frame < 1);
 
    // Define each field and write field metadata
    std::map<std::string, int> FieldIDs;
@@ -2544,16 +2548,20 @@ void IOStream::writeStream(
       // Reduce floating point precision if requested
       IO::IODataType MyIOType = getFieldIOType(ThisField);
 
-      // Define the field and assign a FieldID
-      int FieldID =
-          defineVar(OutFileID, FieldName, MyIOType, NDims, FieldDims.data());
+      // Define the field (Frame < 1) or get existing field ID (Frame >= 1)
+      int FieldID;
+      if (Frame < 1) {
+         // New file in define mode - define the variable
+         FieldID =
+             defineVar(OutFileID, FieldName, MyIOType, NDims, FieldDims.data());
+         // Write field metadata only for new files
+         writeFieldMeta(FieldName, OutFileID, FieldID);
+      } else {
+         // Existing file in data mode - just get the variable ID
+         FieldID = IO::getVarID(OutFileID, FieldName);
+      }
 
       FieldIDs[FieldName] = FieldID;
-
-      // Now we can write the field metadata
-      if (Frame < 1) { // only write if it's the first time
-         writeFieldMeta(FieldName, OutFileID, FieldID);
-      }
    }
 
    // End define phase before writing data (only for new files/first frame)
