@@ -249,6 +249,7 @@ void Halo::clear() {
 
    AllHalos.clear(); // removes all Halos from the map and in the
                      // process, calls the destructor for each
+   DefaultHalo = nullptr; // prevent dangling pointer
 
 } // end Halo clear
 
@@ -664,7 +665,7 @@ int Halo::startReceives(const bool UseDevBuffer) {
       if (RecvFlags[CurElem][INghbr]) {
          auto &LocNeighbor = Neighbors[INghbr];
 
-         I4 BufferSize = TotSize * LocNeighbor.RecvLists[CurElem].NTot;
+         I8 BufferSize = TotSize * static_cast<I8>(LocNeighbor.RecvLists[CurElem].NTot);
 
          void *DataPtr{nullptr};
 
@@ -712,7 +713,7 @@ int Halo::startSends(const bool UseDevBuffer) {
 
          void *DataPtr{nullptr};
 
-         I4 BufferSize = TotSize * LocNeighbor.SendLists[CurElem].NTot;
+         I8 BufferSize = TotSize * static_cast<I8>(LocNeighbor.SendLists[CurElem].NTot);
 
          // If UseDevBuffer is true the device buffer was packed by packBuffer,
          // otherwise the host buffer was

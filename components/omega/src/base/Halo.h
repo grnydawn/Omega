@@ -83,7 +83,7 @@ class Halo {
    I4 MyTask;           /// local MPI Task ID
    I4 HaloWidth;        /// cell width of halo
    I4 NumLayers;        /// number of halo layers for current exchange
-   I4 TotSize;          /// Array size at each mesh element for current exchange
+   I8 TotSize;          /// Array size at each mesh element for current exchange
    MPI_Comm MyComm;     /// MPI communicator handle
    MeshElement CurElem; /// index space of current array
 
@@ -330,7 +330,7 @@ class Halo {
 
       const I4 NJ = Array.extent(1);
 
-      const I4 BufferSize = LocList.NTot * TotSize;
+      const I8 BufferSize = static_cast<I8>(LocList.NTot) * TotSize;
 
       if (devBufferPUP(Array)) {
          OMEGA_SCOPE(LocIndex, LocList.Index);
@@ -376,7 +376,7 @@ class Halo {
       const I4 NK = Array.extent(0);
 
       const I4 NTotList   = LocList.NTot;
-      const I4 BufferSize = LocList.NTot * TotSize;
+      const I8 BufferSize = static_cast<I8>(LocList.NTot) * TotSize;
 
       if (devBufferPUP(Array)) {
          OMEGA_SCOPE(LocIndex, LocList.Index);
@@ -425,7 +425,7 @@ class Halo {
       const I4 NL = Array.extent(0);
 
       const I4 NTotList   = LocList.NTot;
-      const I4 BufferSize = LocList.NTot * TotSize;
+      const I8 BufferSize = static_cast<I8>(LocList.NTot) * TotSize;
 
       if (devBufferPUP(Array)) {
          OMEGA_SCOPE(LocIndex, LocList.Index);
@@ -479,7 +479,7 @@ class Halo {
       const I4 NM = Array.extent(0);
 
       const I4 NTotList   = LocList.NTot;
-      const I4 BufferSize = LocList.NTot * TotSize;
+      const I8 BufferSize = static_cast<I8>(LocList.NTot) * TotSize;
 
       if (devBufferPUP(Array)) {
          OMEGA_SCOPE(LocIndex, LocList.Index);
@@ -783,18 +783,18 @@ class Halo {
       }
 
       // Determine the number of array elements per cell, edge, or vertex
-      // in the input array
+      // in the input array. Use I8 to avoid integer overflow with large arrays.
       I4 NDims = Array.rank();
       if (NDims == 1) {
          TotSize = 1;
       } else if (NDims == 2) {
-         TotSize = Array.extent(1);
+         TotSize = static_cast<I8>(Array.extent(1));
       } else {
          TotSize = 1;
          for (int I = 0; I < NDims - 2; ++I) {
-            TotSize *= Array.extent(I);
+            TotSize *= static_cast<I8>(Array.extent(I));
          }
-         TotSize *= Array.extent(NDims - 1);
+         TotSize *= static_cast<I8>(Array.extent(NDims - 1));
       }
 
       // If the Array is in device memory space, the buffer pack and unpack

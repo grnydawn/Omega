@@ -135,6 +135,10 @@ MachEnv::MachEnv(const std::string Name, // [in] name of environment
       MasterTaskFlag = false;
    }
 
+   // Free the MPI_Group objects to prevent memory leaks
+   MPI_Group_free(&InGroup);
+   MPI_Group_free(&NewGroup);
+
 #ifdef OMEGA_THREADED
    // total number of OpenMP threads
    NumThreads = omp_get_num_threads();
@@ -217,6 +221,10 @@ MachEnv::MachEnv(const std::string Name, // [in] name of environment
       MasterTaskFlag = false;
    }
 
+   // Free the MPI_Group objects to prevent memory leaks
+   MPI_Group_free(&InGroup);
+   MPI_Group_free(&NewGroup);
+
 #ifdef OMEGA_THREADED
    // total number of OpenMP threads
    NumThreads = omp_get_num_threads();
@@ -298,6 +306,10 @@ MachEnv::MachEnv(const std::string Name, // [in] name of environment
       MasterTaskFlag = false;
    }
 
+   // Free the MPI_Group objects to prevent memory leaks
+   MPI_Group_free(&InGroup);
+   MPI_Group_free(&NewGroup);
+
 #ifdef OMEGA_THREADED
    // total number of OpenMP threads
    NumThreads = omp_get_num_threads();
@@ -335,6 +347,7 @@ void MachEnv::removeEnv(const std::string Name // [in] name of env to remove
 void MachEnv::removeAll() {
 
    AllEnvs.clear(); // removes all environments by removing them from map
+   DefaultEnv = nullptr; // prevent dangling pointer
 
 } // end removeAll
 

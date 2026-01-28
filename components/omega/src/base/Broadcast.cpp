@@ -104,9 +104,9 @@ int Broadcast(std::string &Value, const MachEnv *InEnv, const int RankBcast) {
    if (MyTask != Root)
       Value.resize(StrSize);
 
-   // Now broadcast the string
-   RetVal =
-       MPI_Bcast((void *)Value.c_str(), Value.size(), MPI_CHAR, Root, Comm);
+   // Now broadcast the string - use &Value[0] for mutable buffer access
+   // rather than c_str() which returns a const pointer
+   RetVal = MPI_Bcast(&Value[0], Value.size(), MPI_CHAR, Root, Comm);
 
    return RetVal;
 } // end Broadcast
