@@ -858,9 +858,9 @@ class Halo {
 
                      // The number of elements we need to copy is different
                      // than the buffer allocation size
-                     const I4 BufferSize =
-                         TotSize * Neighbors[INghbr].RecvLists[CurElem].NTot;
-                     auto CopyRange = Kokkos::make_pair(0, BufferSize);
+                     const I8 BufferSize =
+                         TotSize * static_cast<I8>(Neighbors[INghbr].RecvLists[CurElem].NTot);
+                     auto CopyRange = Kokkos::make_pair(static_cast<I8>(0), BufferSize);
 
                      deepCopy(Kokkos::subview(Neighbors[INghbr].RecvBuffer,
                                               CopyRange),

@@ -728,7 +728,7 @@ int Halo::startSends(const bool UseDevBuffer) {
 
                // The number of elements we need to copy is different
                // than the buffer allocation size
-               auto CopyRange = Kokkos::make_pair(0, BufferSize);
+               auto CopyRange = Kokkos::make_pair(static_cast<I8>(0), BufferSize);
 
                deepCopy(Kokkos::subview(LocNeighbor.SendBufferH, CopyRange),
                         Kokkos::subview(LocNeighbor.SendBuffer, CopyRange));
