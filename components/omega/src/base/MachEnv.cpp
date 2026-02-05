@@ -42,6 +42,8 @@ MachEnv::MachEnv(const std::string Name, // [in] name of environment
    // get total number of MPI tasks
    MPI_Comm_size(Comm, &NumTasks);
 
+   LOG_INFO("MachEnv: MPI_Comm_dup rank {} size {}", MyTask, NumTasks);
+
    // Set task 0 as master
    MasterTask = 0;
 
@@ -116,6 +118,9 @@ MachEnv::MachEnv(const std::string Name, // [in] name of environment
       MPI_Comm_rank(Comm, &MyTask);
       // get total number of MPI tasks
       MPI_Comm_size(Comm, &NumTasks);
+
+      LOG_INFO("MachEnv: created contiguous-range comm rank {} size {}",
+               MyTask, NumTasks);
       // Set master task to either the optional input or 0 as default
       MasterTask = InMasterTask;
       // determine if this task is the master task
@@ -202,6 +207,9 @@ MachEnv::MachEnv(const std::string Name, // [in] name of environment
       MPI_Comm_rank(Comm, &MyTask);
       // get total number of MPI tasks
       MPI_Comm_size(Comm, &NumTasks);
+
+      LOG_INFO("MachEnv: created strided comm rank {} size {}", MyTask,
+               NumTasks);
       // Set master task to either the input value or default to 0
       MasterTask = InMasterTask;
       // determine if this task is the master task
@@ -287,6 +295,9 @@ MachEnv::MachEnv(const std::string Name, // [in] name of environment
       MPI_Comm_rank(Comm, &MyTask);
       // get total number of MPI tasks
       MPI_Comm_size(Comm, &NumTasks);
+
+      LOG_INFO("MachEnv: created custom-list comm rank {} size {}",
+               MyTask, NumTasks);
       // set master task to either input value or default to 0
       MasterTask = InMasterTask;
       // determine if this task is the master task
