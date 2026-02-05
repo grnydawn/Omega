@@ -249,6 +249,7 @@ void Halo::clear() {
 
    AllHalos.clear(); // removes all Halos from the map and in the
                      // process, calls the destructor for each
+   DefaultHalo = nullptr; // prevent dangling pointer
 
 } // end Halo clear
 
