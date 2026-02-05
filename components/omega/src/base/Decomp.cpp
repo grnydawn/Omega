@@ -130,8 +130,6 @@ void readMesh(const int MeshFileID, // file ID for open mesh file
    I4 NumTasks   = InEnv->getNumTasks();
    I4 MyTask     = InEnv->getMyTask();
 
-   LOG_INFO("Decomp: constructing {} on rank {} size {} mesh {}",
-            Name, MyTask, NumTasks, MeshFileName_);
 
    // Read in mesh size information - these are dimension lengths in
    // the input mesh file. Check both the name under Omega name conventions
