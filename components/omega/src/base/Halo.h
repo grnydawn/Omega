@@ -311,6 +311,15 @@ class Halo {
                 memcpy(&RVal, &Val, sizeof(ValType));
                 LocBuff(IExch) = RVal;
              });
+#ifdef KOKKOS_ENABLE_CUDA
+         {
+            cudaError_t _err = cudaDeviceSynchronize();
+            if (_err != cudaSuccess) {
+               LOG_ERROR("Halo: cudaDeviceSynchronize after pack 1D kernel failed: {}",
+                         cudaGetErrorString(_err));
+            }
+         }
+#endif
       } else {
          OMEGA_SCOPE(LocIndexH, LocList.IndexH);
          expandBuffer(LocNeighbor.SendBufferH, BufferSize);
@@ -352,6 +361,15 @@ class Halo {
                 const I4 IBuff = IExch * NJ + J;
                 LocBuff(IBuff) = RVal;
              });
+#ifdef KOKKOS_ENABLE_CUDA
+         {
+            cudaError_t _err = cudaDeviceSynchronize();
+            if (_err != cudaSuccess) {
+               LOG_ERROR("Halo: cudaDeviceSynchronize after pack 2D kernel failed: {}",
+                         cudaGetErrorString(_err));
+            }
+         }
+#endif
       } else {
          OMEGA_SCOPE(LocIndexH, LocList.IndexH);
          expandBuffer(LocNeighbor.SendBufferH, BufferSize);
@@ -398,6 +416,15 @@ class Halo {
                 const I4 IBuff = (K * NTotList + IExch) * NJ + J;
                 LocBuff(IBuff) = RVal;
              });
+#ifdef KOKKOS_ENABLE_CUDA
+         {
+            cudaError_t _err = cudaDeviceSynchronize();
+            if (_err != cudaSuccess) {
+               LOG_ERROR("Halo: cudaDeviceSynchronize after pack 3D kernel failed: {}",
+                         cudaGetErrorString(_err));
+            }
+         }
+#endif
       } else {
          OMEGA_SCOPE(LocIndexH, LocList.IndexH);
          expandBuffer(LocNeighbor.SendBufferH, BufferSize);
@@ -448,6 +475,15 @@ class Halo {
                 const I4 IBuff = ((L * NK + K) * NTotList + IExch) * NJ + J;
                 LocBuff(IBuff) = RVal;
              });
+#ifdef KOKKOS_ENABLE_CUDA
+         {
+            cudaError_t _err = cudaDeviceSynchronize();
+            if (_err != cudaSuccess) {
+               LOG_ERROR("Halo: cudaDeviceSynchronize after pack 4D kernel failed: {}",
+                         cudaGetErrorString(_err));
+            }
+         }
+#endif
       } else {
          OMEGA_SCOPE(LocIndexH, LocList.IndexH);
          expandBuffer(LocNeighbor.SendBufferH, BufferSize);
@@ -503,6 +539,15 @@ class Halo {
                     (((M * NL + L) * NK + K) * NTotList + IExch) * NJ + J;
                 LocBuff(IBuff) = RVal;
              });
+#ifdef KOKKOS_ENABLE_CUDA
+         {
+            cudaError_t _err = cudaDeviceSynchronize();
+            if (_err != cudaSuccess) {
+               LOG_ERROR("Halo: cudaDeviceSynchronize after pack 5D kernel failed: {}",
+                         cudaGetErrorString(_err));
+            }
+         }
+#endif
       } else {
          OMEGA_SCOPE(LocIndexH, LocList.IndexH);
          expandBuffer(LocNeighbor.SendBufferH, BufferSize);
