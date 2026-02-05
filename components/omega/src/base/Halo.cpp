@@ -668,6 +668,16 @@ int Halo::startReceives(const bool UseDevBuffer) {
 
    I4 Err{0}; // Error code to return
 
+   // Allow env override to force host-only exchanges for debugging
+   bool UseDevFlag = UseDevBuffer;
+   const char *env_force = std::getenv("OMEGA_FORCE_HOST_EXCH");
+   if (env_force && (env_force[0] == '1' || env_force[0] == 'y' ||
+                     env_force[0] == 'Y')) {
+      UseDevFlag = false;
+      LOG_INFO("Halo: OMEGA_FORCE_HOST_EXCH set; forcing host-only exchanges on rank {}",
+               MyTask);
+   }
+
    for (int INghbr = 0; INghbr < NNghbr; ++INghbr) {
       if (RecvFlags[CurElem][INghbr]) {
          auto &LocNeighbor = Neighbors[INghbr];
@@ -678,7 +688,7 @@ int Halo::startReceives(const bool UseDevBuffer) {
 
          // If both flags  are true, the device buffer will receive the message,
          // otherwise the host buffer will.
-         if (UseDevBuffer && ExchOnDev) {
+         if (UseDevFlag && ExchOnDev) {
             expandBuffer(LocNeighbor.RecvBuffer, BufferSize);
             DataPtr = LocNeighbor.RecvBuffer.data();
          } else {
@@ -686,9 +696,9 @@ int Halo::startReceives(const bool UseDevBuffer) {
             DataPtr = LocNeighbor.RecvBufferH.data();
          }
 
-         LOG_INFO("Halo: MPI_Irecv rank {} recv_from {} DataPtr {} BufferSize {} UseDevBuffer {} ExchOnDev {}",
+         LOG_INFO("Halo: MPI_Irecv rank {} recv_from {} DataPtr {} BufferSize {} UseDevFlag {} ExchOnDev {}",
                   MyTask, LocNeighbor.TaskID, (void *)DataPtr, BufferSize,
-                  UseDevBuffer, ExchOnDev);
+                  UseDevFlag, ExchOnDev);
 
          IErr[INghbr] = MPI_Irecv(DataPtr, BufferSize, MPI_DOUBLE,
                                   LocNeighbor.TaskID, MPI_ANY_TAG, MyComm,
@@ -715,7 +725,17 @@ int Halo::startSends(const bool UseDevBuffer) {
 
    I4 Err{0}; // Error code to return
 
-   if (UseDevBuffer)
+   // Use the same env-override logic as startReceives
+   bool UseDevFlag = UseDevBuffer;
+   const char *env_force = std::getenv("OMEGA_FORCE_HOST_EXCH");
+   if (env_force && (env_force[0] == '1' || env_force[0] == 'y' ||
+                     env_force[0] == 'Y')) {
+      UseDevFlag = false;
+      LOG_INFO("Halo: OMEGA_FORCE_HOST_EXCH set; forcing host-only exchanges on rank {}",
+               MyTask);
+   }
+
+   if (UseDevFlag)
       Kokkos::fence();
 
    for (int INghbr = 0; INghbr < NNghbr; ++INghbr) {
@@ -726,9 +746,9 @@ int Halo::startSends(const bool UseDevBuffer) {
 
          I4 BufferSize = TotSize * LocNeighbor.SendLists[CurElem].NTot;
 
-         // If UseDevBuffer is true the device buffer was packed by packBuffer,
+         // If UseDevFlag is true the device buffer was packed by packBuffer,
          // otherwise the host buffer was
-         if (UseDevBuffer) {
+          if (UseDevFlag) {
             // If ExchOnDev is true, the device buffer can be passed to
             // MPI_Isend, otherwise the device buffer needs to be copied
             // to the host buffer, which will be passed to MPI_Isend
@@ -750,9 +770,9 @@ int Halo::startSends(const bool UseDevBuffer) {
             DataPtr = LocNeighbor.SendBufferH.data();
          }
 
-         LOG_INFO("Halo: MPI_Isend rank {} send_to {} DataPtr {} BufferSize {} UseDevBuffer {} ExchOnDev {}",
-                MyTask, LocNeighbor.TaskID, (void *)DataPtr, BufferSize,
-                UseDevBuffer, ExchOnDev);
+               LOG_INFO("Halo: MPI_Isend rank {} send_to {} DataPtr {} BufferSize {} UseDevFlag {} ExchOnDev {}",
+                        MyTask, LocNeighbor.TaskID, (void *)DataPtr, BufferSize,
+                        UseDevFlag, ExchOnDev);
 
          IErr[INghbr] = MPI_Isend(DataPtr, BufferSize, MPI_DOUBLE,
                             LocNeighbor.TaskID, 0, MyComm,
