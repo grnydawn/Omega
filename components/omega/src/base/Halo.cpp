@@ -336,6 +336,9 @@ int Halo::determineNeighbors(const I4 NumTasks) {
       Err = -1;
    }
 
+   LOG_INFO("Halo: MPI_Alltoall rank {} size {} HaloAll.data() {}",
+            MyTask, NumTasks, (void *)HaloAll.data());
+
    // set vector of IDs for all tasks that need locally owned elements for
    // their halos
    std::vector<I4> AddNeighbors;
@@ -683,9 +686,13 @@ int Halo::startReceives(const bool UseDevBuffer) {
             DataPtr = LocNeighbor.RecvBufferH.data();
          }
 
-         IErr[INghbr] =
-             MPI_Irecv(DataPtr, BufferSize, MPI_DOUBLE, LocNeighbor.TaskID,
-                       MPI_ANY_TAG, MyComm, &LocNeighbor.RReq);
+         LOG_INFO("Halo: MPI_Irecv rank {} recv_from {} DataPtr {} BufferSize {} UseDevBuffer {} ExchOnDev {}",
+                  MyTask, LocNeighbor.TaskID, (void *)DataPtr, BufferSize,
+                  UseDevBuffer, ExchOnDev);
+
+         IErr[INghbr] = MPI_Irecv(DataPtr, BufferSize, MPI_DOUBLE,
+                                  LocNeighbor.TaskID, MPI_ANY_TAG, MyComm,
+                                  &LocNeighbor.RReq);
          if (IErr[INghbr] != 0) {
             LOG_ERROR("MPI error {} on task {} receive from task {}",
                       IErr[INghbr], MyTask, LocNeighbor.TaskID);
@@ -743,9 +750,13 @@ int Halo::startSends(const bool UseDevBuffer) {
             DataPtr = LocNeighbor.SendBufferH.data();
          }
 
-         IErr[INghbr] =
-             MPI_Isend(DataPtr, BufferSize, MPI_DOUBLE, LocNeighbor.TaskID, 0,
-                       MyComm, &LocNeighbor.SReq);
+         LOG_INFO("Halo: MPI_Isend rank {} send_to {} DataPtr {} BufferSize {} UseDevBuffer {} ExchOnDev {}",
+                MyTask, LocNeighbor.TaskID, (void *)DataPtr, BufferSize,
+                UseDevBuffer, ExchOnDev);
+
+         IErr[INghbr] = MPI_Isend(DataPtr, BufferSize, MPI_DOUBLE,
+                            LocNeighbor.TaskID, 0, MyComm,
+                            &LocNeighbor.SReq);
          if (IErr[INghbr] != 0) {
             LOG_ERROR("MPI error {} on task {} send to task {}", IErr[INghbr],
                       MyTask, LocNeighbor.TaskID);
