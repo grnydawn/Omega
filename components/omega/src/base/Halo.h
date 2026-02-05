@@ -25,6 +25,9 @@
 #include "OmegaKokkos.h"
 #include "Pacer.h"
 #include "mpi.h"
+#ifdef KOKKOS_ENABLE_CUDA
+#include <cuda_runtime.h>
+#endif
 #include <cstring>
 #include <memory>
 #include <numeric>
@@ -826,6 +829,18 @@ class Halo {
       }
       Pacer::stop("Halo:packBuffers", 4);
 
+      // Debug: fence and check for CUDA errors after packing device buffers
+      Kokkos::fence();
+   #ifdef KOKKOS_ENABLE_CUDA
+      {
+         cudaError_t _err = cudaDeviceSynchronize();
+         if (_err != cudaSuccess) {
+         LOG_ERROR("Halo: cudaDeviceSynchronize after packBuffers failed: {}",
+                cudaGetErrorString(_err));
+         }
+      }
+   #endif
+
       // Call MPI_Isend for each Neighbor to send the packed buffers
       startSends(UseDevBuffer);
 
@@ -877,6 +892,17 @@ class Halo {
                                               CopyRange),
                               Kokkos::subview(Neighbors[INghbr].RecvBufferH,
                                               CopyRange));
+
+#ifdef KOKKOS_ENABLE_CUDA
+                     {
+                        cudaError_t _err = cudaDeviceSynchronize();
+                        if (_err != cudaSuccess) {
+                           LOG_ERROR(
+                               "Halo: cudaDeviceSynchronize after recv deepCopy failed: {}",
+                               cudaGetErrorString(_err));
+                        }
+                     }
+#endif
                   }
                   unpackBuffer(Array, INghbr);
                   Neighbors[INghbr].Unpacked = true;
