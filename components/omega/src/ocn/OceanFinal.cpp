@@ -20,6 +20,8 @@
 #include "Tracers.h"
 #include "VertCoord.h"
 #include "IOStream.h"
+#include "Eos.h"
+#include "VertMix.h"
 
 namespace OMEGA {
 
