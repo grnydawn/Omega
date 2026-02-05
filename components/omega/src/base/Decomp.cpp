@@ -806,6 +806,7 @@ void Decomp::clear() {
 
    AllDecomps.clear(); // removes all decomps from the list (map) and in
                        // the process, calls the destructors for each
+   DefaultDecomp = nullptr; // prevent dangling pointer
 
 } // end decomp clear
 
