@@ -14,6 +14,7 @@
 
 #include "MachEnv.h"
 #include "Error.h"
+#include "OmegaKokkos.h"
 #include "mpi.h"
 
 #include <map>
@@ -33,6 +34,12 @@ std::map<std::string, std::unique_ptr<MachEnv>> MachEnv::AllEnvs;
 MachEnv::MachEnv(const std::string Name, // [in] name of environment
                  const MPI_Comm InComm   // [in] parent MPI communicator
 ) {
+   // Ensure GPU state is stable before MPI_Comm_dup to prevent GPU-aware MPI
+   // from encountering invalid CUDA pointer queries
+   if (Kokkos::is_initialized()) {
+      Kokkos::fence();
+   }
+
    // Set the communicator to the input communicator by duplicating it
    MPI_Comm_dup(InComm, &Comm);
 
@@ -73,6 +80,12 @@ MachEnv::MachEnv(const std::string Name, // [in] name of environment
                  const int NewSize,      // [in] num tasks in new env
                  int InMasterTask        // [in] optionally set Master Task
 ) {
+   // Ensure GPU state is stable before MPI operations to prevent GPU-aware MPI
+   // from encountering invalid CUDA pointer queries
+   if (Kokkos::is_initialized()) {
+      Kokkos::fence();
+   }
+
    // Check for valid master task input
    OMEGA_REQUIRE(
        (InMasterTask >= 0 and InMasterTask < NewSize),
@@ -159,6 +172,12 @@ MachEnv::MachEnv(const std::string Name, // [in] name of environment
                  const int Stride,       // [in] stride for tasks to incl
                  const int InMasterTask  // [in] optionally set Master Task
 ) {
+   // Ensure GPU state is stable before MPI operations to prevent GPU-aware MPI
+   // from encountering invalid CUDA pointer queries
+   if (Kokkos::is_initialized()) {
+      Kokkos::fence();
+   }
+
    // Check for valid master task input
    OMEGA_REQUIRE(
        (InMasterTask >= 0 and InMasterTask < NewSize),
@@ -246,6 +265,11 @@ MachEnv::MachEnv(const std::string Name, // [in] name of environment
                  const int Tasks[],      // [in] vector of parent tasks to incl
                  const int InMasterTask  // [in] optionally set Master Task
 ) {
+   // Ensure GPU state is stable before MPI operations to prevent GPU-aware MPI
+   // from encountering invalid CUDA pointer queries
+   if (Kokkos::is_initialized()) {
+      Kokkos::fence();
+   }
 
    // Check for valid master task input
    OMEGA_REQUIRE(
