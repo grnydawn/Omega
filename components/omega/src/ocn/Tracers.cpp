@@ -112,6 +112,8 @@ void Tracers::init() {
    TracerArraysH.resize(NTimeLevels);
 
    // Allocate tracers data array and assign to tracers arrays
+   // Initialize to zero to avoid uninitialized memory reads during
+   // halo exchanges before actual data is loaded from files
    for (I4 TimeIndex = 0; TimeIndex < NTimeLevels; ++TimeIndex) {
       TracerArrays[TimeIndex] =
           Array3DReal("TracerTime" + std::to_string(TimeIndex), NumTracers,
@@ -119,6 +121,7 @@ void Tracers::init() {
       TracerArraysH[TimeIndex] =
           HostArray3DReal("TracerHTime" + std::to_string(TimeIndex), NumTracers,
                           NCellsSize, NVertLayers);
+      deepCopy(TracerArrays[TimeIndex], 0.0);
    }
 
    // Define tracers

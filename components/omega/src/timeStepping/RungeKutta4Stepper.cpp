@@ -61,6 +61,8 @@ void RungeKutta4Stepper::finalizeInit() {
 
    ProvisTracers =
        Array3DReal("ProvisTracers", NTracers, NCellsSize, NVertLayers);
+   // Initialize to zero to avoid uninitialized memory reads during halo exchange
+   deepCopy(ProvisTracers, 0.0);
 }
 
 //------------------------------------------------------------------------------

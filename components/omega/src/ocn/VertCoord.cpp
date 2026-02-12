@@ -579,6 +579,12 @@ void VertCoord::minMaxLayerEdge(Halo *MeshHalo) {
    MaxLayerEdgeTop = Array1DI4("MaxLayerEdgeTop", NEdgesSize);
    MaxLayerEdgeBot = Array1DI4("MaxLayerEdgeBot", NEdgesSize);
 
+   // Initialize arrays to avoid uninitialized memory reads during halo exchange
+   deepCopy(MinLayerEdgeTop, 0);
+   deepCopy(MinLayerEdgeBot, 0);
+   deepCopy(MaxLayerEdgeTop, 0);
+   deepCopy(MaxLayerEdgeBot, 0);
+
    OMEGA_SCOPE(LocNVertLayersP1, NVertLayersP1);
    OMEGA_SCOPE(LocCellsOnEdge, CellsOnEdge);
    OMEGA_SCOPE(LocMinLayerCell, MinLayerCell);
@@ -639,6 +645,12 @@ void VertCoord::minMaxLayerVertex(Halo *MeshHalo) {
    MinLayerVertexBot = Array1DI4("MinLayerVertexBot", NVerticesSize);
    MaxLayerVertexTop = Array1DI4("MaxLayerVertexTop", NVerticesSize);
    MaxLayerVertexBot = Array1DI4("MaxLayerVertexBot", NVerticesSize);
+
+   // Initialize arrays to avoid uninitialized memory reads during halo exchange
+   deepCopy(MinLayerVertexTop, 0);
+   deepCopy(MinLayerVertexBot, 0);
+   deepCopy(MaxLayerVertexTop, 0);
+   deepCopy(MaxLayerVertexBot, 0);
 
    OMEGA_SCOPE(LocNVertLayersP1, NVertLayersP1);
    OMEGA_SCOPE(LocVertexDegree, VertexDegree);

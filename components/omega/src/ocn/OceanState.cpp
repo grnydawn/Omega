@@ -103,12 +103,16 @@ OceanState::OceanState(
    LayerThickness.resize(NTimeLevels);
    NormalVelocity.resize(NTimeLevels);
 
-   // Create device arrays and copy host data
+   // Create device arrays and initialize to zero
+   // Initialization is required to avoid uninitialized memory reads during
+   // halo exchanges before actual data is loaded from files
    for (int I = 0; I < NTimeLevels; I++) {
       LayerThickness[I] = Array2DReal("LayerThickness" + std::to_string(I),
                                       NCellsSize, NVertLayers);
       NormalVelocity[I] = Array2DReal("NormalVelocity" + std::to_string(I),
                                       NEdgesSize, NVertLayers);
+      deepCopy(LayerThickness[I], 0.0);
+      deepCopy(NormalVelocity[I], 0.0);
    }
 
    // Register fields and metadata for IO

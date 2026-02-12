@@ -13,6 +13,11 @@ WindForcingAuxVars::WindForcingAuxVars(const std::string &AuxStateSuffix,
       MeridStressCell("WindStressMeridional" + AuxStateSuffix,
                       Mesh->NCellsSize),
       CellsOnEdge(Mesh->CellsOnEdge), AngleEdge(Mesh->AngleEdge), Interp(Mesh) {
+   // Initialize arrays to zero to avoid uninitialized memory reads during
+   // halo exchanges before actual data is loaded from files
+   deepCopy(NormalStressEdge, 0.0);
+   deepCopy(ZonalStressCell, 0.0);
+   deepCopy(MeridStressCell, 0.0);
 }
 
 void WindForcingAuxVars::registerFields(
