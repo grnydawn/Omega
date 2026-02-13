@@ -1,6 +1,7 @@
 #include "VorticityAuxVars.h"
 #include "DataTypes.h"
 #include "Field.h"
+#include "OmegaKokkos.h"
 
 #include <limits>
 
@@ -29,7 +30,15 @@ VorticityAuxVars::VorticityAuxVars(const std::string &AuxStateSuffix,
       MaxLayerVertexBot(VCoord->MaxLayerVertexBot),
       MinLayerCell(VCoord->MinLayerCell), MaxLayerCell(VCoord->MaxLayerCell),
       MinLayerEdgeTop(VCoord->MinLayerEdgeTop),
-      MaxLayerEdgeBot(VCoord->MaxLayerEdgeBot) {}
+      MaxLayerEdgeBot(VCoord->MaxLayerEdgeBot) {
+   // Initialize arrays to zero to avoid uninitialized memory reads during
+   // halo exchanges before actual data is computed
+   deepCopy(RelVortVertex, 0.0);
+   deepCopy(NormRelVortVertex, 0.0);
+   deepCopy(NormPlanetVortVertex, 0.0);
+   deepCopy(NormRelVortEdge, 0.0);
+   deepCopy(NormPlanetVortEdge, 0.0);
+}
 
 void VorticityAuxVars::registerFields(const std::string &AuxGroupName,
                                       const std::string &MeshName) const {

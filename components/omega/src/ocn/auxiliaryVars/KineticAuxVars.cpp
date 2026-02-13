@@ -1,6 +1,7 @@
 #include "KineticAuxVars.h"
 #include "DataTypes.h"
 #include "Field.h"
+#include "OmegaKokkos.h"
 
 #include <limits>
 
@@ -15,7 +16,12 @@ KineticAuxVars::KineticAuxVars(const std::string &AuxStateSuffix,
       NEdgesOnCell(Mesh->NEdgesOnCell), EdgesOnCell(Mesh->EdgesOnCell),
       EdgeSignOnCell(Mesh->EdgeSignOnCell), DcEdge(Mesh->DcEdge),
       DvEdge(Mesh->DvEdge), AreaCell(Mesh->AreaCell),
-      MinLayerCell(VCoord->MinLayerCell), MaxLayerCell(VCoord->MaxLayerCell) {}
+      MinLayerCell(VCoord->MinLayerCell), MaxLayerCell(VCoord->MaxLayerCell) {
+   // Initialize arrays to zero to avoid uninitialized memory reads during
+   // halo exchanges before actual data is computed
+   deepCopy(KineticEnergyCell, 0.0);
+   deepCopy(VelocityDivCell, 0.0);
+}
 
 void KineticAuxVars::registerFields(
     const std::string &AuxGroupName, // name of Auxiliary field group

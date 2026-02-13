@@ -1,5 +1,6 @@
 #include "TracerAuxVars.h"
 #include "Field.h"
+#include "OmegaKokkos.h"
 
 #include <limits>
 
@@ -17,7 +18,12 @@ TracerAuxVars::TracerAuxVars(const std::string &AuxStateSuffix,
       DcEdge(Mesh->DcEdge), DvEdge(Mesh->DvEdge), AreaCell(Mesh->AreaCell),
       EdgeMask(VCoord->EdgeMask), MinLayerEdgeBot(VCoord->MinLayerEdgeBot),
       MaxLayerEdgeTop(VCoord->MaxLayerEdgeTop),
-      MinLayerCell(VCoord->MinLayerCell), MaxLayerCell(VCoord->MaxLayerCell) {}
+      MinLayerCell(VCoord->MinLayerCell), MaxLayerCell(VCoord->MaxLayerCell) {
+   // Initialize arrays to zero to avoid uninitialized memory reads during
+   // halo exchanges before actual data is computed
+   deepCopy(HTracersEdge, 0.0);
+   deepCopy(Del2TracersCell, 0.0);
+}
 
 void TracerAuxVars::registerFields(const std::string &AuxGroupName,
                                    const std::string &MeshName) const {

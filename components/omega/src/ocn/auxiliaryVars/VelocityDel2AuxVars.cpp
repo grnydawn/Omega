@@ -1,6 +1,7 @@
 #include "VelocityDel2AuxVars.h"
 #include "DataTypes.h"
 #include "Field.h"
+#include "OmegaKokkos.h"
 
 #include <limits>
 
@@ -26,9 +27,13 @@ VelocityDel2AuxVars::VelocityDel2AuxVars(const std::string &AuxStateSuffix,
       MaxLayerEdgeTop(VCoord->MaxLayerEdgeTop),
       MinLayerVertexBot(VCoord->MinLayerVertexBot),
       MaxLayerVertexTop(VCoord->MaxLayerVertexTop),
-      MinLayerCell(VCoord->MinLayerCell), MaxLayerCell(VCoord->MaxLayerCell)
-
-{}
+      MinLayerCell(VCoord->MinLayerCell), MaxLayerCell(VCoord->MaxLayerCell) {
+   // Initialize arrays to zero to avoid uninitialized memory reads during
+   // halo exchanges before actual data is computed
+   deepCopy(Del2Edge, 0.0);
+   deepCopy(Del2DivCell, 0.0);
+   deepCopy(Del2RelVortVertex, 0.0);
+}
 
 void VelocityDel2AuxVars::registerFields(const std::string &AuxGroupName,
                                          const std::string &MeshName) const {

@@ -1,5 +1,6 @@
 #include "LayerThicknessAuxVars.h"
 #include "Field.h"
+#include "OmegaKokkos.h"
 
 #include <limits>
 
@@ -17,7 +18,13 @@ LayerThicknessAuxVars::LayerThicknessAuxVars(const std::string &AuxStateSuffix,
       CellsOnEdge(Mesh->CellsOnEdge), BottomDepth(Mesh->BottomDepth),
       MinLayerEdgeBot(VCoord->MinLayerEdgeBot),
       MaxLayerEdgeTop(VCoord->MaxLayerEdgeTop),
-      MinLayerCell(VCoord->MinLayerCell), MaxLayerCell(VCoord->MaxLayerCell) {}
+      MinLayerCell(VCoord->MinLayerCell), MaxLayerCell(VCoord->MaxLayerCell) {
+   // Initialize arrays to zero to avoid uninitialized memory reads during
+   // halo exchanges before actual data is computed
+   deepCopy(FluxLayerThickEdge, 0.0);
+   deepCopy(MeanLayerThickEdge, 0.0);
+   deepCopy(SshCell, 0.0);
+}
 
 void LayerThicknessAuxVars::registerFields(const std::string &AuxGroupName,
                                            const std::string &MeshName) const {
