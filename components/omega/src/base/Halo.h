@@ -53,6 +53,8 @@ void expandBuffer(BufferType &Buffer, int BufferSize) {
       // Without initialization, freshly allocated GPU memory can cause
       // cuIpcOpenMemHandle failures in CRAY MPI's GPU-aware transport layer.
       Kokkos::deep_copy(Buffer, 0);
+      // Fence to ensure the initialization completes before buffer is used
+      Kokkos::fence();
    }
 }
 
