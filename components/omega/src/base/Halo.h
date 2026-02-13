@@ -49,6 +49,10 @@ template <class BufferType>
 void expandBuffer(BufferType &Buffer, int BufferSize) {
    if (Buffer.extent_int(0) < BufferSize) {
       Buffer = BufferType(Buffer.label(), BufferSize);
+      // Initialize buffer to ensure memory is properly registered for CUDA IPC.
+      // Without initialization, freshly allocated GPU memory can cause
+      // cuIpcOpenMemHandle failures in CRAY MPI's GPU-aware transport layer.
+      Kokkos::deep_copy(Buffer, 0);
    }
 }
 
