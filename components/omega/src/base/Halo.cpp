@@ -118,11 +118,16 @@ Halo::Neighbor::Neighbor(
    RecvLists[1] = ExchList(RecvEdge);
    RecvLists[2] = ExchList(RecvVrtx);
 
-   SendBuffer = Array1DR8("SendBuffer", 0);
-   RecvBuffer = Array1DR8("RecvBuffer", 0);
+   // Allocate buffers with minimum size of 1 to ensure valid CUDA allocation
+   // for IPC. Size-0 Views may have nullptr or special allocation state that
+   // causes cuIpcOpenMemHandle failures in CRAY MPI's GPU transport layer.
+   SendBuffer = Array1DR8("SendBuffer", 1);
+   RecvBuffer = Array1DR8("RecvBuffer", 1);
+   Kokkos::deep_copy(SendBuffer, 0);
+   Kokkos::deep_copy(RecvBuffer, 0);
 
-   SendBufferH = HostArray1DR8("SendBufferH", 0);
-   RecvBufferH = HostArray1DR8("RecvBufferH", 0);
+   SendBufferH = HostArray1DR8("SendBufferH", 1);
+   RecvBufferH = HostArray1DR8("RecvBufferH", 1);
 
 } // end Neighbor constructor
 
