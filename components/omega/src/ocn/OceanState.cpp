@@ -340,6 +340,10 @@ I4 OceanState::exchangeHalo(const I4 TimeLevel) {
    I4 TimeIndex;
    Err = getTimeIndex(TimeIndex, TimeLevel);
 
+   // Ensure all pending Kokkos operations complete before MPI reads device
+   // memory for halo exchange
+   Kokkos::fence();
+
    MeshHalo->exchangeFullArrayHalo(LayerThickness[TimeIndex], OnCell);
    MeshHalo->exchangeFullArrayHalo(NormalVelocity[TimeIndex], OnEdge);
 

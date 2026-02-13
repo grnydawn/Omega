@@ -463,6 +463,11 @@ I4 Tracers::exchangeHalo(const I4 TimeLevel) {
    I4 TimeIndex;
 
    Err = getTimeIndex(TimeIndex, TimeLevel);
+
+   // Ensure all pending Kokkos operations complete before MPI reads device
+   // memory for halo exchange
+   Kokkos::fence();
+
    Err = MeshHalo->exchangeFullArrayHalo(TracerArrays[TimeIndex], OnCell);
    if (Err != 0)
       return -1;

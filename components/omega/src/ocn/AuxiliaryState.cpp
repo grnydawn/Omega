@@ -393,6 +393,10 @@ void AuxiliaryState::readConfigOptions(Config *OmegaConfig) {
 I4 AuxiliaryState::exchangeHalo() {
    I4 Err = 0;
 
+   // Ensure all pending Kokkos operations complete before MPI reads device
+   // memory for halo exchange
+   Kokkos::fence();
+
    Err +=
        MeshHalo->exchangeFullArrayHalo(WindForcingAux.ZonalStressCell, OnCell);
    Err +=
