@@ -114,14 +114,59 @@ endmacro()
 macro(setup_e3sm_build)
 
   set(OMEGA_BUILD_TYPE ${E3SM_DEFAULT_BUILD_TYPE})
-
-  set(OMEGA_CXX_COMPILER ${CMAKE_CXX_COMPILER})
-
-  #TODO: set OMEGA_ARCH according to E3SM variables
-  set(OMEGA_ARCH "")
   set(OMEGA_BUILD_MODE "E3SM")
 
-  message(STATUS "OMEGA_CXX_COMPILER = ${OMEGA_CXX_COMPILER}")
+  # Use compilers from E3SM's CMake configuration
+  set(OMEGA_CXX_COMPILER ${CMAKE_CXX_COMPILER})
+  set(OMEGA_C_COMPILER ${CMAKE_C_COMPILER})
+  set(OMEGA_Fortran_COMPILER ${CMAKE_Fortran_COMPILER})
+
+  # Detect OMEGA_ARCH from E3SM's KOKKOS_OPTIONS string
+  # Example: "-DKokkos_ENABLE_CUDA=On -DKokkos_ENABLE_SERIAL=ON"
+  if(DEFINED KOKKOS_OPTIONS)
+    string(FIND "${KOKKOS_OPTIONS}" "Kokkos_ENABLE_CUDA=On" _cuda_pos)
+    string(FIND "${KOKKOS_OPTIONS}" "Kokkos_ENABLE_CUDA=ON" _cuda_pos2)
+    string(FIND "${KOKKOS_OPTIONS}" "Kokkos_ENABLE_HIP=On" _hip_pos)
+    string(FIND "${KOKKOS_OPTIONS}" "Kokkos_ENABLE_HIP=ON" _hip_pos2)
+    string(FIND "${KOKKOS_OPTIONS}" "Kokkos_ENABLE_SYCL=On" _sycl_pos)
+    string(FIND "${KOKKOS_OPTIONS}" "Kokkos_ENABLE_SYCL=ON" _sycl_pos2)
+    string(FIND "${KOKKOS_OPTIONS}" "Kokkos_ENABLE_OPENMP=On" _omp_pos)
+    string(FIND "${KOKKOS_OPTIONS}" "Kokkos_ENABLE_OPENMP=ON" _omp_pos2)
+
+    if(NOT _cuda_pos EQUAL -1 OR NOT _cuda_pos2 EQUAL -1)
+      set(OMEGA_ARCH "CUDA")
+    elseif(NOT _hip_pos EQUAL -1 OR NOT _hip_pos2 EQUAL -1)
+      set(OMEGA_ARCH "HIP")
+    elseif(NOT _sycl_pos EQUAL -1 OR NOT _sycl_pos2 EQUAL -1)
+      set(OMEGA_ARCH "SYCL")
+    elseif(NOT _omp_pos EQUAL -1 OR NOT _omp_pos2 EQUAL -1)
+      set(OMEGA_ARCH "OPENMP")
+    else()
+      set(OMEGA_ARCH "SERIAL")
+    endif()
+  elseif(USE_CUDA)
+    set(OMEGA_ARCH "CUDA")
+  elseif(USE_HIP)
+    set(OMEGA_ARCH "HIP")
+  elseif(USE_SYCL)
+    set(OMEGA_ARCH "SYCL")
+  else()
+    set(OMEGA_ARCH "SERIAL")
+  endif()
+
+  # MPI configuration from E3SM
+  # E3SM typically uses ctest with its own test infrastructure
+  if(NOT DEFINED OMEGA_MPI_EXEC)
+    find_program(OMEGA_MPI_EXEC NAMES mpiexec mpirun srun)
+  endif()
+  if(NOT DEFINED OMEGA_MPI_ARGS)
+    set(OMEGA_MPI_ARGS "")
+  endif()
+
+  message(STATUS "E3SM Build Configuration:")
+  message(STATUS "  OMEGA_CXX_COMPILER = ${OMEGA_CXX_COMPILER}")
+  message(STATUS "  OMEGA_ARCH = ${OMEGA_ARCH}")
+  message(STATUS "  OMEGA_MPI_EXEC = ${OMEGA_MPI_EXEC}")
 
 endmacro()
 
