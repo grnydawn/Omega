@@ -7,7 +7,7 @@ set(OMEGA_CMAKE_TEMPLATES_DIR "${CMAKE_CURRENT_LIST_DIR}/templates")
 #------------------------------------------------------------------------------
 # Generate all helper scripts from templates
 #------------------------------------------------------------------------------
-macro(generate_omega_scripts)
+function(generate_omega_scripts)
 
   # Prepare OpenMP settings for omega_env.sh
   if("${OMEGA_ARCH}" STREQUAL "OPENMP")
@@ -105,12 +105,12 @@ rocprof --hip-trace --hsa-trace --timestamp on \\
   execute_process(COMMAND chmod +x ${OMEGA_BUILD_DIR}/omega_ctest.sh)
   execute_process(COMMAND chmod +x ${OMEGA_BUILD_DIR}/omega_profile.sh)
 
-endmacro()
+endfunction()
 
 #------------------------------------------------------------------------------
 # Copy configuration files to build directory
 #------------------------------------------------------------------------------
-macro(copy_omega_config_files)
+function(copy_omega_config_files)
 
   file(MAKE_DIRECTORY "${OMEGA_BUILD_DIR}/configs")
   file(COPY "${OMEGA_SOURCE_DIR}/configs/Default.yml"
@@ -120,4 +120,4 @@ macro(copy_omega_config_files)
   file(RENAME "${OMEGA_BUILD_DIR}/test/Default.yml"
        "${OMEGA_BUILD_DIR}/test/omega.yml")
 
-endmacro()
+endfunction()

@@ -282,8 +282,9 @@ endmacro()
 ################################
 # Verify variable integrity    #
 ################################
-macro(check_setup)
+function(check_setup)
 
+  # Verify build mode
   if("${OMEGA_BUILD_MODE}" STREQUAL "E3SM")
     message(STATUS "*** Omega E3SM-component Build ***")
 
@@ -291,18 +292,77 @@ macro(check_setup)
     message(STATUS "*** Omega Standalone Build ***")
 
   else()
-
     message(FATAL_ERROR "OMEGA_BUILD_MODE is neither E3SM nor STANDALONE.")
 
   endif()
 
-endmacro()
+  # Verify architecture is set
+  if("${OMEGA_ARCH}" STREQUAL "")
+    message(FATAL_ERROR "OMEGA_ARCH is not set. Valid values: CUDA, HIP, SYCL, OPENMP, SERIAL")
+  endif()
+
+  # Verify architecture is valid
+  set(_VALID_ARCHS "CUDA" "HIP" "SYCL" "OPENMP" "THREADS" "SERIAL")
+  list(FIND _VALID_ARCHS "${OMEGA_ARCH}" _ARCH_INDEX)
+  if(_ARCH_INDEX EQUAL -1)
+    message(FATAL_ERROR "Invalid OMEGA_ARCH: ${OMEGA_ARCH}. Valid values: ${_VALID_ARCHS}")
+  endif()
+
+  # Verify compilers are set
+  if(NOT DEFINED CMAKE_CXX_COMPILER OR "${CMAKE_CXX_COMPILER}" STREQUAL "")
+    message(FATAL_ERROR "CMAKE_CXX_COMPILER is not set.")
+  endif()
+
+  # Standalone-specific checks
+  if("${OMEGA_BUILD_MODE}" STREQUAL "STANDALONE")
+
+    # Verify E3SM root exists
+    if(NOT EXISTS "${E3SM_ROOT}")
+      message(FATAL_ERROR "E3SM_ROOT does not exist: ${E3SM_ROOT}")
+    endif()
+
+    # Verify E3SM case was created
+    if(NOT EXISTS "${CASEROOT}")
+      message(FATAL_ERROR "E3SM case directory does not exist: ${CASEROOT}")
+    endif()
+
+    # Verify MPI exec is set
+    if(NOT DEFINED OMEGA_MPI_EXEC OR "${OMEGA_MPI_EXEC}" STREQUAL "")
+      message(FATAL_ERROR "OMEGA_MPI_EXEC is not set. E3SM case may not have been configured correctly.")
+    endif()
+
+  endif()
+
+  # Verify build type is valid
+  if(NOT "${OMEGA_BUILD_TYPE}" STREQUAL "Release" AND NOT "${OMEGA_BUILD_TYPE}" STREQUAL "Debug")
+    message(WARNING "OMEGA_BUILD_TYPE '${OMEGA_BUILD_TYPE}' is non-standard. Expected: Release or Debug")
+  endif()
+
+  # Print configuration summary
+  message(STATUS "")
+  message(STATUS "=== Omega Configuration Summary ===")
+  message(STATUS "  Build Mode:        ${OMEGA_BUILD_MODE}")
+  message(STATUS "  Build Type:        ${OMEGA_BUILD_TYPE}")
+  message(STATUS "  Architecture:      ${OMEGA_ARCH}")
+  message(STATUS "  Target Device:     ${OMEGA_TARGET_DEVICE}")
+  message(STATUS "  CXX Compiler:      ${CMAKE_CXX_COMPILER}")
+  message(STATUS "  Debug Mode:        ${OMEGA_DEBUG}")
+  message(STATUS "  Build Tests:       ${OMEGA_BUILD_TEST}")
+  message(STATUS "  Build Executable:  ${OMEGA_BUILD_EXECUTABLE}")
+  if("${OMEGA_BUILD_MODE}" STREQUAL "STANDALONE")
+    message(STATUS "  MPI Exec:          ${OMEGA_MPI_EXEC}")
+    message(STATUS "  E3SM Case:         ${CASEROOT}")
+  endif()
+  message(STATUS "===================================")
+  message(STATUS "")
+
+endfunction()
 
 
 ################################
 # Prepare output               #
 ################################
-macro(wrap_outputs)
+function(wrap_outputs)
 
   if(OMEGA_INSTALL_PREFIX)
 
@@ -318,4 +378,4 @@ macro(wrap_outputs)
 
   endif()
 
-endmacro()
+endfunction()
