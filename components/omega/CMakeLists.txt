@@ -4,6 +4,13 @@
 #    1) standalone build
 #    2) e3sm build
 
+###########################################################
+# Version Information                                     #
+###########################################################
+set(OMEGA_VERSION_MAJOR 0)
+set(OMEGA_VERSION_MINOR 1)
+set(OMEGA_VERSION_PATCH 0)
+set(OMEGA_VERSION "${OMEGA_VERSION_MAJOR}.${OMEGA_VERSION_MINOR}.${OMEGA_VERSION_PATCH}")
 
 # Included scripts do automatic cmake_policy() PUSH and POP
 cmake_policy(SET CMP0011 NEW)
@@ -42,6 +49,7 @@ if (NOT DEFINED PROJECT_NAME)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
   project(${OMEGA_PROJECT_NAME}
+          VERSION ${OMEGA_VERSION}
           LANGUAGES C CXX
          )
 
@@ -112,3 +120,11 @@ endif()
 ###########################################################
 
 wrap_outputs()
+
+# Organize cache options for better ccmake/cmake-gui experience
+organize_omega_options()
+
+# Print version at end of configuration
+message(STATUS "")
+message(STATUS "Omega ${OMEGA_VERSION} configuration complete.")
+message(STATUS "")

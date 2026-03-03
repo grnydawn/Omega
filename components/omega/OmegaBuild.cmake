@@ -379,3 +379,57 @@ function(wrap_outputs)
   endif()
 
 endfunction()
+
+
+################################
+# Organize cache options       #
+################################
+function(organize_omega_options)
+
+  # Mark advanced options that most users don't need to change
+  # These will be hidden by default in ccmake and cmake-gui
+  mark_as_advanced(
+    # Performance tuning options
+    OMEGA_TILE_LENGTH
+    OMEGA_VECTOR_LENGTH
+    OMEGA_MEMORY_LAYOUT
+
+    # Logging options
+    OMEGA_LOG_LEVEL
+    OMEGA_LOG_TASKS
+    OMEGA_LOG_FLUSH
+
+    # Build system internals
+    OMEGA_CXX_FLAGS
+    OMEGA_LINK_OPTIONS
+    OMEGA_CUDA_FLAGS
+    OMEGA_HIP_FLAGS
+    OMEGA_SYCL_FLAGS
+
+    # CIME configuration
+    OMEGA_CIME_MACHINE
+    OMEGA_CIME_COMPILER
+    OMEGA_CIME_PROJECT
+
+    # External library paths (usually auto-detected)
+    OMEGA_METIS_ROOT
+    OMEGA_GKLIB_ROOT
+
+    # Device-specific options
+    OMEGA_MPI_ON_DEVICE
+    OMEGA_CUDA_MALLOC_ASYNC
+
+    # Testing options
+    OMEGA_TEST_CDASH
+  )
+
+  # These are the primary user-facing options (not marked advanced):
+  # - OMEGA_BUILD_TYPE (Release/Debug)
+  # - OMEGA_BUILD_MODE (STANDALONE/E3SM)
+  # - OMEGA_ARCH (CUDA/HIP/SYCL/OPENMP/SERIAL)
+  # - OMEGA_BUILD_TEST (ON/OFF)
+  # - OMEGA_DEBUG (ON/OFF)
+  # - OMEGA_PARMETIS_ROOT (required path)
+  # - OMEGA_INSTALL_PREFIX (optional)
+
+endfunction()

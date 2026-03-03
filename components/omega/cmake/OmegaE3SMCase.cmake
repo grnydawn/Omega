@@ -3,14 +3,35 @@
 # Creates a minimal E3SM case to extract build settings
 
 #------------------------------------------------------------------------------
-# Execute a bash command and capture output
+# Execute a bash command and capture output with error checking
 #------------------------------------------------------------------------------
 macro(run_bash_command command outvar)
   execute_process(
     COMMAND bash -c "${command}"
     OUTPUT_VARIABLE ${outvar}
+    ERROR_VARIABLE _run_bash_error
+    RESULT_VARIABLE _run_bash_result
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
+  if(NOT _run_bash_result EQUAL 0)
+    message(WARNING "Command failed: ${command}\nError: ${_run_bash_error}")
+  endif()
+endmacro()
+
+#------------------------------------------------------------------------------
+# Execute a bash command with error checking (fatal on failure)
+#------------------------------------------------------------------------------
+macro(run_bash_command_required command outvar error_message)
+  execute_process(
+    COMMAND bash -c "${command}"
+    OUTPUT_VARIABLE ${outvar}
+    ERROR_VARIABLE _run_bash_error
+    RESULT_VARIABLE _run_bash_result
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  if(NOT _run_bash_result EQUAL 0)
+    message(FATAL_ERROR "${error_message}\nCommand: ${command}\nError: ${_run_bash_error}")
+  endif()
 endmacro()
 
 #------------------------------------------------------------------------------
@@ -45,13 +66,32 @@ macro(read_cime_config)
   endif()
 
   if(NOT EXISTS ${CASEROOT})
-    run_bash_command("${NEWCASE_COMMAND}" NEWCASE_OUTPUT)
+    message(STATUS "Creating E3SM case at ${CASEROOT}...")
+    run_bash_command_required(
+      "${NEWCASE_COMMAND}"
+      NEWCASE_OUTPUT
+      "Failed to create E3SM case. Check that E3SM_ROOT is correct and CIME is properly configured."
+    )
+    message(STATUS "E3SM case created successfully.")
   else()
-    message(WARNING "Reusing ${CASEROOT}")
+    message(STATUS "Reusing existing E3SM case: ${CASEROOT}")
   endif()
 
-  run_bash_command("cd ${CASEROOT} && ./case.setup" CASESETUP_OUTPUT)
-  run_bash_command("source ${CASEROOT}/.env_mach_specific.sh && env" ENV_OUTPUT)
+  # Run case.setup
+  message(STATUS "Running case.setup...")
+  run_bash_command_required(
+    "cd ${CASEROOT} && ./case.setup"
+    CASESETUP_OUTPUT
+    "Failed to run case.setup. The E3SM case may be corrupted."
+  )
+
+  # Source environment and capture variables
+  message(STATUS "Extracting environment from E3SM case...")
+  run_bash_command_required(
+    "source ${CASEROOT}/.env_mach_specific.sh && env"
+    ENV_OUTPUT
+    "Failed to source .env_mach_specific.sh. Check that the E3SM case was set up correctly."
+  )
 
   string(REPLACE "\n" ";" lines ${ENV_OUTPUT})
 
@@ -67,6 +107,9 @@ macro(read_cime_config)
   endforeach()
 
   # Read .case.run.sh script in case directory
+  if(NOT EXISTS "${CASEROOT}/.case.run.sh")
+    message(FATAL_ERROR "E3SM case run script not found: ${CASEROOT}/.case.run.sh")
+  endif()
   file(READ "${CASEROOT}/.case.run.sh" CASE_RUN)
 
   # Convert a string to a list
@@ -116,7 +159,13 @@ macro(read_cime_config)
 
   set(SRCROOT "${E3SM_ROOT}")
 
+  # Include E3SM Macros.cmake
+  if(NOT EXISTS "${CASEROOT}/Macros.cmake")
+    message(FATAL_ERROR "E3SM Macros.cmake not found: ${CASEROOT}/Macros.cmake")
+  endif()
   include("${CASEROOT}/Macros.cmake")
+
+  message(STATUS "E3SM case configuration loaded successfully.")
 
 endmacro()
 
@@ -140,7 +189,7 @@ macro(detect_compilers_from_e3sm)
     set(OMEGA_C_COMPILER ${_OMEGA_C_COMPILER})
 
   else()
-    message(FATAL_ERROR "C compiler, '${OMEGA_C_COMPILER}', is not found." )
+    message(FATAL_ERROR "C compiler not found. Tried: ${OMEGA_C_COMPILER}")
   endif()
 
   if(OMEGA_CXX_COMPILER)
@@ -157,7 +206,7 @@ macro(detect_compilers_from_e3sm)
     set(OMEGA_CXX_COMPILER ${_OMEGA_CXX_COMPILER})
 
   else()
-    message(FATAL_ERROR "C++ compiler, '${OMEGA_CXX_COMPILER}', is not found." )
+    message(FATAL_ERROR "C++ compiler not found. Tried: ${OMEGA_CXX_COMPILER}")
   endif()
 
   if(OMEGA_Fortran_COMPILER)
@@ -174,7 +223,7 @@ macro(detect_compilers_from_e3sm)
     set(OMEGA_Fortran_COMPILER ${_OMEGA_Fortran_COMPILER})
 
   else()
-    message(FATAL_ERROR "Fortran compiler, '${OMEGA_Fortran_COMPILER}', is not found." )
+    message(FATAL_ERROR "Fortran compiler not found. Tried: ${OMEGA_Fortran_COMPILER}")
   endif()
 
   message(STATUS "OMEGA_C_COMPILER = ${OMEGA_C_COMPILER}")
@@ -204,7 +253,9 @@ macro(detect_omega_arch)
       execute_process(
         COMMAND ${OMEGA_CXX_COMPILER} --version
         RESULT_VARIABLE _CXX_VER_RESULT
-        OUTPUT_VARIABLE _CXX_VER_OUTPUT)
+        OUTPUT_VARIABLE _CXX_VER_OUTPUT
+        ERROR_QUIET
+      )
 
       if (_CXX_VER_RESULT EQUAL 0)
 
@@ -268,7 +319,7 @@ macro(configure_cxx_compiler_for_arch)
       message(STATUS "OMEGA_CUDA_COMPILER = ${OMEGA_CUDA_COMPILER}")
 
     else()
-      message(FATAL_ERROR "Cuda compiler is not found." )
+      message(FATAL_ERROR "CUDA compiler (nvcc_wrapper) not found. Check Kokkos installation.")
     endif()
 
     set(CMAKE_CXX_COMPILER ${OMEGA_CUDA_COMPILER})
@@ -298,7 +349,7 @@ macro(configure_cxx_compiler_for_arch)
       message(STATUS "OMEGA_HIP_COMPILER = ${OMEGA_HIP_COMPILER}")
 
     else()
-      message(FATAL_ERROR "hipcc is not found." )
+      message(FATAL_ERROR "HIP compiler (hipcc) not found. Check ROCm installation.")
     endif()
 
     set(CMAKE_HIP_COMPILER ${OMEGA_HIP_COMPILER})
@@ -319,7 +370,7 @@ macro(configure_cxx_compiler_for_arch)
       endif()
 
     else()
-      message(FATAL_ERROR "'$ENV{MPILIB_NAME}' is not supported yet.")
+      message(WARNING "MPI library '${MPILIB_NAME}' may not be fully supported with HIP.")
 
     endif()
 
