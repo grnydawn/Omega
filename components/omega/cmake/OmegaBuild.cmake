@@ -5,7 +5,8 @@
 set(OMEGA_PROJECT_NAME            "OmegaOceanModel")
 set(OMEGA_EXE_NAME                "omega.exe")
 set(OMEGA_LIB_NAME                "OmegaLib")
-set(OMEGA_SOURCE_DIR              ${CMAKE_CURRENT_LIST_DIR})
+# OMEGA_SOURCE_DIR points to the omega root directory (parent of cmake/)
+set(OMEGA_SOURCE_DIR              ${CMAKE_CURRENT_LIST_DIR}/..)
 
 set(OMEGA_BUILD_MODES             "E3SM" "STANDALONE" "NOT_DEFINED")
 set(OMEGA_BUILD_MODE              NOT_DEFINED CACHE STRING "Omega build mode")
@@ -272,7 +273,8 @@ macro(update_variables)
   endif()
 
   # Include the findParmetis script
-  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+  # FindParmetis.cmake is in the cmake/ directory
+  list(APPEND CMAKE_MODULE_PATH "${OMEGA_SOURCE_DIR}/cmake")
   find_package(Parmetis REQUIRED)
 
 endmacro()

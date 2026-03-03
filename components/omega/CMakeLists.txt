@@ -31,7 +31,7 @@ cmake_policy(SET CMP0074 NEW)
 ###########################################################
 
 # define variables and macros for Omega build
-include(${CMAKE_CURRENT_SOURCE_DIR}/OmegaBuild.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/OmegaBuild.cmake)
 
 # common pre-processing for standalone and e3sm mode
 common()
