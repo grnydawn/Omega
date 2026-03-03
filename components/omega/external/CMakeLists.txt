@@ -113,25 +113,10 @@ if (NOT TARGET pacer)
     endif()
 endif()
 
-# Add the parmetis and related libraries
-
-if(Parmetis_FOUND)
-  add_library(parmetis STATIC IMPORTED GLOBAL)
-  set_target_properties(parmetis PROPERTIES
-     IMPORTED_LOCATION ${Parmetis_LIBRARY})
-endif()
-
-if(Metis_FOUND)
-  add_library(metis STATIC IMPORTED GLOBAL)
-  set_target_properties(metis PROPERTIES
-     IMPORTED_LOCATION ${Metis_LIBRARY})
-endif()
-
-if(GKlib_FOUND)
-  add_library(gklib STATIC IMPORTED GLOBAL)
-  set_target_properties(gklib PROPERTIES
-     IMPORTED_LOCATION ${GKlib_LIBRARY})
-endif()
+# ParMETIS, METIS, and GKlib targets are created by FindParmetis.cmake
+# No need to create them here - they are available as:
+#   - parmetis, metis, gklib (backward compatible)
+#   - Parmetis::parmetis, Metis::metis, GKlib::gklib (modern CMake)
 
 # Add the cpptrace library
 if (NOT TARGET cpptrace::cpptrace)
