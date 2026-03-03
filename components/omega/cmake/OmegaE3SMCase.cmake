@@ -393,9 +393,12 @@ macro(configure_cxx_compiler_for_arch)
 
   endif()
 
-  # Apply compile options using modern CMake
+  # Apply compile options to C++ only (not C or Fortran)
+  # This prevents CUDA/HIP flags like -ccbin from being passed to gfortran
   if(OMEGA_COMPILE_OPTIONS)
-    add_compile_options(${OMEGA_COMPILE_OPTIONS})
+    foreach(_opt ${OMEGA_COMPILE_OPTIONS})
+      add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${_opt}>)
+    endforeach()
   endif()
 
   if(KOKKOS_OPTIONS)
