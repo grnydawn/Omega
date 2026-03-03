@@ -661,18 +661,18 @@ target_link_libraries(${OMEGA_LIB_NAME}
 
 ## Progress Tracking
 
-### Phase 1 Checklist
+### Phase 1 Checklist (COMPLETED)
 
-- [ ] Task 1.1: Minimal CMake module split (2-3 files, not 7+)
-  - [ ] Create OmegaE3SMCase.cmake
-  - [ ] Create OmegaScripts.cmake
-  - [ ] Simplify OmegaBuild.cmake
-- [ ] Task 1.2: Replace deprecated CMake patterns
-  - [ ] Replace add_definitions() with target_compile_definitions()
-  - [ ] Replace CMAKE_CXX_FLAGS with add_compile_options()
-- [ ] Task 1.3: Data-driven test registration
-- [ ] Task 1.4: Confirm GLOB_RECURSE with CONFIGURE_DEPENDS
-- [ ] Task 1.5: Template-based script generation
+- [x] Task 1.1: Minimal CMake module split (2-3 files, not 7+)
+  - [x] Create OmegaE3SMCase.cmake
+  - [x] Create OmegaScripts.cmake
+  - [x] Simplify OmegaBuild.cmake
+- [x] Task 1.2: Replace deprecated CMake patterns
+  - [x] Replace add_definitions() with target_compile_definitions()
+  - [x] Replace CMAKE_CXX_FLAGS with add_compile_options()
+- [x] Task 1.3: Data-driven test registration
+- [x] Task 1.4: Confirm GLOB_RECURSE with CONFIGURE_DEPENDS
+- [x] Task 1.5: Template-based script generation
 
 ### Phase 2 Checklist
 

@@ -19,11 +19,14 @@ target_include_directories(
     ${OMEGA_BUILD_DIR}/external/GSW-C
 )
 
+# Apply compile definitions from OMEGA_COMPILE_DEFINITIONS list
+# (replaces deprecated add_definitions() calls)
 target_compile_definitions(
     OmegaLibFlags
     INTERFACE
     OMEGA_ARCH=${OMEGA_ARCH}
     OMEGA_VECTOR_LENGTH=${OMEGA_VECTOR_LENGTH}
+    ${OMEGA_COMPILE_DEFINITIONS}
 )
 
 if(OMEGA_SINGLE_PRECISION)
@@ -71,8 +74,15 @@ if(GKlib_FOUND)
     )
 endif()
 
-# Add source files for the library
-file(GLOB_RECURSE _LIBSRC_FILES infra/*.cpp base/*.cpp ocn/*.cpp timeStepping/*.cpp)
+# Add source files for the library using GLOB_RECURSE with CONFIGURE_DEPENDS
+# CONFIGURE_DEPENDS ensures cmake re-runs when files are added/removed
+# This is preferred for maintenance convenience - new files are picked up automatically
+file(GLOB_RECURSE _LIBSRC_FILES CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/base/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ocn/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/timeStepping/*.cpp
+)
 
 add_library(${OMEGA_LIB_NAME} ${_LIBSRC_FILES})
 

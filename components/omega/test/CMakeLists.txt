@@ -1,4 +1,5 @@
 # Omega Unit Tests
+# Data-driven test registration
 
 #####################
 # Omega Test Function
@@ -73,424 +74,125 @@ function(add_omega_test test_name exe_name source_files mpi_args)
 
 endfunction()
 
-##################
-# Data type test
-##################
+#####################
+# Test Definitions  #
+#####################
 
-add_omega_test(
-    DATA_TYPES_TEST
-    testDataTypes.exe
-    base/DataTypesTest.cpp
-    "-n;1"
+# Standard tests: TEST_NAME;EXE_NAME;SOURCE;MPI_ARGS
+# Format: "NAME|EXE|SOURCE|MPI_ARGS"
+set(OMEGA_STANDARD_TESTS
+    # Base tests
+    "DATA_TYPES_TEST|testDataTypes.exe|base/DataTypesTest.cpp|-n;1"
+    "MACHINE_ENV_TEST|testMachEnv.exe|base/MachEnvTest.cpp|-n;8"
+    "BROADCAST_TEST|testBroadcast.exe|base/BroadcastTest.cpp|-n;8"
+    "DECOMP_NTASK1_TEST|testDecompNTask1.exe|base/DecompTest.cpp|-n;1"
+    "DECOMP_NTASK8_TEST|testDecompNTask8.exe|base/DecompTest.cpp|-n;8"
+    "HALO_TEST|testHalo.exe|base/HaloTest.cpp|-n;8"
+    "IO_TEST|testIO.exe|base/IOTest.cpp|-n;8"
+    "REDUCTIONS_TEST|testReductions.exe|base/ReductionsTest.cpp|-n;8"
+    "TRIDIAGSOLVERS_TEST|testTriDiagSolvers.exe|base/TriDiagSolversTest.cpp|-n;1"
+
+    # Infra tests
+    "LOGGING_TEST|testLogging.exe|infra/LoggingTest.cpp|-n;8"
+    "ERROR_TEST|testError.exe|infra/ErrorTest.cpp|-n;8"
+    "DIMENSION_TEST|testDimension.exe|infra/DimensionTest.cpp|-n;8"
+    "CONFIG_TEST|testConfig.exe|infra/ConfigTest.cpp|-n;8"
+    "FIELD_TEST|testField.exe|infra/FieldTest.cpp|-n;8"
+    "IOSTREAM_TEST|testIOStream.exe|infra/IOStreamTest.cpp|-n;8"
+    "TIMEMGR_TEST|testTimeMgr.exe|infra/TimeMgrTest.cpp|-n;1"
+    "TIMEINTERVAL_PARSE_TEST|testTimeIntervalParse.exe|infra/TimeIntervalParseTest.cpp|-n;1"
+    "TIMEINTERVAL_PARSE_EXTENDED_FORMATS_TEST|testTimeIntervalParseExtendedFormats.exe|infra/TimeIntervalParseExtendedFormatsTest.cpp|-n;1"
+    "KOKKOS_FLATPAR_TEST|testKokkosFlatPar.exe|infra/OmegaKokkosFlatParTest.cpp|-n;1"
+    "KOKKOS_HIPAR_TEST|testKokkosHiPar.exe|infra/OmegaKokkosHiParTest.cpp|-n;1"
+
+    # Ocn tests
+    "HORZMESH_TEST|testHorzMesh.exe|ocn/HorzMeshTest.cpp|-n;8"
+    "AUXSTATE_TEST|testAuxiliaryState.exe|ocn/AuxiliaryStateTest.cpp|-n;8"
+    "TENDENCIES_TEST|testTendencies.exe|ocn/TendenciesTest.cpp|-n;8"
+    "STATE_TEST|testState.exe|ocn/StateTest.cpp|-n;8"
+    "TRACERS_TEST|testTracers.exe|ocn/TracersTest.cpp|-n;8"
+    "EOS_TEST|testEos.exe|ocn/EosTest.cpp|-n;2"
+    "VERTCOORD_TEST|testVertCoord.exe|ocn/VertCoordTest.cpp|-n;8"
+    "VERTMIX_TEST|testVertMix.exe|ocn/VertMixTest.cpp|-n;4"
+
+    # Time stepping tests
+    "TIMESTEPPER_TEST|testTimeStepper.exe|timeStepping/TimeStepperTest.cpp|-n;2"
+
+    # Driver tests
+    "DRIVER_TEST|testDriver.exe|drivers/StandaloneDriverTest.cpp|-n;8"
 )
 
-##################
-# Machine env test
-##################
-
-add_omega_test(
-    MACHINE_ENV_TEST
-    testMachEnv.exe
-    base/MachEnvTest.cpp
-    "-n;8"
+# Tests with compile definitions: TEST_NAME|EXE_NAME|SOURCE|MPI_ARGS|DEFINITION
+set(OMEGA_TESTS_WITH_DEFINITIONS
+    "HORZOPERATORS_PLANE_TEST|testHorzOperatorsPlane.exe|ocn/HorzOperatorsTest.cpp|-n;8|HORZOPERATORS_TEST_PLANE"
+    "HORZOPERATORS_SPHERE_TEST|testHorzOperatorsSphere.exe|ocn/HorzOperatorsTest.cpp|-n;8|HORZOPERATORS_TEST_SPHERE_1"
+    "AUXVARS_PLANE_TEST|testAuxiliaryVarsPlane.exe|ocn/AuxiliaryVarsTest.cpp|-n;8|AUXVARS_TEST_PLANE"
+    "AUXVARS_SPHERE_TEST|testAuxiliaryVarsSphere.exe|ocn/AuxiliaryVarsTest.cpp|-n;8|AUXVARS_TEST_SPHERE"
+    "TEND_PLANE_TEST|testTendencyTermsPlane.exe|ocn/TendencyTermsTest.cpp|-n;8|TENDENCYTERMS_TEST_PLANE"
+    "TEND_SPHERE_TEST|testTendencyTermsSphere.exe|ocn/TendencyTermsTest.cpp|-n;8|TENDENCYTERMS_TEST_SPHERE"
 )
 
-##################
-# Broadcast test
-##################
-
-add_omega_test(
-    BROADCAST_TEST
-    testBroadcast.exe
-    base/BroadcastTest.cpp
-    "-n;8"
+# Tests with single precision: TEST_NAME|EXE_NAME|SOURCE|MPI_ARGS|DEFINITION
+set(OMEGA_SINGLE_PRECISION_TESTS
+    "TEND_PLANE_SINGLE_PRECISION_TEST|testTendencyTermsPlaneSinglePrecision.exe|ocn/TendencyTermsTest.cpp|-n;8|TENDENCYTERMS_TEST_PLANE"
 )
 
-##################
-# Logging test
-##################
-
-add_omega_test(
-    LOGGING_TEST
-    testLogging.exe
-    infra/LoggingTest.cpp
-    "-n;8"
-)
-
-##################
-# Error test
-##################
-
-add_omega_test(
-    ERROR_TEST
-    testError.exe
-    infra/ErrorTest.cpp
-    "-n;8"
-)
-set_tests_properties(ERROR_TEST PROPERTIES WILL_FAIL true)
-
-##########################
-# Decomp test using 1 task
-##########################
-
-add_omega_test(
-    DECOMP_NTASK1_TEST
-    testDecompNTask1.exe
-    base/DecompTest.cpp
-    "-n;1"
-)
-
-###########################
-# Decomp test using 8 tasks
-###########################
-
-add_omega_test(
-    DECOMP_NTASK8_TEST
-    testDecompNTask8.exe
-    base/DecompTest.cpp
-    "-n;8"
-)
-
-##################
-# Halo test
-##################
-
-add_omega_test(
-    HALO_TEST
-    testHalo.exe
-    base/HaloTest.cpp
-    "-n;8"
-)
-
-##################
-# Dimension test
-##################
-
-add_omega_test(
-    DIMENSION_TEST
-    testDimension.exe
-    infra/DimensionTest.cpp
-    "-n;8"
-)
-
-################
-# HorzMesh test
-################
-
-add_omega_test(
-    HORZMESH_TEST
-    testHorzMesh.exe
-    ocn/HorzMeshTest.cpp
-    "-n;8"
-)
-
-#######################
-# HorzOperators tests
-#######################
-
-add_omega_test(
-    HORZOPERATORS_PLANE_TEST
-    testHorzOperatorsPlane.exe
-    ocn/HorzOperatorsTest.cpp
-    "-n;8"
-)
-target_compile_definitions(
-  testHorzOperatorsPlane.exe
-  PRIVATE
-  HORZOPERATORS_TEST_PLANE
-)
-
-add_omega_test(
-  HORZOPERATORS_SPHERE_TEST
-    testHorzOperatorsSphere.exe
-    ocn/HorzOperatorsTest.cpp
-    "-n;8"
-)
-target_compile_definitions(
-  testHorzOperatorsSphere.exe
-  PRIVATE
-  HORZOPERATORS_TEST_SPHERE_1
-)
-################
-# AuxVars test
-################
-
-add_omega_test(
-  AUXVARS_PLANE_TEST
-    testAuxiliaryVarsPlane.exe
-    ocn/AuxiliaryVarsTest.cpp
-    "-n;8"
-)
-target_compile_definitions(
-  testAuxiliaryVarsPlane.exe
-  PRIVATE
-  AUXVARS_TEST_PLANE
-)
-
-add_omega_test(
-  AUXVARS_SPHERE_TEST
-  testAuxiliaryVarsSphere.exe
-    ocn/AuxiliaryVarsTest.cpp
-    "-n;8"
-)
-target_compile_definitions(
-  testAuxiliaryVarsSphere.exe
-  PRIVATE
-  AUXVARS_TEST_SPHERE
-)
-
-################
-# AuxState test
-################
-
-add_omega_test(
-  AUXSTATE_TEST
-    testAuxiliaryState.exe
-    ocn/AuxiliaryStateTest.cpp
-    "-n;8"
-)
-
-#############
-# IO test
-#############
-
-add_omega_test(
-    IO_TEST
-    testIO.exe
-    base/IOTest.cpp
-    "-n;8"
-)
-
-##################
-# Config test
-##################
-
-add_omega_test(
-    CONFIG_TEST
-    testConfig.exe
-    infra/ConfigTest.cpp
-    "-n;8"
-)
-
-##################
-# Field test
-##################
-
-add_omega_test(
-    FIELD_TEST
-    testField.exe
-    infra/FieldTest.cpp
-    "-n;8"
-)
-
-##################
-# IOStream test
-##################
-
-add_omega_test(
-    IOSTREAM_TEST
-    testIOStream.exe
-    infra/IOStreamTest.cpp
-    "-n;8"
+# Tests that should fail
+set(OMEGA_WILL_FAIL_TESTS
+    "ERROR_TEST"
 )
 
 #####################
-# TendencyTerms test
+# Register Tests    #
 #####################
 
-add_omega_test(
-    TEND_PLANE_TEST
-    testTendencyTermsPlane.exe
-    ocn/TendencyTermsTest.cpp
-    "-n;8"
-)
-target_compile_definitions(
-  testTendencyTermsPlane.exe
-  PRIVATE
-  TENDENCYTERMS_TEST_PLANE
-)
+# Register standard tests
+foreach(test_spec ${OMEGA_STANDARD_TESTS})
+    string(REPLACE "|" ";" test_parts "${test_spec}")
+    list(GET test_parts 0 test_name)
+    list(GET test_parts 1 exe_name)
+    list(GET test_parts 2 source_file)
+    list(GET test_parts 3 mpi_args)
 
-add_omega_test(
-    TEND_PLANE_SINGLE_PRECISION_TEST
-    testTendencyTermsPlaneSinglePrecision.exe
-    ocn/TendencyTermsTest.cpp
-    "-n;8"
-    single_precision
-)
-target_compile_definitions(
-  testTendencyTermsPlaneSinglePrecision.exe
-  PRIVATE
-  TENDENCYTERMS_TEST_PLANE
-)
+    add_omega_test(${test_name} ${exe_name} ${source_file} "${mpi_args}")
+endforeach()
 
-add_omega_test(
-  TEND_SPHERE_TEST
-    testTendencyTermsSphere.exe
-    ocn/TendencyTermsTest.cpp
-    "-n;8"
-)
-target_compile_definitions(
-  testTendencyTermsSphere.exe
-  PRIVATE
-  TENDENCYTERMS_TEST_SPHERE
-)
+# Register tests with compile definitions
+foreach(test_spec ${OMEGA_TESTS_WITH_DEFINITIONS})
+    string(REPLACE "|" ";" test_parts "${test_spec}")
+    list(GET test_parts 0 test_name)
+    list(GET test_parts 1 exe_name)
+    list(GET test_parts 2 source_file)
+    list(GET test_parts 3 mpi_args)
+    list(GET test_parts 4 definition)
 
-#################
-# Tendencies test
-#################
+    add_omega_test(${test_name} ${exe_name} ${source_file} "${mpi_args}")
+    target_compile_definitions(${exe_name} PRIVATE ${definition})
+endforeach()
 
-add_omega_test(
-    TENDENCIES_TEST
-    testTendencies.exe
-    ocn/TendenciesTest.cpp
-    "-n;8"
-)
+# Register single precision tests
+foreach(test_spec ${OMEGA_SINGLE_PRECISION_TESTS})
+    string(REPLACE "|" ";" test_parts "${test_spec}")
+    list(GET test_parts 0 test_name)
+    list(GET test_parts 1 exe_name)
+    list(GET test_parts 2 source_file)
+    list(GET test_parts 3 mpi_args)
+    list(GET test_parts 4 definition)
+
+    add_omega_test(${test_name} ${exe_name} ${source_file} "${mpi_args}" single_precision)
+    target_compile_definitions(${exe_name} PRIVATE ${definition})
+endforeach()
+
+# Set WILL_FAIL property for expected-to-fail tests
+foreach(test_name ${OMEGA_WILL_FAIL_TESTS})
+    set_tests_properties(${test_name} PROPERTIES WILL_FAIL true)
+endforeach()
 
 ##################
-# State test
+# External Tests
 ##################
 
-add_omega_test(
-    STATE_TEST
-    testState.exe
-    ocn/StateTest.cpp
-    "-n;8"
-)
-
-##################
-# Time Manager test
-##################
-
-add_omega_test(
-    TIMEMGR_TEST
-    testTimeMgr.exe
-    infra/TimeMgrTest.cpp
-    "-n;1"
-)
-
-############################
-# TimeInterval parsing tests
-############################
-
-add_omega_test(
-  TIMEINTERVAL_PARSE_TEST
-  testTimeIntervalParse.exe
-  infra/TimeIntervalParseTest.cpp
-  "-n;1"
-)
-
-add_omega_test(
-  TIMEINTERVAL_PARSE_EXTENDED_FORMATS_TEST
-  testTimeIntervalParseExtendedFormats.exe
-  infra/TimeIntervalParseExtendedFormatsTest.cpp
-  "-n;1"
-)
-
-##################
-# Reductions test
-##################
-
-add_omega_test(
-    REDUCTIONS_TEST
-    testReductions.exe
-    base/ReductionsTest.cpp
-    "-n;8;"
-)
-
-###################
-# Time Stepper test
-###################
-
-add_omega_test(
-  TIMESTEPPER_TEST
-  testTimeStepper.exe
-  timeStepping/TimeStepperTest.cpp
-    "-n;2"
-)
-
-#######################
-# Kokkos wrappers tests
-#######################
-
-add_omega_test(
-  KOKKOS_FLATPAR_TEST
-    testKokkosFlatPar.exe
-    infra/OmegaKokkosFlatParTest.cpp
-    "-n;1"
-)
-
-add_omega_test(
-  KOKKOS_HIPAR_TEST
-    testKokkosHiPar.exe
-    infra/OmegaKokkosHiParTest.cpp
-    "-n;1;"
-)
-
-##################
-# Driver test
-##################
-
-add_omega_test(
-    DRIVER_TEST
-    testDriver.exe
-    drivers/StandaloneDriverTest.cpp
-    "-n;8"
-)
-
-##################
-# Tracers test
-##################
-
-add_omega_test(
-    TRACERS_TEST
-    testTracers.exe
-    ocn/TracersTest.cpp
-    "-n;8"
-)
-
-##########################
-# Tridiagonal solvers test
-##########################
-
-add_omega_test(
-    TRIDIAGSOLVERS_TEST
-    testTriDiagSolvers.exe
-    base/TriDiagSolversTest.cpp
-    "-n;1"
-)
-
-##################
-# EOS tests
-##################
+# GSW-C test (uses direct command, not add_omega_test)
 add_test(NAME GSWC_CALL_TEST
     COMMAND ${OMEGA_BUILD_DIR}/external/GSW-C/gsw_check
-)
-
-add_omega_test(
-    EOS_TEST
-    testEos.exe
-    ocn/EosTest.cpp
-    "-n;2"
-)
-
-################
-# VertCoord test
-################
-
-add_omega_test(
-    VERTCOORD_TEST
-    testVertCoord.exe
-    ocn/VertCoordTest.cpp
-    "-n;8"
-)
-
-##########################
-# Vert Mix test
-##########################
-
-add_omega_test(
-    VERTMIX_TEST
-    testVertMix.exe
-    ocn/VertMixTest.cpp
-    "-n;4"
 )
