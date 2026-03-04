@@ -210,12 +210,14 @@ function(omega_register_memcheck_test test_name exe_name mpi_tasks)
   # For GPU architectures, use GPU-specific sanitizer
   if("${OMEGA_ARCH}" STREQUAL "CUDA" AND OMEGA_COMPUTE_SANITIZER_FOUND)
     # NVIDIA compute-sanitizer
+    # MPI launcher runs compute-sanitizer on each rank
     add_test(
       NAME ${_memcheck_test_name}
-      COMMAND ${OMEGA_COMPUTE_SANITIZER_COMMAND}
+      COMMAND ${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS} -n ${mpi_tasks} --
+              ${OMEGA_COMPUTE_SANITIZER_COMMAND}
               --tool memcheck
               --leak-check full
-              ${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS} -n ${mpi_tasks} -- ./${exe_name}
+              ./${exe_name}
     )
     set_tests_properties(${_memcheck_test_name} PROPERTIES
       LABELS "memcheck;${OMEGA_ARCH};Omega-memcheck"
