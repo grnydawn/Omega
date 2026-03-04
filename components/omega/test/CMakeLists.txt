@@ -78,21 +78,50 @@ endfunction()
 # Helper macro for registering tests
 #####################
 
+# Extract MPI task count from mpi_args (e.g., "-n;8" -> 8)
+function(extract_mpi_tasks mpi_args out_var)
+  set(_tasks 1)
+  list(FIND mpi_args "-n" _n_pos)
+  if(NOT _n_pos EQUAL -1)
+    math(EXPR _val_pos "${_n_pos} + 1")
+    list(LENGTH mpi_args _len)
+    if(_val_pos LESS _len)
+      list(GET mpi_args ${_val_pos} _tasks)
+    endif()
+  endif()
+  set(${out_var} ${_tasks} PARENT_SCOPE)
+endfunction()
+
 # Register a standard test
 macro(omega_register_test test_name exe_name source_file mpi_args)
   add_omega_test(${test_name} ${exe_name} ${source_file} "${mpi_args}")
+  # Register memcheck test if enabled
+  if(OMEGA_BUILD_MEMCHECK)
+    extract_mpi_tasks("${mpi_args}" _mpi_tasks)
+    omega_register_memcheck_test(${test_name} ${exe_name} ${_mpi_tasks})
+  endif()
 endmacro()
 
 # Register a test with compile definition
 macro(omega_register_test_with_def test_name exe_name source_file mpi_args definition)
   add_omega_test(${test_name} ${exe_name} ${source_file} "${mpi_args}")
   target_compile_definitions(${exe_name} PRIVATE ${definition})
+  # Register memcheck test if enabled
+  if(OMEGA_BUILD_MEMCHECK)
+    extract_mpi_tasks("${mpi_args}" _mpi_tasks)
+    omega_register_memcheck_test(${test_name} ${exe_name} ${_mpi_tasks})
+  endif()
 endmacro()
 
 # Register a single precision test with compile definition
 macro(omega_register_sp_test test_name exe_name source_file mpi_args definition)
   add_omega_test(${test_name} ${exe_name} ${source_file} "${mpi_args}" single_precision)
   target_compile_definitions(${exe_name} PRIVATE ${definition})
+  # Register memcheck test if enabled
+  if(OMEGA_BUILD_MEMCHECK)
+    extract_mpi_tasks("${mpi_args}" _mpi_tasks)
+    omega_register_memcheck_test(${test_name} ${exe_name} ${_mpi_tasks})
+  endif()
 endmacro()
 
 #####################

@@ -27,6 +27,7 @@ set(CASEROOT                      "${OMEGA_BUILD_DIR}/e3smcase")
 
 include(${OMEGA_SOURCE_DIR}/cmake/OmegaE3SMCase.cmake)
 include(${OMEGA_SOURCE_DIR}/cmake/OmegaScripts.cmake)
+include(${OMEGA_SOURCE_DIR}/cmake/OmegaMemcheck.cmake)
 
 ###########################
 # Macros                  #
@@ -400,6 +401,9 @@ function(check_setup)
     message(STATUS "  MPI Exec:          ${OMEGA_MPI_EXEC}")
     message(STATUS "  E3SM Case:         ${CASEROOT}")
   endif()
+  if(OMEGA_BUILD_MEMCHECK)
+    message(STATUS "  Memcheck Tests:    ON")
+  endif()
   message(STATUS "===================================")
   message(STATUS "")
 
@@ -468,6 +472,9 @@ function(organize_omega_options)
 
     # Testing options
     OMEGA_TEST_CDASH
+    OMEGA_BUILD_MEMCHECK
+    OMEGA_VALGRIND4HPC_EXECUTABLE
+    OMEGA_COMPUTE_SANITIZER_EXECUTABLE
   )
 
   # These are the primary user-facing options (not marked advanced):

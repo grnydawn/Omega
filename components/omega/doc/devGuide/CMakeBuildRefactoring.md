@@ -42,6 +42,7 @@ omega/
 │   ├── OmegaBuild.cmake        # Main build macros and variables (~400 lines)
 │   ├── OmegaE3SMCase.cmake     # E3SM case creation and configuration (~370 lines)
 │   ├── OmegaScripts.cmake      # Template-based script generation (~120 lines)
+│   ├── OmegaMemcheck.cmake     # Memory check test infrastructure (~290 lines)
 │   ├── FindParmetis.cmake      # Modern find module with imported targets (~160 lines)
 │   ├── CTestScript.cmake       # CDash integration script
 │   └── templates/
@@ -186,6 +187,18 @@ Template-based script generation:
 - `generate_omega_scripts()` - Generate all helper scripts using templates
 - `copy_omega_config_files()` - Copy YAML configs to build directory
 
+### cmake/OmegaMemcheck.cmake
+
+Memory check test infrastructure supporting multiple tools:
+
+- **Detection functions**:
+  - `detect_valgrind4hpc()` - Find valgrind4hpc (priority: module avail → executable → user path)
+  - `detect_compute_sanitizer()` - Find NVIDIA compute-sanitizer
+  - `detect_rocm_sanitizer()` - Find ROCm debugging tools (rocgdb)
+- **Initialization**: `init_memcheck_tools()` - Initialize based on architecture
+- **Test registration**: `omega_register_memcheck_test()` - Create MEMCHECK_* tests
+- **Script generation**: `generate_memcheck_script()` - Create omega_memcheck.sh
+
 ### cmake/FindParmetis.cmake
 
 Modern CMake find module with:
@@ -263,6 +276,9 @@ The build system uses both macros and functions appropriately:
 | `OMEGA_LOG_TASKS` | STRING | Tasks that generate log files |
 | `OMEGA_MPI_ON_DEVICE` | BOOL | Allow device buffers in MPI |
 | `OMEGA_CUDA_MALLOC_ASYNC` | BOOL | CUDA async malloc support |
+| `OMEGA_BUILD_MEMCHECK` | BOOL | Build memory check tests |
+| `OMEGA_VALGRIND4HPC_EXECUTABLE` | PATH | Path to valgrind4hpc |
+| `OMEGA_COMPUTE_SANITIZER_EXECUTABLE` | PATH | Path to compute-sanitizer |
 
 ### Version Information
 
@@ -272,6 +288,42 @@ OMEGA_VERSION_MINOR = 1
 OMEGA_VERSION_PATCH = 0
 OMEGA_VERSION = "0.1.0"
 ```
+
+---
+
+## Memory Check Testing
+
+The build system supports memory leak detection for both CPU and GPU architectures.
+
+### Enabling Memory Check Tests
+
+```bash
+cmake -DOMEGA_BUILD_MEMCHECK=ON ..
+```
+
+### Supported Tools
+
+| Architecture | Tool | Purpose |
+|--------------|------|---------|
+| CPU/Serial | valgrind4hpc | MPI-aware memory checking |
+| CUDA | compute-sanitizer | NVIDIA GPU memory checking |
+| HIP | rocgdb | AMD GPU debugging (limited) |
+
+### Running Memory Check Tests
+
+```bash
+# Run all memcheck tests
+ctest -L memcheck --output-on-failure
+
+# Or use the generated script
+./omega_memcheck.sh
+```
+
+### Tool Detection Priority
+
+1. Check for `module avail` (HPC environments)
+2. Search PATH for executable
+3. Use user-provided path (`OMEGA_VALGRIND4HPC_EXECUTABLE`, etc.)
 
 ---
 

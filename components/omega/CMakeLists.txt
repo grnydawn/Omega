@@ -108,7 +108,13 @@ if(OMEGA_BUILD_TEST)
     include(CTest)
   endif()
 
+  # Initialize memory check tools if OMEGA_BUILD_MEMCHECK is enabled
+  init_memcheck_tools()
+
   add_subdirectory(test)
+
+  # Generate memcheck convenience script
+  generate_memcheck_script()
 
 endif()
 
