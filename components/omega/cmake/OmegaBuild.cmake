@@ -117,6 +117,8 @@ macro(setup_e3sm_build)
   set(OMEGA_BUILD_TYPE ${E3SM_DEFAULT_BUILD_TYPE})
   set(OMEGA_BUILD_MODE "E3SM")
 
+  set(OMEGA_PARMETIS_ROOT "$ENV{PARMETIS_ROOT}" CACHE PATH "Path to ParMETIS root")
+
   # Use compilers from E3SM's CMake configuration
   set(OMEGA_CXX_COMPILER ${CMAKE_CXX_COMPILER})
   set(OMEGA_C_COMPILER ${CMAKE_C_COMPILER})
@@ -168,6 +170,7 @@ macro(setup_e3sm_build)
   message(STATUS "  OMEGA_CXX_COMPILER = ${OMEGA_CXX_COMPILER}")
   message(STATUS "  OMEGA_ARCH = ${OMEGA_ARCH}")
   message(STATUS "  OMEGA_MPI_EXEC = ${OMEGA_MPI_EXEC}")
+  message(STATUS "  OMEGA_PARMETIS_ROOT = ${OMEGA_PARMETIS_ROOT}")
 
 endmacro()
 
