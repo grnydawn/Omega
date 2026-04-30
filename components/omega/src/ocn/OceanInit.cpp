@@ -164,12 +164,46 @@ int ocnInit(MPI_Comm Comm ///< [in] ocean MPI communicator
 
 } // end ocnInit
 
+int ocnInit(MPI_Comm Comm,                 ///< [in] ocean MPI communicator
+            const int OcnId,               ///< [in] mct comp id for ocean
+            const std::string &ConfigFile, ///< [in] path to yaml config file
+            const std::string &LogFile,    ///< [in] path to log file
+            const TimeInstant &StartTime   ///< [in] simulation start time
+) {
+
+   I4 Err = 0; // return error code
+
+   // Init the default machine environment based on input MPI communicator
+   MachEnv::init(Comm);
+   MachEnv *DefEnv = MachEnv::getDefault();
+
+   // Initialize Omega logging with coupler provided log file name
+   initLogging(DefEnv, LogFile);
+
+   // Read config file into Config object
+   Config("Omega");
+   Config::readAll(ConfigFile);
+   Config *OmegaConfig = Config::getOmegaConfig();
+
+   readTimingConfig();
+
+   // coupler decides the stop time
+   TimeInitParams TimeParams{StartTime, std::nullopt};
+
+   // initialize remaining Omega modules
+   Err = initOmegaModules(Comm, TimeParams);
+   if (Err != 0)
+      ABORT_ERROR("ocnInit: Error initializing Omega modules");
+
+   return Err;
+
+} // end ocnInit
+
 // Call init routines for remaining Omega modules
 // Internal helper — all module init after TimeStepper::init1 is called.
 // Called by both initOmegaModules overloads.
 static int initOmegaModulesImpl(MPI_Comm Comm) {
 
-   // error and return codes
    int Err = 0;
 
    TimeStepper *DefStepper = TimeStepper::getDefault();
