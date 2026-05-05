@@ -173,12 +173,7 @@ int ocnInit(MPI_Comm Comm,                 ///< [in] ocean MPI communicator
 
    I4 Err = 0; // return error code
 
-   // Init the default machine environment based on input MPI communicator
-   MachEnv::init(Comm);
    MachEnv *DefEnv = MachEnv::getDefault();
-
-   // Initialize Omega logging with coupler provided log file name
-   initLogging(DefEnv, LogFile);
 
    // Read config file into Config object
    Config("Omega");
