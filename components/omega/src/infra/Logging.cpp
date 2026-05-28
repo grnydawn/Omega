@@ -151,22 +151,17 @@ static std::string getLogTaskSelector() {
 }
 
 //------------------------------------------------------------------------------
-// Initialize logging for case of a pre-defined custom logger
-// Return code: 1->enabled, 0->disabled, negative values->errors
-int initLogging(
-    const OMEGA::MachEnv *DefEnv,          // [in] MachEnv for MPI task info
-    std::shared_ptr<spdlog::logger> Logger // [in] custom logger to use
-) {
+// Resolve which sub-communicator ranks should log from the runtime selector,
+// emitting master-rank diagnostics for invalid or empty selections. Sets
+// NumLogging to the count of selected ranks that exist in this communicator.
+static std::vector<int> resolveLogTasks(const OMEGA::MachEnv *DefEnv,
+                                        int &NumLogging) {
 
-   int RetVal = 0;
-
-   OMEGA::I4 TaskId     = DefEnv->getMyTask();
    OMEGA::I4 NumTasks   = DefEnv->getNumTasks();
    OMEGA::I4 MasterTask = DefEnv->getMasterTask();
 
-   // Determine which tasks log from the runtime selector
    std::string Selector = getLogTaskSelector();
-   bool Valid;
+   bool Valid           = false;
    std::vector<int> Tasks =
        _selectLogTasks(Selector, NumTasks, MasterTask, Valid);
 
@@ -177,7 +172,7 @@ int initLogging(
    }
 
    // Count selected ranks that actually exist in this communicator
-   int NumLogging = 0;
+   NumLogging = 0;
    for (int Rank : Tasks) {
       if (Rank >= 0 && Rank < NumTasks)
          ++NumLogging;
@@ -187,6 +182,24 @@ int initLogging(
                 << "\" matches no ranks in this communicator; logging disabled."
                 << std::endl;
    }
+
+   return Tasks;
+}
+
+//------------------------------------------------------------------------------
+// Initialize logging for case of a pre-defined custom logger
+// Return code: 1->enabled, 0->disabled, negative values->errors
+int initLogging(
+    const OMEGA::MachEnv *DefEnv,          // [in] MachEnv for MPI task info
+    std::shared_ptr<spdlog::logger> Logger // [in] custom logger to use
+) {
+
+   int RetVal = 0;
+
+   OMEGA::I4 TaskId = DefEnv->getMyTask();
+
+   int NumLogging;
+   std::vector<int> Tasks = resolveLogTasks(DefEnv, NumLogging);
 
    bool ThisTaskLogs =
        (std::find(Tasks.begin(), Tasks.end(), TaskId) != Tasks.end());
@@ -223,34 +236,11 @@ int initLogging(
 
    int RetVal = 0;
 
-   OMEGA::I4 TaskId     = DefEnv->getMyTask();
-   OMEGA::I4 NumTasks   = DefEnv->getNumTasks();
-   OMEGA::I4 MasterTask = DefEnv->getMasterTask();
+   OMEGA::I4 TaskId = DefEnv->getMyTask();
    std::string NewLogFilePath;
 
-   // Determine which tasks log from the runtime selector
-   std::string Selector = getLogTaskSelector();
-   bool Valid;
-   std::vector<int> Tasks =
-       _selectLogTasks(Selector, NumTasks, MasterTask, Valid);
-
-   if (!Valid && DefEnv->isMasterTask()) {
-      std::cerr << "[Omega Logging] Invalid OMEGA_LOG_TASKS selector \""
-                << Selector << "\"; falling back to master rank only."
-                << std::endl;
-   }
-
-   // Count selected ranks that actually exist in this communicator
-   int NumLogging = 0;
-   for (int Rank : Tasks) {
-      if (Rank >= 0 && Rank < NumTasks)
-         ++NumLogging;
-   }
-   if (Valid && NumLogging == 0 && DefEnv->isMasterTask()) {
-      std::cerr << "[Omega Logging] OMEGA_LOG_TASKS selector \"" << Selector
-                << "\" matches no ranks in this communicator; logging disabled."
-                << std::endl;
-   }
+   int NumLogging;
+   std::vector<int> Tasks = resolveLogTasks(DefEnv, NumLogging);
 
    bool ThisTaskLogs =
        (std::find(Tasks.begin(), Tasks.end(), TaskId) != Tasks.end());
