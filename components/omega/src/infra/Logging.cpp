@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -19,9 +20,6 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <sstream>
 #include <vector>
-
-#define _OMEGA_STRINGIFY(x) #x
-#define _OMEGA_TOSTRING(x)  _OMEGA_STRINGIFY(x)
 
 namespace OMEGA {
 
@@ -143,55 +141,13 @@ std::vector<int> _selectLogTasks(const std::string &Selector,
 }
 
 //------------------------------------------------------------------------------
-// Utility function to determine which tasks perform logging based on
-// input variable string containing lists of tasks or other options
-std::vector<int>
-splitTasks(const std::string &str,  //[in] option for which tasks should write
-           const OMEGA::I4 NumTasks //[in] total number of tasks
-) {
-
-   std::vector<int> Tasks;
-   std::stringstream ss(str);
-   std::string Task;
-   int Start, Stop;
-   char Dash;
-
-   // If all tasks should write, create the explicit list of all tasks
-   if (str == "ALL") {
-      for (int i = 0; i < NumTasks; ++i) {
-         Tasks.push_back(i);
-      }
-      return Tasks;
-   }
-
-   // Parse the task string. If there is a single task, extract the task id.
-   // If there is a range (beg:end), create a list with that range
-   while (std::getline(ss, Task, ':')) {
-      std::istringstream iss(Task);
-      iss >> Start;
-
-      if (iss.eof()) { // no range found, so extract single task
-         Tasks.push_back(Start);
-
-      } else {
-         iss >> Dash;
-         iss >> Stop;
-
-         for (int i = Start; i <= Stop; ++i) {
-            Tasks.push_back(i);
-         }
-      }
-   }
-
-   // Default to all tasks if a -1 task found in list
-   if (std::find(Tasks.begin(), Tasks.end(), -1) != Tasks.end()) {
-      Tasks.clear();
-      for (int i = 0; i < NumTasks; ++i) {
-         Tasks.push_back(i);
-      }
-   }
-
-   return Tasks;
+// Source the logging task selector from the OMEGA_LOG_TASKS environment
+// variable, falling back to the compile-time default when unset/empty.
+static std::string getLogTaskSelector() {
+   const char *Env = std::getenv("OMEGA_LOG_TASKS");
+   if (Env != nullptr && Env[0] != '\0')
+      return std::string(Env);
+   return std::string(OMEGA_LOG_TASKS_DEFAULT);
 }
 
 //------------------------------------------------------------------------------
@@ -204,15 +160,38 @@ int initLogging(
 
    int RetVal = 0;
 
-   OMEGA::I4 TaskId   = DefEnv->getMyTask();
-   OMEGA::I4 NumTasks = DefEnv->getNumTasks();
+   OMEGA::I4 TaskId     = DefEnv->getMyTask();
+   OMEGA::I4 NumTasks   = DefEnv->getNumTasks();
+   OMEGA::I4 MasterTask = DefEnv->getMasterTask();
 
-   // determine which tasks will write log files
+   // Determine which tasks log from the runtime selector
+   std::string Selector = getLogTaskSelector();
+   bool Valid;
    std::vector<int> Tasks =
-       splitTasks(_OMEGA_TOSTRING(OMEGA_LOG_TASKS), NumTasks);
+       _selectLogTasks(Selector, NumTasks, MasterTask, Valid);
 
-   if (Tasks.size() > 0 &&
-       (std::find(Tasks.begin(), Tasks.end(), TaskId) != Tasks.end())) {
+   if (!Valid && DefEnv->isMasterTask()) {
+      std::cerr << "[Omega Logging] Invalid OMEGA_LOG_TASKS selector \""
+                << Selector << "\"; falling back to master rank only."
+                << std::endl;
+   }
+
+   // Count selected ranks that actually exist in this communicator
+   int NumLogging = 0;
+   for (int Rank : Tasks) {
+      if (Rank >= 0 && Rank < NumTasks)
+         ++NumLogging;
+   }
+   if (Valid && NumLogging == 0 && DefEnv->isMasterTask()) {
+      std::cerr << "[Omega Logging] OMEGA_LOG_TASKS selector \"" << Selector
+                << "\" matches no ranks in this communicator; logging disabled."
+                << std::endl;
+   }
+
+   bool ThisTaskLogs =
+       (std::find(Tasks.begin(), Tasks.end(), TaskId) != Tasks.end());
+
+   if (ThisTaskLogs) {
 
       spdlog::set_default_logger(Logger);
 
@@ -244,22 +223,46 @@ int initLogging(
 
    int RetVal = 0;
 
-   OMEGA::I4 TaskId   = DefEnv->getMyTask();
-   OMEGA::I4 NumTasks = DefEnv->getNumTasks();
+   OMEGA::I4 TaskId     = DefEnv->getMyTask();
+   OMEGA::I4 NumTasks   = DefEnv->getNumTasks();
+   OMEGA::I4 MasterTask = DefEnv->getMasterTask();
    std::string NewLogFilePath;
 
-   // Determine which tasks will write log files
+   // Determine which tasks log from the runtime selector
+   std::string Selector = getLogTaskSelector();
+   bool Valid;
    std::vector<int> Tasks =
-       splitTasks(_OMEGA_TOSTRING(OMEGA_LOG_TASKS), NumTasks);
+       _selectLogTasks(Selector, NumTasks, MasterTask, Valid);
 
-   if (Tasks.size() > 0 &&
-       (std::find(Tasks.begin(), Tasks.end(), TaskId) != Tasks.end())) {
+   if (!Valid && DefEnv->isMasterTask()) {
+      std::cerr << "[Omega Logging] Invalid OMEGA_LOG_TASKS selector \""
+                << Selector << "\"; falling back to master rank only."
+                << std::endl;
+   }
+
+   // Count selected ranks that actually exist in this communicator
+   int NumLogging = 0;
+   for (int Rank : Tasks) {
+      if (Rank >= 0 && Rank < NumTasks)
+         ++NumLogging;
+   }
+   if (Valid && NumLogging == 0 && DefEnv->isMasterTask()) {
+      std::cerr << "[Omega Logging] OMEGA_LOG_TASKS selector \"" << Selector
+                << "\" matches no ranks in this communicator; logging disabled."
+                << std::endl;
+   }
+
+   bool ThisTaskLogs =
+       (std::find(Tasks.begin(), Tasks.end(), TaskId) != Tasks.end());
+
+   if (ThisTaskLogs) {
 
       try {
          std::size_t dotPos = LogFilePath.find_last_of('.');
 
-         // create log file name/path and set default (*) logger
-         if (Tasks.size() > 1 && dotPos != std::string::npos) {
+         // create log file name/path and set default (*) logger. When more than
+         // one rank logs, append the rank id to keep per-rank files distinct.
+         if (NumLogging > 1 && dotPos != std::string::npos) {
             NewLogFilePath = LogFilePath.substr(0, dotPos) + "_" +
                              std::to_string(TaskId) +
                              LogFilePath.substr(dotPos);

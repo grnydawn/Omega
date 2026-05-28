@@ -133,15 +133,6 @@
                     ##__VA_ARGS__);                              \
    _LOG_FLUSH
 
-/// \def OMEGA_LOG_TASKS
-/// A preprocessor variable that defines which tasks will be writing messages.
-/// The default is to write a single log from task 0. If other tasks (or ALL)
-/// are provided, log messages will be written to a corresponding log file with
-/// the task number appended to the log file name.
-#ifndef OMEGA_LOG_TASKS
-#define OMEGA_LOG_TASKS 0
-#endif
-
 /// \def OMEGA_LOG_TASKS_DEFAULT
 /// Compile-time default for the logging task selector, set by CMake from the
 /// OMEGA_LOG_TASKS build option (default "master"). At runtime this default is
