@@ -574,10 +574,10 @@ macro(update_variables)
     add_definitions(-DOMEGA_LOG_FLUSH)
   endif()
 
-  if(OMEGA_LOG_TASKS)
-    string(TOUPPER "${OMEGA_LOG_TASKS}" _LOG_TASKS)
-    add_definitions(-DOMEGA_LOG_TASKS=${_LOG_TASKS})
+  if(NOT OMEGA_LOG_TASKS)
+    set(OMEGA_LOG_TASKS "master")
   endif()
+  add_definitions(-DOMEGA_LOG_TASKS_DEFAULT="${OMEGA_LOG_TASKS}")
 
   if(OMEGA_MEMORY_LAYOUT)
     string(TOUPPER "${OMEGA_MEMORY_LAYOUT}" _LAYOUT)
