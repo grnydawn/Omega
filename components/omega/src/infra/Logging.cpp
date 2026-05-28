@@ -142,12 +142,12 @@ std::vector<int> _selectLogTasks(const std::string &Selector,
 
 //------------------------------------------------------------------------------
 // Source the logging task selector from the OMEGA_LOG_TASKS environment
-// variable, falling back to the compile-time default when unset/empty.
+// variable, falling back to the master rank when unset/empty.
 static std::string getLogTaskSelector() {
    const char *Env = std::getenv("OMEGA_LOG_TASKS");
    if (Env != nullptr && Env[0] != '\0')
       return std::string(Env);
-   return std::string(OMEGA_LOG_TASKS_DEFAULT);
+   return std::string("master");
 }
 
 //------------------------------------------------------------------------------

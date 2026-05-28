@@ -115,8 +115,7 @@ message.
 Users can control which MPI ranks generate log files using the
 `OMEGA_LOG_TASKS` selector, which is resolved at runtime against the Omega MPI
 sub-communicator. The selector is read from the `OMEGA_LOG_TASKS` environment
-variable; when it is unset, the compile-time default supplied by the
-`-D OMEGA_LOG_TASKS=<selector>` build option is used (default `master`). The
+variable; when it is unset, logging defaults to the master rank only. The
 `<selector>` accepts `*` (all ranks), `m` or `master` (the sub-communicator
 master rank), a single rank number, a comma-separated list of ranks, an
 inclusive dash range, or any combination of lists and ranges. For example,

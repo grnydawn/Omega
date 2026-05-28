@@ -133,11 +133,11 @@
                     ##__VA_ARGS__);                              \
    _LOG_FLUSH
 
-/// \def OMEGA_LOG_TASKS_DEFAULT
-/// Compile-time default for the logging task selector, set by CMake from the
-/// OMEGA_LOG_TASKS build option (default "master"). At runtime this default is
-/// overridden by the OMEGA_LOG_TASKS environment variable when it is set. The
-/// selector is resolved against the Omega MPI sub-communicator and accepts:
+/// Logging task selection
+/// Which MPI ranks write log files is controlled at runtime by the
+/// OMEGA_LOG_TASKS environment variable, resolved against the Omega MPI
+/// sub-communicator. When the variable is unset, logging defaults to the
+/// master rank only. The selector accepts:
 ///   "*"            - all ranks in the sub-communicator
 ///   "m" / "master" - the sub-communicator master rank only
 ///   "<n>"          - a single rank
@@ -146,9 +146,6 @@
 ///   "0,2-3"        - any combination of lists and ranges
 /// An invalid selector logs a warning on the master rank and falls back to
 /// master-rank-only logging.
-#ifndef OMEGA_LOG_TASKS_DEFAULT
-#define OMEGA_LOG_TASKS_DEFAULT "master"
-#endif
 
 namespace OMEGA {
 

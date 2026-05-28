@@ -67,7 +67,6 @@ OMEGA_MEMORY_LAYOUT: Kokkos memory layout ("LEFT" or "RIGHT"). "RIGHT" is a defa
 OMEGA_TILE_LENGTH: a length of one "side" of a Kokkos tile. 64 is a default value.
 OMEGA_LOG_LEVEL: a default logging level. "OMEGA_LOG_INFO" is a default value.
 OMEGA_LOG_FLUSH: turn on the unbuffered logging. "OFF" is a default value.
-OMEGA_LOG_TASKS: sets the compile-time default for which MPI ranks generate log files, overridable at runtime by the OMEGA_LOG_TASKS environment variable. Accepts "*", "m"/"master", a rank number, a comma list, or a dash range (e.g. "0,2-3"). "master" is the default value.
 OMEGA_VECTOR_LENGTH: Vector length used for blocking inner loops for vectorization. "1" is a default value.
 ```
 
