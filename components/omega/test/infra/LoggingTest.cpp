@@ -18,9 +18,6 @@
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/sinks/ringbuffer_sink.h"
 
-#define _OMEGA_STRINGIFY(x) #x
-#define _OMEGA_TOSTRING(x)  _OMEGA_STRINGIFY(x)
-
 using namespace OMEGA;
 
 enum CheckType { EndsWith, StartsWith, Contains };

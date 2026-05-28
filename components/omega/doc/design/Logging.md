@@ -123,7 +123,8 @@ inclusive dash range, or any combination of lists and ranges. For example,
 `OMEGA_LOG_TASKS=0,2-3` makes MPI ranks 0, 2, and 3 generate log files. A
 malformed selector logs a warning on the master rank and falls back to
 master-rank-only logging; ranks outside the sub-communicator simply produce no
-log.
+log. When setting the `*` selector via the environment variable, quote it (for
+example `OMEGA_LOG_TASKS='*'`) to prevent shell glob expansion.
 
 #### 4.1.2 Class/structs/data types
 
