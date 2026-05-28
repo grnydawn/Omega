@@ -9,10 +9,16 @@
 //===----------------------------------------------------------------------===//
 #include "Logging.h"
 #include "MachEnv.h"
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
+#include <limits>
+#include <set>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <sstream>
+#include <vector>
 
 #define _OMEGA_STRINGIFY(x) #x
 #define _OMEGA_TOSTRING(x)  _OMEGA_STRINGIFY(x)
@@ -36,6 +42,104 @@ _PackLogMsg(const char *file, //[in] file from where log called (cpp __FILE__)
    }
    // add prefix of form [file:line] to message string
    return "[" + path + ":" + std::to_string(line) + "] " + msg;
+}
+
+//------------------------------------------------------------------------------
+// Trim surrounding whitespace from a string
+static std::string trimStr(const std::string &Str) {
+   const std::string WhiteSpace = " \t\n\r\f\v";
+   std::size_t Begin            = Str.find_first_not_of(WhiteSpace);
+   if (Begin == std::string::npos)
+      return "";
+   std::size_t End = Str.find_last_not_of(WhiteSpace);
+   return Str.substr(Begin, End - Begin + 1);
+}
+
+//------------------------------------------------------------------------------
+// Parse a string as a non-negative int. Returns false if the string is empty,
+// contains any non-digit character, or overflows an int.
+static bool toNonNegInt(const std::string &Str, int &Out) {
+   if (Str.empty())
+      return false;
+   for (char C : Str) {
+      if (!std::isdigit(static_cast<unsigned char>(C)))
+         return false;
+   }
+   try {
+      std::size_t Pos = 0;
+      long Val        = std::stol(Str, &Pos);
+      if (Pos != Str.size() || Val < 0 ||
+          Val > static_cast<long>(std::numeric_limits<int>::max()))
+         return false;
+      Out = static_cast<int>(Val);
+      return true;
+   } catch (...) {
+      return false;
+   }
+}
+
+//------------------------------------------------------------------------------
+// Resolve a logging task selector string into the list of ranks that should log
+std::vector<int> _selectLogTasks(const std::string &Selector,
+                                 OMEGA::I4 NumTasks, OMEGA::I4 MasterTask,
+                                 bool &Valid) {
+
+   Valid = true;
+
+   std::string Sel = trimStr(Selector);
+
+   // Lowercase copy for case-insensitive keyword matching
+   std::string Lower = Sel;
+   std::transform(Lower.begin(), Lower.end(), Lower.begin(),
+                  [](unsigned char C) { return std::tolower(C); });
+
+   // Standalone keyword: all ranks in the sub-communicator
+   if (Lower == "*") {
+      std::vector<int> All;
+      for (int I = 0; I < NumTasks; ++I)
+         All.push_back(I);
+      return All;
+   }
+
+   // Standalone keyword: master rank only
+   if (Lower == "m" || Lower == "master")
+      return std::vector<int>{MasterTask};
+
+   // Empty selector is malformed
+   if (Sel.empty()) {
+      Valid = false;
+      return std::vector<int>{MasterTask};
+   }
+
+   // Numeric expression: comma-separated single ranks and/or "a-b" ranges.
+   // A std::set keeps the result sorted and deduplicated.
+   std::set<int> Selected;
+   std::stringstream Ss(Sel);
+   std::string Token;
+   while (std::getline(Ss, Token, ',')) {
+      Token = trimStr(Token);
+
+      std::size_t DashPos = Token.find('-');
+      if (DashPos == std::string::npos) {
+         int Rank;
+         if (!toNonNegInt(Token, Rank)) {
+            Valid = false;
+            return std::vector<int>{MasterTask};
+         }
+         Selected.insert(Rank);
+      } else {
+         int Lo, Hi;
+         if (!toNonNegInt(trimStr(Token.substr(0, DashPos)), Lo) ||
+             !toNonNegInt(trimStr(Token.substr(DashPos + 1)), Hi) || Lo > Hi) {
+            Valid = false;
+            return std::vector<int>{MasterTask};
+         }
+         for (int I = Lo; I <= Hi; ++I)
+            Selected.insert(I);
+      }
+   }
+
+   return std::vector<int>(Selected.begin(), Selected.end());
 }
 
 //------------------------------------------------------------------------------

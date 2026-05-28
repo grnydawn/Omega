@@ -238,6 +238,52 @@ int testKokkosDataTypes(bool LogEnabled) {
    return RetVal;
 }
 
+int testTaskSelection() {
+
+   int RetVal = 0;
+
+   const OMEGA::I4 NumTasks   = 4;
+   const OMEGA::I4 MasterTask = 1; // non-zero to verify master resolution
+
+   auto check = [&](const std::string &Name, const std::string &Selector,
+                    const std::vector<int> &Expected, bool ExpectValid) {
+      bool Valid;
+      std::vector<int> Got =
+          _selectLogTasks(Selector, NumTasks, MasterTask, Valid);
+      if (Got == Expected && Valid == ExpectValid) {
+         std::cout << Name << ": PASS" << std::endl;
+      } else {
+         std::cout << Name << ": FAIL" << std::endl;
+         RetVal += 1;
+      }
+   };
+
+   // Keywords
+   check("Select all", "*", std::vector<int>{0, 1, 2, 3}, true);
+   check("Select master", "master", std::vector<int>{1}, true);
+   check("Select m", "m", std::vector<int>{1}, true);
+   check("Select MASTER (case)", "MASTER", std::vector<int>{1}, true);
+
+   // Numeric forms
+   check("Select single", "2", std::vector<int>{2}, true);
+   check("Select list", "0,2,4", std::vector<int>{0, 2, 4}, true);
+   check("Select range", "0-3", std::vector<int>{0, 1, 2, 3}, true);
+   check("Select list+range", "0,2-3", std::vector<int>{0, 2, 3}, true);
+   check("Select with spaces", " 0, 2 ", std::vector<int>{0, 2}, true);
+
+   // Out-of-range kept as-is (caller treats as nobody logging)
+   check("Out of range", "99", std::vector<int>{99}, true);
+
+   // Malformed -> Valid=false, fall back to master
+   check("Malformed text", "foo", std::vector<int>{1}, false);
+   check("Malformed empty token", "1,,2", std::vector<int>{1}, false);
+   check("Malformed open range", "3-", std::vector<int>{1}, false);
+   check("Malformed reversed range", "5-2", std::vector<int>{1}, false);
+   check("Malformed keyword mix", "master,0", std::vector<int>{1}, false);
+
+   return RetVal;
+}
+
 int main(int argc, char **argv) {
 
    int RetVal = 0;
@@ -247,6 +293,9 @@ int main(int argc, char **argv) {
    OMEGA::MachEnv::init(MPI_COMM_WORLD);
    OMEGA::MachEnv *DefEnv = OMEGA::MachEnv::getDefault();
    OMEGA::I4 TaskId       = DefEnv->getMyTask();
+
+   if (DefEnv->isMasterTask())
+      RetVal += testTaskSelection();
 
    try {
 
