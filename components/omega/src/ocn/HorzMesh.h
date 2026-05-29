@@ -165,7 +165,11 @@ class HorzMesh {
    HostArray1DReal YEdgeH; ///< Y Coordinate of edge midpoints (m)
 
    HostArray1DReal ZEdgeH;   ///< Z Coordinate of edge midpoints (m)
+
+   Array1DReal LonEdge;      ///< Longitude location of edge midpoints (radians)
    HostArray1DReal LonEdgeH; ///< Longitude location of edge midpoints (radians)
+
+   Array1DReal LatEdge;      ///< Latitude location of edge midpoints (radians)
    HostArray1DReal LatEdgeH; ///< Latitude location of edge midpoints (radians)
 
    HostArray1DReal XVertexH;   ///< X Coordinate of vertices (m)

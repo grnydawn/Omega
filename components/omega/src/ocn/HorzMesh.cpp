@@ -592,6 +592,8 @@ void HorzMesh::copyToDevice() {
    DcEdge            = createDeviceMirrorCopy(DcEdgeH);
    DvEdge            = createDeviceMirrorCopy(DvEdgeH);
    AngleEdge         = createDeviceMirrorCopy(AngleEdgeH);
+   LonEdge           = createDeviceMirrorCopy(LonEdgeH);
+   LatEdge           = createDeviceMirrorCopy(LatEdgeH);
    WeightsOnEdge     = createDeviceMirrorCopy(WeightsOnEdgeH);
    FVertex           = createDeviceMirrorCopy(FVertexH);
    FEdge             = createDeviceMirrorCopy(FEdgeH);

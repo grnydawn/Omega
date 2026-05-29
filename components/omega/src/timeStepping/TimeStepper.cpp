@@ -579,11 +579,11 @@ void TimeStepper::prescribeVelocity(OceanState *State1, int TimeLevel1,
    } else if (PrescribeVelocityMode == PrescribeStateType::NonDivergent) {
       Array2DReal NormalVel2 = State2->getNormalVelocity(TimeLevel2);
 
-      OMEGA_SCOPE(LatEdge, Mesh->LatEdgeH);
-      OMEGA_SCOPE(LonEdge, Mesh->LonEdgeH);
-      OMEGA_SCOPE(AngleEdge, Mesh->AngleEdgeH);
-      OMEGA_SCOPE(MinLayerEdgeBot, VCoord->MinLayerEdgeBotH);
-      OMEGA_SCOPE(MaxLayerEdgeTop, VCoord->MaxLayerEdgeTopH);
+      OMEGA_SCOPE(LatEdge, Mesh->LatEdge);
+      OMEGA_SCOPE(LonEdge, Mesh->LonEdge);
+      OMEGA_SCOPE(AngleEdge, Mesh->AngleEdge);
+      OMEGA_SCOPE(MinLayerEdgeBot, VCoord->MinLayerEdgeBot);
+      OMEGA_SCOPE(MaxLayerEdgeTop, VCoord->MaxLayerEdgeTop);
 
       const Clock *ModelClock = StepClock.get();
       R8 ElapsedTimeSec;
@@ -620,11 +620,11 @@ void TimeStepper::prescribeVelocity(OceanState *State1, int TimeLevel1,
    } else if (PrescribeVelocityMode == PrescribeStateType::Divergent) {
       Array2DReal NormalVel2 = State2->getNormalVelocity(TimeLevel2);
 
-      OMEGA_SCOPE(LatEdge, Mesh->LatEdgeH);
-      OMEGA_SCOPE(LonEdge, Mesh->LonEdgeH);
-      OMEGA_SCOPE(AngleEdge, Mesh->AngleEdgeH);
-      OMEGA_SCOPE(MinLayerEdgeBot, VCoord->MinLayerEdgeBotH);
-      OMEGA_SCOPE(MaxLayerEdgeTop, VCoord->MaxLayerEdgeTopH);
+      OMEGA_SCOPE(LatEdge, Mesh->LatEdge);
+      OMEGA_SCOPE(LonEdge, Mesh->LonEdge);
+      OMEGA_SCOPE(AngleEdge, Mesh->AngleEdge);
+      OMEGA_SCOPE(MinLayerEdgeBot, VCoord->MinLayerEdgeBot);
+      OMEGA_SCOPE(MaxLayerEdgeTop, VCoord->MaxLayerEdgeTop);
 
       const Clock *ModelClock = StepClock.get();
       R8 ElapsedTimeSec;
