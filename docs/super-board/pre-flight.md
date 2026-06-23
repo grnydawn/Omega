@@ -13,11 +13,13 @@
 `llvm-cov`/`llvm-profdata`, ParMETIS, and meshes in place. The two formerly-open
 operational gates are now both satisfied (**2026-06-23**):
 
-1. **Compute node + internet** — running from an interactive PBS compute node that has been
-   configured for outbound internet (`gh repo view grnydawn/Omega` succeeds), so the
-   autonomous loop (gh / Claude API) can run on the **same** node that builds and runs the
-   GPU/MPI ctest suite. (Previously the loop had to halt because compute nodes were
-   air-gapped; that is resolved on this node.)
+1. **Login-node orchestration + PBS batch test dispatch** — the loop runs on an Aurora
+   **login node** (`aurora-uan-*`): internet for gh / Claude API / cmake FetchContent, but
+   **no GPU**. Lane workers configure on the login node, then dispatch build+ctest to a
+   compute node via the batch helper `.claude/super-board/aurora/run-ctest-batch.sh`
+   (`qsub` → `debug` queue, `-A E3SM_Dec -l select=1 -l filesystems=home:flare`). This
+   replaces the earlier "run everything on one interactive compute node" model and is what
+   the lane lifecycles use for the test step.
 2. **Baseline ctest is fully green** — `100% tests passed, 0 failed out of 40` after
    rebasing `ykim/omega/coverage` onto `origin/develop` (which carries PR #437,
    `omega/fix-debug-tracer-tests`, fixing the 4 `TEND_*` / `TRACERS` failures) and linking
@@ -65,11 +67,14 @@ GPU compilers + device-coverage tools (decision 1 — SYCL leg only on this host
 - [✓] **ParMETIS** — `/lus/flare/projects/E3SM_Dec/soft/polaris/aurora/spack/dev_polaris_1.0.0/var/spack/environments/spack_env_oneapi-ifx_mpich/.spack-env/view`
   (has `lib/libparmetis.a`). Worker exports `OMEGA_PARMETIS_ROOT` to it.
 - [✓] **GPU hardware (SYCL)** — Aurora compute nodes have 6× Intel PVC; satisfies SYCL
-  device coverage **on a compute node**.
-- [✓] **Compute-node allocation + internet** — running from an interactive PBS compute node
-  (`x4309c7s0b0n0`) that has outbound internet configured, so `super-board` can build, run
-  the MPI/GPU ctest suite, **and** drive gh / the Claude API from the same allocation. Grab
-  one with `qsub -I` if the session ends.
+  device coverage **on a compute node** (reached via the batch helper, below).
+- [✓] **Login node + PBS batch test dispatch** — orchestrator + lane workers run on a login
+  node (`aurora-uan-0012`): internet for gh / Claude API / FetchContent, no GPU. PBS is
+  reachable (`qsub`/`qstat` on PATH), allocation **`E3SM_Dec`** has ~950k node-hours, and
+  the `debug` queue (1–2 nodes, ≤1 h) is the default test target. Lane workers configure on
+  the login node, then run `.claude/super-board/aurora/run-ctest-batch.sh "$BUILD"` to
+  build+ctest on a compute node and get the ctest exit code back. Submit syntax validated
+  against `cime_config/machines/config_batch.xml` (`-l select=N -l filesystems=home:flare`).
 - [✓] **Test meshes** — canonical copies live at
   `/lus/flare/projects/E3SM_Dec/youngsun/data/omega/mesh/` (`OmegaMesh.nc`,
   `OmegaSphereMesh.nc`, `OmegaPlanarMesh.nc`). ctest runs from the **build** `test/` dir, so

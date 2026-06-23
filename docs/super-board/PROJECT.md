@@ -73,7 +73,7 @@ Notes:
 - **Kokkos patterns:** use Omega's loop wrappers, not raw Kokkos policies (`doc/devGuide/ParallelLoops.md`): `parallelFor` / `parallelReduce` for flat multi-dim loops; hierarchical `parallelForOuter`/`parallelForInner` (+ `parallelReduce/Scan/SearchInner`) with `KOKKOS_LAMBDA` (outer) and the `INNER_LAMBDA` macro (inner); `TeamMember Team`, `teamBarrier`, `Kokkos::single`, `LaunchConfig`/`TeamScratch` for scratch memory. Respect `OMEGA_MEMORY_LAYOUT` (default RIGHT).
 - **Error handling / logging:** use the `Error.h` facility (`doc/devGuide/Error.md`) — `ABORT_ERROR(msg, args…)`, `OMEGA_ASSERT`/`OMEGA_REQUIRE`, the `Error` class with `ErrorCode` enum (`Success`/`Warn`/`Fail`/`Critical`), accumulation via `+`/`+=`, and `RETURN_ERROR` / `CHECK_ERROR[_WARN|_ABORT]`. It builds on the spdlog-based **Logging** facility (`Logging.h`, fmt-style `{}` placeholders) and emits cpptrace stack traces in debug builds. Prefer the macros over calling `Error::abort()` directly.
 
-## Aurora environment (this run — 2026-06-17)
+## Aurora environment (this run — 2026-06-23, login-node + PBS batch)
 
 The pipeline is running on **ALCF Aurora** (`aurora-uan-*`), an **Intel-GPU / SYCL** machine
 (6× Intel Data Center GPU Max / PVC per compute node). CIME machine name: **`aurora`**
@@ -98,12 +98,25 @@ The pipeline is running on **ALCF Aurora** (`aurora-uan-*`), an **Intel-GPU / SY
   these three files must be linked there after configure — they are *not* picked up from the
   source tree:
   `ln -sf /lus/flare/projects/E3SM_Dec/youngsun/data/omega/mesh/Omega*.nc $BUILD/test/`.
-- **Compute node + internet (2026-06-23).** `./omega_ctest.sh` and `COVERAGE_REPORT` run on
-  a PBS **compute node** — UAN login nodes have no GPU (`sycl-ls` → "No platforms found").
-  This run's compute node (`x4309c7s0b0n0`) has **outbound internet configured**, so
-  `super-board` builds, runs the MPI/GPU suite, **and** drives gh / the Claude API from the
-  same allocation (the earlier air-gap halt no longer applies). Re-grab a node with
-  `qsub -I -l select=1 -l walltime=01:00:00 -A <ALLOC> -q <queue>` if the session ends.
+- **⚠️ LANE WORKERS RUN ON A LOGIN NODE — dispatch tests via PBS batch (2026-06-23).**
+  super-board now runs on an Aurora **login node** (`aurora-uan-*`): it has internet (gh /
+  Claude API / cmake FetchContent) but **no GPU**, and must not run the MPI/GPU ctest suite
+  directly. So the lane-worker build/test flow is split:
+  1. **Configure on the login node** — `cmake … -B $BUILD` (FetchContent → cpptrace/libdwarf
+     needs internet, which only the login node guarantees). This generates `omega_env.sh`,
+     `omega_build.sh`, `omega_ctest.sh`.
+  2. **Build + test on a compute node via batch** — do **not** call `./omega_ctest.sh`
+     directly. Instead run the helper, which `qsub`s a 1-node `debug`-queue job
+     (`-A E3SM_Dec -l select=1 -l filesystems=home:flare`), compiles, links the meshes,
+     runs ctest, waits, and exits with the **ctest exit code**:
+     ```sh
+     bash .claude/super-board/aurora/run-ctest-batch.sh "$BUILD"
+     ```
+     Result file: `$BUILD/omega_batch_result.txt` (`BUILD_RC` / `CTEST_RC` / `DONE`);
+     job log: `$BUILD/omega_batch_ctest.log`; ctest detail in
+     `$BUILD/Testing/Temporary/LastTest.log`. Overridable via `OMEGA_PBS_*` /
+     `OMEGA_MESH_DIR` env vars (see the script header). Coverage report targets
+     (`COVERAGE_REPORT`) likewise run inside the batch job, not on the login node.
 - **✅ Baseline ctest green.** After rebasing `ykim/omega/coverage` onto `origin/develop`
   (carries PR #437 `omega/fix-debug-tracer-tests`) and linking the meshes,
   `./omega_ctest.sh` reports **`100% tests passed, 0 failed out of 40`** (Release,
