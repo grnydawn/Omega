@@ -38,9 +38,18 @@ TOOLCHAIN="${OMEGA_COVERAGE_TOOLCHAIN:-gcov}"
 THRESHOLD="${OMEGA_COVERAGE_THRESHOLD:-90}"
 SRC_ROOT="${OMEGA_SOURCE_DIR:-${BUILD_DIR}/../../components/omega}"
 
-# Exclusion patterns (decision 6 / mam4xx pattern): vendored third-party code and
-# the test sources themselves are never counted toward Omega's own src/ total.
-EXCLUDE_RE='(.*/external/.*|.*/test/.*)'
+# Scope (decision 6 / mam4xx pattern): coverage measures Omega's OWN source only —
+# components/omega/src/. Everything else is excluded: the vendored libs under
+# components/omega/external/, the FetchContent third-party deps (scorpio, ekat,
+# kokkos, libdwarf, ...) that land under externals/ or the build _deps/ tree,
+# the shared E3SM utils under share/, and the test sources themselves.
+#
+# We enforce this two ways for robustness:
+#   - a POSITIVE include filter on '.*/components/omega/src/.*' (the report only
+#     keeps files under Omega src/), and
+#   - a broad EXCLUDE_RE belt-and-suspenders for */external/* and */test/*.
+INCLUDE_RE='.*/components/omega/src/.*'
+EXCLUDE_RE='(.*/external/.*|.*/externals/.*|.*/test/.*|.*/_deps/.*|.*/share/.*)'
 
 echo "=============================================================="
 echo " Omega COVERAGE_REPORT"
@@ -48,7 +57,8 @@ echo "   toolchain : ${TOOLCHAIN}"
 echo "   threshold : ${THRESHOLD}% (host/CPU line coverage, hard gate)"
 echo "   build dir : ${BUILD_DIR}"
 echo "   src root  : ${SRC_ROOT}"
-echo "   exclude   : */external/* , */test/*"
+echo "   measuring : components/omega/src/ only (decision 6)"
+echo "   exclude   : */external(s)/* , */test/* , */_deps/* , */share/*"
 echo "=============================================================="
 
 cd "${BUILD_DIR}" || { echo "ERROR: cannot cd to build dir ${BUILD_DIR}"; exit 2; }
@@ -64,6 +74,10 @@ gate_against_threshold() {
   printf ' HOST/CPU line coverage: %s%% (gate: %s%%)\n' "${pct%\%}" "${THRESHOLD}"
   if [ "${int_pct}" -lt "${THRESHOLD}" ]; then
     echo " RESULT: FAIL - host coverage below threshold."
+    echo ""
+    echo " The ${THRESHOLD}% default matches mam4xx's codecov target (decision 3)"
+    echo " and is TUNABLE. To gate at your accepted baseline instead, reconfigure"
+    echo " with -DOMEGA_COVERAGE_THRESHOLD=<pct> (e.g. -DOMEGA_COVERAGE_THRESHOLD=${int_pct})."
     echo "--------------------------------------------------------------"
     return 1
   fi
@@ -91,12 +105,16 @@ run_gcov_path() {
   fi
 
   # gcovr produces lcov-format (coverage.info) AND a Cobertura/JSON summary.
-  # --root scopes to Omega; -e excludes vendored + test code.
-  echo "Running aggregate gcovr sweep..."
+  # --root scopes to Omega; --filter keeps ONLY Omega's own src/ (decision 6);
+  # --exclude is the belt-and-suspenders drop of vendored + test + dep code.
+  echo "Running aggregate gcovr sweep (Omega src/ only)..."
   gcovr \
     --root "${SRC_ROOT}" \
-    --exclude '.*/external/.*' \
+    --filter '.*/components/omega/src/.*' \
+    --exclude '.*/external.*/.*' \
     --exclude '.*/test/.*' \
+    --exclude '.*/_deps/.*' \
+    --exclude '.*/share/.*' \
     --print-summary \
     --lcov coverage.info \
     --json-summary-pretty -o coverage.json \
@@ -126,6 +144,39 @@ PY
   gate_against_threshold "${pct}"
 }
 
+# find_llvm_tool <name>: locate an LLVM coverage tool (llvm-cov / llvm-profdata),
+# echoing its full path or nothing. Probes, in order:
+#   1. PATH (clang/llvm installs, ROCm).
+#   2. The directory of the C++ compiler used for the build (OMEGA_CXX_COMPILER,
+#      else icpx/clang++/clang on PATH) and its 'compiler/' subdir. On Aurora the
+#      oneAPI icpx lives in .../bin/ but llvm-cov/llvm-profdata live in the sibling
+#      .../bin/compiler/ dir, which is NOT on the default PATH (the cause of the
+#      first end-to-end COVERAGE_REPORT failure).
+find_llvm_tool() {
+  local name="$1" hit cxx cxxdir
+  hit="$(command -v "${name}" 2>/dev/null || true)"
+  if [ -n "${hit}" ]; then echo "${hit}"; return 0; fi
+
+  # Probe every plausible compiler location. OMEGA_CXX_COMPILER is often the MPI
+  # wrapper (mpicxx) whose dir lacks the LLVM tools, so we ALWAYS also try the
+  # underlying icpx/clang on PATH — not only when OMEGA_CXX_COMPILER is unset.
+  local cands=()
+  [ -n "${OMEGA_CXX_COMPILER:-}" ] && [ -x "${OMEGA_CXX_COMPILER}" ] && cands+=("${OMEGA_CXX_COMPILER}")
+  for c in icpx clang++ clang dpcpp; do
+    local p; p="$(command -v "${c}" 2>/dev/null || true)"
+    [ -n "${p}" ] && cands+=("${p}")
+  done
+  for cxx in "${cands[@]}"; do
+    cxxdir="$(cd "$(dirname "${cxx}")" 2>/dev/null && pwd)" || continue
+    # oneAPI ships llvm-cov/llvm-profdata in the compiler's sibling 'compiler/'
+    # subdir; clang/llvm and ROCm keep them next to the compiler binary.
+    for d in "${cxxdir}/compiler" "${cxxdir}"; do
+      if [ -x "${d}/${name}" ]; then echo "${d}/${name}"; return 0; fi
+    done
+  done
+  echo ""
+}
+
 run_llvm_path() {
   # Clang/icpx/SYCL path: merge all per-test .profraw, then llvm-cov report.
   # On SYCL, host + device coverage merge into one .profdata (decision 2 / the
@@ -144,11 +195,14 @@ run_llvm_path() {
   fi
 
   local PROFDATA_BIN COV_BIN
-  PROFDATA_BIN="$(command -v llvm-profdata || true)"
-  COV_BIN="$(command -v llvm-cov || true)"
+  PROFDATA_BIN="$(find_llvm_tool llvm-profdata)"
+  COV_BIN="$(find_llvm_tool llvm-cov)"
   if [ -z "${PROFDATA_BIN}" ] || [ -z "${COV_BIN}" ]; then
-    echo "ERROR: llvm-profdata / llvm-cov not found on PATH (LLVM coverage path)."
-    echo "       On Aurora they live under the oneAPI compiler bin dir."
+    echo "ERROR: llvm-profdata / llvm-cov not found on PATH or next to the C++"
+    echo "       compiler. On Aurora/oneAPI they live under the compiler's"
+    echo "       sibling 'bin/compiler/' dir (not the default PATH); set"
+    echo "       OMEGA_CXX_COMPILER so this script can locate them, or add them"
+    echo "       to PATH before running ctest."
     return 1
   fi
 
@@ -169,12 +223,17 @@ run_llvm_path() {
     done < <(find . -type f -name 'test*.exe' 2>/dev/null)
   fi
 
-  echo "Running aggregate llvm-cov report (excluding external/ + test/)..."
+  # llvm-cov has no positive include flag, so we scope to Omega src/ purely via
+  # -ignore-filename-regex, which now drops every non-Omega tree (externals/,
+  # _deps/, share/, external/, test/). What remains is components/omega/src/
+  # (decision 6). Passing a directory positionally errors ("Is a directory"), so
+  # the regex is the only safe scoping mechanism here.
+  echo "Running aggregate llvm-cov report (Omega src/ only, via ignore-regex)..."
   "${COV_BIN}" report "${objs[@]}" \
     -instr-profile="${profdata}" \
     -ignore-filename-regex="${EXCLUDE_RE}" 2>&1 | tee coverage_summary.txt
 
-  # llvm-cov export -> lcov for Codecov/CDash parity.
+  # llvm-cov export -> lcov for Codecov/CDash parity (same Omega src/ scope).
   "${COV_BIN}" export "${objs[@]}" \
     -instr-profile="${profdata}" \
     -ignore-filename-regex="${EXCLUDE_RE}" \

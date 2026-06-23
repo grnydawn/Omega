@@ -415,7 +415,11 @@ macro(init_standalone_build)
     file(APPEND ${_CoverageScript} "export OMEGA_COVERAGE_TOOLCHAIN=${OMEGA_COVERAGE_TOOLCHAIN}\n")
     file(APPEND ${_CoverageScript} "export OMEGA_COVERAGE_THRESHOLD=${OMEGA_COVERAGE_THRESHOLD}\n")
     file(APPEND ${_CoverageScript} "export OMEGA_SOURCE_DIR=${OMEGA_SOURCE_DIR}\n")
-    file(APPEND ${_CoverageScript} "export OMEGA_BUILD_DIR=${OMEGA_BUILD_DIR}\n\n")
+    file(APPEND ${_CoverageScript} "export OMEGA_BUILD_DIR=${OMEGA_BUILD_DIR}\n")
+    # pass the build's C++ compiler so coverage_report.sh can locate llvm-cov /
+    # llvm-profdata next to it (oneAPI ships them in the compiler's sibling
+    # 'compiler/' dir, which is not on the default PATH).
+    file(APPEND ${_CoverageScript} "export OMEGA_CXX_COMPILER=${OMEGA_CXX_COMPILER}\n\n")
     file(APPEND ${_CoverageScript} "# run the suite; COVERAGE_REPORT runs last and writes coverage.info / coverage.json\n")
     file(APPEND ${_CoverageScript} "ctest --output-on-failure \"$@\"\n\n")
     file(APPEND ${_CoverageScript} "# optional Codecov upload (decision 4) - needs CODECOV_TOKEN\n")

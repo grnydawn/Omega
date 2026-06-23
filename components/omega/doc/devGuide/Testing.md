@@ -424,5 +424,21 @@ coverage is gated; device numbers are best-effort with no hard gate for v1.
 
 The gcc/gcov path uses `gcovr` (and `lcov`/`genhtml` for HTML), added to
 `dev-conda.txt`. The LLVM path uses `llvm-cov` + `llvm-profdata`, which ship with
-the Clang/oneAPI toolchain. On ALCF Aurora, `llvm-cov`/`llvm-profdata` are in the
-oneAPI compiler bin directory and `gcovr` is installed under `~/.local`.
+the Clang/oneAPI toolchain. On ALCF Aurora, `llvm-cov`/`llvm-profdata` are NOT on
+the default `PATH` — they live in the compiler's sibling `bin/compiler/` directory
+(e.g. `.../oneapi/compiler/latest/bin/compiler/`). `COVERAGE_REPORT` locates them
+automatically from `OMEGA_CXX_COMPILER` (and falls back to `icpx`/`clang++` on
+`PATH`), so no manual `PATH` edit is needed; `gcovr` is installed under `~/.local`.
+
+**Scope of the total (decision 6).** The aggregate measures `components/omega/src/`
+only. The `llvm-cov` path scopes via `-ignore-filename-regex` and the `gcovr` path
+via `--filter`/`--exclude`; both drop the FetchContent third-party trees
+(`externals/`, the build `_deps/` tree), the shared E3SM utils under `share/`, the
+vendored libs under `components/omega/external/`, and the `test/` sources.
+
+**Measured baseline.** A first end-to-end run on Aurora (icpx, `OMEGA_ARCH=SERIAL`,
+40 unit tests, LLVM toolchain) reports ~56% line coverage over Omega `src/`. Since
+the default gate is 90% (the mam4xx target, decision 3), a default coverage build
+fails `COVERAGE_REPORT` until the threshold is tuned to the project's accepted
+baseline via `-DOMEGA_COVERAGE_THRESHOLD=<pct>`; the failing report prints the
+exact tuning command.
