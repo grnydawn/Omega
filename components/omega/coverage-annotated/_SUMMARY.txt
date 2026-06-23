@@ -1,0 +1,96 @@
+Per-file line coverage (covered/total), worst first
+================================================================
+   cov%     cov   miss  file
+   0.00       0    130  ocn/CustomTendencyTerms.cpp
+  27.01     114    308  ocn/HorzOperators.h
+  40.06     131    196  base/TriDiagSolvers.h
+  44.54     950   1183  infra/IOStream.cpp
+  53.85       7      6  ocn/Tendencies.h
+  54.55       6      5  base/MachEnv.h
+  56.25      45     35  infra/Error.h
+  64.41     304    168  base/Halo.h
+  64.91      74     40  ocn/PGrad.cpp
+  65.42     314    166  timeStepping/TimeStepper.cpp
+  70.00      14      6  infra/Logging.h
+  71.11     731    297  base/Reductions.h
+  72.09      31     12  ocn/HorzOperators.cpp
+  74.24      98     34  ocn/HorzUtil.h
+  75.51      37     12  infra/Error.cpp
+  76.11      86     27  infra/Dimension.cpp
+  77.30     361    106  infra/Config.cpp
+  77.88      81     23  infra/Logging.cpp
+  78.49    1142    313  base/Decomp.cpp
+  78.81      93     25  ocn/OceanInit.cpp
+  80.49    1551    376  infra/TimeMgr.cpp
+  80.95      34      8  ocn/PGrad.h
+  82.71     287     60  infra/Field.cpp
+  82.90     548    113  ocn/Tendencies.cpp
+  84.27      75     14  ocn/TendencyTerms.cpp
+  84.85      56     10  infra/OmegaKokkos.h
+  85.21     386     67  base/IO.cpp
+  86.11      31      5  infra/Field.h
+  86.47     345     54  base/Halo.cpp
+  87.06     222     33  ocn/Tracers.cpp
+  87.13     264     39  ocn/Eos.cpp
+  89.10     752     92  ocn/VertCoord.cpp
+  89.69     174     20  base/MachEnv.cpp
+  91.35     169     16  ocn/OceanState.cpp
+  91.80     616     55  ocn/VertAdv.cpp
+  92.07     151     13  base/Broadcast.cpp
+  93.86     214     14  ocn/TendencyTerms.h
+  93.94      31      2  ocn/auxiliaryVars/SurfTracerRestAuxVars.cpp
+  94.74      36      2  ocn/auxiliaryVars/TracerAuxVars.cpp
+  95.00      38      2  timeStepping/ForwardBackwardStepper.cpp
+  95.29      81      4  timeStepping/RungeKutta4Stepper.cpp
+  95.58     303     14  ocn/AuxiliaryState.cpp
+  95.83      46      2  ocn/auxiliaryVars/WindForcingAuxVars.cpp
+  96.08      49      2  ocn/auxiliaryVars/KineticAuxVars.cpp
+  96.45     190      7  ocn/VertMix.cpp
+  96.45     733     27  ocn/HorzMesh.cpp
+  97.14      68      2  ocn/auxiliaryVars/PseudoThicknessAuxVars.cpp
+  97.44      76      2  ocn/auxiliaryVars/VelocityDel2AuxVars.cpp
+  98.18     108      2  ocn/auxiliaryVars/VorticityAuxVars.cpp
+  98.29     115      2  infra/OmegaKokkosHiPar.h
+ 100.00       3      0  base/DataTypes.h
+ 100.00      31      0  timeStepping/RungeKutta2Stepper.cpp
+ 100.00       2      0  timeStepping/TimeStepper.h
+ 100.00       4      0  infra/LogFormatters.h
+ 100.00      31      0  infra/OmegaKokkosFlatPar.h
+ 100.00       6      0  infra/TimeMgr.h
+ 100.00     505      0  ocn/Eos.h
+ 100.00      24      0  ocn/OceanFinal.cpp
+ 100.00      30      0  ocn/OceanRun.cpp
+ 100.00      18      0  ocn/TracerDefs.inc
+ 100.00      13      0  ocn/VertCoord.h
+ 100.00      52      0  ocn/VertMix.h
+ 100.00      25      0  ocn/auxiliaryVars/KineticAuxVars.h
+ 100.00      56      0  ocn/auxiliaryVars/PseudoThicknessAuxVars.h
+ 100.00      26      0  ocn/auxiliaryVars/TracerAuxVars.h
+ 100.00      63      0  ocn/auxiliaryVars/VelocityDel2AuxVars.h
+ 100.00      54      0  ocn/auxiliaryVars/VorticityAuxVars.h
+ 100.00       7      0  ocn/auxiliaryVars/WindForcingAuxVars.h
+
+Files with NO coverage data (marked '?', never instrumented):
+  base/Broadcast.h
+  base/Decomp.h
+  base/IO.h
+  drivers/standalone/OceanDriver.cpp
+  infra/Config.h
+  infra/Dimension.h
+  infra/IOStream.h
+  ocn/AuxiliaryState.h
+  ocn/CustomTendencyTerms.h
+  ocn/GlobalConstants.h
+  ocn/HorzMesh.h
+  ocn/OceanDriver.h
+  ocn/OceanState.h
+  ocn/Tracers.h
+  ocn/VertAdv.h
+  ocn/auxiliaryVars/SurfTracerRestAuxVars.h
+  timeStepping/ForwardBackwardStepper.h
+  timeStepping/RungeKutta2Stepper.h
+  timeStepping/RungeKutta4Stepper.h
+
+================================================================
+TOTAL line coverage (files with data): 13318/17469 = 76.24%
+Files with data: 68 ; files without data: 19

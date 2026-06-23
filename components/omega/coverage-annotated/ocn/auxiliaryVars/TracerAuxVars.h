@@ -1,0 +1,79 @@
+  #ifndef OMEGA_AUX_TRACER_H
+  #define OMEGA_AUX_TRACER_H
+  
+  #include "DataTypes.h"
+  #include "Field.h"
+  #include "HorzMesh.h"
+  #include "OmegaKokkos.h"
+  #include "VertCoord.h"
+  
+  #include <string>
+  
+  namespace OMEGA {
+  
+  class TracerAuxVars {
+   public:
+     Array3DReal Del2TracersCell;
+  
+     TracerAuxVars(const std::string &AuxStateSuffix, const HorzMesh *Mesh,
+                   const VertCoord *VCoord, const I4 NTracers);
+  
+     KOKKOS_FUNCTION void
+     computeVarsOnCells(int L, int ICell, int KChunk,
+                        const Array2DReal &MeanPseudoThickEdge,
++                       const Array3DReal &TrCell) const {
+  
++       const int KStartCell = chunkStart(KChunk, MinLayerCell(ICell));
++       const int KLenCell = chunkLength(KChunk, KStartCell, MaxLayerCell(ICell));
++       const int KEndCell = KStartCell + KLenCell - 1;
+  
++       const Real InvAreaCell = 1._Real / AreaCell(ICell);
+  
++       Real Del2TrCellTmp[VecLength] = {0};
+  
++       for (int J = 0; J < NEdgesOnCell(ICell); ++J) {
++          const int JEdge = EdgesOnCell(ICell, J);
+  
++          const int JCell0 = CellsOnEdge(JEdge, 0);
++          const int JCell1 = CellsOnEdge(JEdge, 1);
+  
++          const Real DvDcEdge = DvEdge(JEdge) / DcEdge(JEdge);
+  
++          const int KStartEdge = Kokkos::max(KStartCell, MinLayerEdgeBot(JEdge));
++          const int KEndEdge   = Kokkos::min(KEndCell, MaxLayerEdgeTop(JEdge));
+  
++          for (int K = KStartEdge; K <= KEndEdge; ++K) {
++             const int KVec        = K - KStartCell;
++             const Real TracerGrad = TrCell(L, JCell1, K) - TrCell(L, JCell0, K);
++             Del2TrCellTmp[KVec] -= EdgeMask(JEdge, K) *
++                                    EdgeSignOnCell(ICell, J) * DvDcEdge *
++                                    MeanPseudoThickEdge(JEdge, K) * TracerGrad;
++          }
++       }
++       for (int KVec = 0; KVec < KLenCell; ++KVec) {
++          const int K                  = KStartCell + KVec;
++          Del2TracersCell(L, ICell, K) = Del2TrCellTmp[KVec] * InvAreaCell;
++       }
++    }
+  
+     void registerFields(const std::string &AuxGroupName,
+                         const std::string &MeshName) const;
+     void unregisterFields() const;
+  
+   private:
+     Array1DI4 NEdgesOnCell;
+     Array2DI4 EdgesOnCell;
+     Array2DI4 CellsOnEdge;
+     Array2DReal EdgeSignOnCell;
+     Array1DReal DcEdge;
+     Array1DReal DvEdge;
+     Array1DReal AreaCell;
+     Array2DReal EdgeMask;
+     Array1DI4 MinLayerEdgeBot;
+     Array1DI4 MaxLayerEdgeTop;
+     Array1DI4 MinLayerCell;
+     Array1DI4 MaxLayerCell;
+  };
+  
+  } // namespace OMEGA
+  #endif
