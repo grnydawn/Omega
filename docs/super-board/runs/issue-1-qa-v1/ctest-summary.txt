@@ -1,0 +1,13 @@
+=== ctest summary (SERIAL/icpx, Debug, OMEGA_COVERAGE=ON, threshold=50) ===
+100% tests passed, 0 tests failed out of 41
+Total Test time (real) =  99.11 sec
+
+=== test ordering (COVERAGE_REPORT must be #41 LAST) ===
+34/41 Test #34: TRACERS_TEST ...............................   Passed    2.14 sec
+35/41 Test #35: TRIDIAGSOLVERS_TEST ........................   Passed    0.73 sec
+36/41 Test #36: GSWC_CALL_TEST .............................   Passed    0.05 sec
+37/41 Test #37: EOS_TEST ...................................   Passed    2.42 sec
+38/41 Test #38: VERTCOORD_TEST .............................   Passed    2.29 sec
+39/41 Test #39: VERTMIX_TEST ...............................   Passed    2.29 sec
+40/41 Test #40: VERTADV_TEST ...............................   Passed    2.49 sec
+41/41 Test #41: COVERAGE_REPORT ............................   Passed    8.30 sec
