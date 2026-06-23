@@ -7,6 +7,13 @@
 # linting
 pre-commit
 
+# code coverage (issue #1, decision 2)
+# gcc/gcov baseline sweep (lcov-format output) for the COVERAGE_REPORT ctest;
+# lcov provides the genhtml viewer. The LLVM path (llvm-cov/llvm-profdata) for
+# clang/icpx/SYCL targets ships with the compiler toolchain (e.g. oneAPI).
+gcovr
+lcov
+
 # c++ linting
 clang-format >=18.1.0,<18.2.0
 clang-tools >=18.1.0,<18.2.0

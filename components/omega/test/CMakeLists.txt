@@ -71,6 +71,23 @@ function(add_omega_test test_name exe_name source_files mpi_args)
 
   set_tests_properties(${test_name} PROPERTIES LABELS "${OMEGA_ARCH};Omega-0")
 
+  # Coverage instrumentation (OMEGA_COVERAGE): make every unit test a member of
+  # the "coverage" fixture so the COVERAGE_REPORT aggregation test (registered
+  # with FIXTURES_CLEANUP coverage at the end of this file) is scheduled AFTER
+  # all of them - satisfying the "report runs last" requirement deterministically
+  # regardless of ctest ordering or -j parallelism.
+  if(OMEGA_COVERAGE)
+    set_tests_properties(${test_name} PROPERTIES FIXTURES_REQUIRED coverage)
+
+    # For the LLVM path each test must emit its own .profraw so the aggregation
+    # step can merge them. %p expands to PID, keeping names unique across the
+    # MPI ranks of a single test. (No-op for the gcov path, which uses .gcda.)
+    if("${OMEGA_COVERAGE_TOOLCHAIN}" STREQUAL "llvm")
+      set_property(TEST ${test_name} APPEND PROPERTY ENVIRONMENT
+        "LLVM_PROFILE_FILE=${OMEGA_BUILD_DIR}/test/${test_name}.%p.profraw")
+    endif()
+  endif()
+
 endfunction()
 
 ##################
@@ -516,3 +533,27 @@ add_omega_test(
     ocn/VertAdvTest.cpp
     "-n;1"
 )
+
+#############################
+# Aggregate coverage report
+#############################
+# Final ctest test (OMEGA_COVERAGE only): aggregates coverage across ALL test
+# executables in a single sweep and gates host/CPU line coverage at
+# OMEGA_COVERAGE_THRESHOLD. FIXTURES_CLEANUP coverage makes CTest schedule it
+# AFTER every test that declared FIXTURES_REQUIRED coverage (see add_omega_test),
+# so it is genuinely the LAST test in the suite. Device-backend numbers are
+# reported best-effort with no hard gate for v1 (decision 3).
+if(OMEGA_COVERAGE)
+  add_test(
+    NAME COVERAGE_REPORT
+    COMMAND ${CMAKE_COMMAND} -E env
+            OMEGA_COVERAGE_TOOLCHAIN=${OMEGA_COVERAGE_TOOLCHAIN}
+            OMEGA_COVERAGE_THRESHOLD=${OMEGA_COVERAGE_THRESHOLD}
+            OMEGA_SOURCE_DIR=${OMEGA_SOURCE_DIR}
+            OMEGA_BUILD_DIR=${OMEGA_BUILD_DIR}
+            bash ${OMEGA_SOURCE_DIR}/test/coverage_report.sh ${OMEGA_BUILD_DIR}
+  )
+  set_tests_properties(COVERAGE_REPORT PROPERTIES
+    FIXTURES_CLEANUP coverage
+    LABELS "${OMEGA_ARCH};Omega-Coverage")
+endif()
