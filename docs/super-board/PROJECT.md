@@ -73,6 +73,42 @@ Notes:
 - **Kokkos patterns:** use Omega's loop wrappers, not raw Kokkos policies (`doc/devGuide/ParallelLoops.md`): `parallelFor` / `parallelReduce` for flat multi-dim loops; hierarchical `parallelForOuter`/`parallelForInner` (+ `parallelReduce/Scan/SearchInner`) with `KOKKOS_LAMBDA` (outer) and the `INNER_LAMBDA` macro (inner); `TeamMember Team`, `teamBarrier`, `Kokkos::single`, `LaunchConfig`/`TeamScratch` for scratch memory. Respect `OMEGA_MEMORY_LAYOUT` (default RIGHT).
 - **Error handling / logging:** use the `Error.h` facility (`doc/devGuide/Error.md`) — `ABORT_ERROR(msg, args…)`, `OMEGA_ASSERT`/`OMEGA_REQUIRE`, the `Error` class with `ErrorCode` enum (`Success`/`Warn`/`Fail`/`Critical`), accumulation via `+`/`+=`, and `RETURN_ERROR` / `CHECK_ERROR[_WARN|_ABORT]`. It builds on the spdlog-based **Logging** facility (`Logging.h`, fmt-style `{}` placeholders) and emits cpptrace stack traces in debug builds. Prefer the macros over calling `Error::abort()` directly.
 
+## Aurora environment (this run — 2026-06-17)
+
+The pipeline is running on **ALCF Aurora** (`aurora-uan-*`), an **Intel-GPU / SYCL** machine
+(6× Intel Data Center GPU Max / PVC per compute node). CIME machine name: **`aurora`**
+(`NODENAME_REGEX aurora-uan-.*`). Relevant for issue #1 (coverage):
+
+- **GPU backend here is SYCL only.** No NVIDIA/AMD hardware → CUDA + HIP device coverage
+  are out of scope on this machine and split to **#2**. Issue #1 = host/CPU + SYCL device.
+- **CIME compiler:** `oneapi-ifx` (SYCL device compiler is `icpx`, oneAPI 2025.3). gcc 13.4
+  is also present for the gcc/gcov host baseline (decision 2).
+- **ParMETIS:** `export OMEGA_PARMETIS_ROOT=/lus/flare/projects/E3SM_Dec/soft/polaris/aurora/spack/dev_polaris_1.0.0/var/spack/environments/spack_env_oneapi-ifx_mpich/.spack-env/view`
+  (contains `lib/libparmetis.a`).
+- **Coverage tools:** `llvm-cov` + `llvm-profdata` are in oneAPI at
+  `/opt/aurora/26.26.0/oneapi/2025.3/bin/compiler/` (LLVM path for icpx/clang targets).
+  `gcovr 8.6` + `pre-commit 4.6.0` installed under `~/.local`; `gcov` from gcc 13.4. (`lcov`/
+  `genhtml` are **not** installed — use `gcovr` for the lcov-format gcc path, or `llvm-cov`.)
+- **Modules / PATH:** `gh`, `cmake`/`ctest`, and `python3` (3.10) are symlinked into
+  `~/.local/bin` so they resolve in every non-login shell (the Aurora profile does not
+  auto-load these modules). The oneAPI `icpx` env must be module-loaded for builds.
+- **Test meshes:** canonical copies at
+  `/lus/flare/projects/E3SM_Dec/youngsun/data/omega/mesh/` (`OmegaMesh.nc`,
+  `OmegaSphereMesh.nc`, `OmegaPlanarMesh.nc`). **ctest runs from the build `test/` dir**, so
+  these three files must be linked there after configure — they are *not* picked up from the
+  source tree:
+  `ln -sf /lus/flare/projects/E3SM_Dec/youngsun/data/omega/mesh/Omega*.nc $BUILD/test/`.
+- **Compute node + internet (2026-06-23).** `./omega_ctest.sh` and `COVERAGE_REPORT` run on
+  a PBS **compute node** — UAN login nodes have no GPU (`sycl-ls` → "No platforms found").
+  This run's compute node (`x4309c7s0b0n0`) has **outbound internet configured**, so
+  `super-board` builds, runs the MPI/GPU suite, **and** drives gh / the Claude API from the
+  same allocation (the earlier air-gap halt no longer applies). Re-grab a node with
+  `qsub -I -l select=1 -l walltime=01:00:00 -A <ALLOC> -q <queue>` if the session ends.
+- **✅ Baseline ctest green.** After rebasing `ykim/omega/coverage` onto `origin/develop`
+  (carries PR #437 `omega/fix-debug-tracer-tests`) and linking the meshes,
+  `./omega_ctest.sh` reports **`100% tests passed, 0 failed out of 40`** (Release,
+  `oneapi-ifx`, build dir `$HOME/omega_build_aurora`). Coverage work starts clean.
+
 ## Success Criteria for Tickets
 
 A build ticket on Omega is "done" when:

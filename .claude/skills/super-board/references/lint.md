@@ -43,11 +43,11 @@ PHASE 0 — Pick config
 PHASE 1 — Confirm GitHub project
   "🎯 Linting: <project title> (#<number>) under <owner>
    Variant: <full|qa-only>
-   Columns to scan: [Backlog,] Ready, [Building,] QA, Review
+   Columns to scan: Ready, [Building,] QA, Review
    Proceed? (y/n)"
 
 PHASE 2 — Read the project, then ask "do I understand it?"
-  ├─ Fetch all issues in active-pipeline + intake columns (incl. Backlog when present)
+  ├─ Fetch all issues in active-pipeline columns
   ├─ Read PROJECT.md (if exists) + recent commits + repo README (if local)
   ├─ Sub-agent synthesizes a project summary (1-2 sentences)
   └─ Ask the user: "Anything I'm missing or got wrong?"
@@ -193,7 +193,7 @@ Saved to `docs/super-board/pre-flight.md`. Each `[ ]` is a halt gate for `super-
 
 - **Idempotent** — re-running on already-clear issues is silent.
 - **Resumable** — Ctrl-C anywhere is safe; re-run lint to continue.
-- **Walks active-pipeline + intake columns** — (Backlog) + Ready + (Building) + QA + Review. Skips Done/Blocked/Skipped. Backlog is the pre-Ready intake lane; scanned when the board has it, so raw tickets get clarified in place before promotion to Ready.
+- **Walks active-pipeline columns only** — Ready + (Building) + QA + Review. Skips Done/Blocked/Skipped.
 - **No local file writes** during Phase 4 — all state lives on GitHub issues. Session-reset is safe.
 
 ---
@@ -203,7 +203,7 @@ Saved to `docs/super-board/pre-flight.md`. Each `[ ]` is a halt gate for `super-
 Before declaring lint complete, the worker MUST verify all three:
 
 - [ ] `docs/super-board/pre-flight.md` exists and lists every credential / tool / env signal encountered while scanning issues + PROJECT.md.
-- [ ] Every issue in active-pipeline + intake columns (Backlog if present, Ready, Building if present, QA, Review) either:
+- [ ] Every issue in active-pipeline columns (Ready, Building if present, QA, Review) either:
   - has a populated `## Acceptance Criteria` section that passes all 12 criteria, OR
   - carries a `🤷 Skipped` comment explaining why it was deferred, OR
   - carries a `🛡 Blocked` comment naming the human-gated blocker.
