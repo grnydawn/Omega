@@ -66,11 +66,14 @@ threshold is the host/CPU coverage percentage below which `COVERAGE_REPORT` fail
 ```{note}
 **Which percentage is gated.** On the **gcov** path the gated number is the
 `gcovr` **line** percentage. On the **llvm** path (icpx/clang, the Aurora
-default), `coverage_report.sh` currently reads the **last** column of the
-`llvm-cov report` TOTAL row, which is **Branches**, not Lines — so it gates on
-branch coverage while labelling it "line coverage". Until that is fixed, read the
-gated llvm number as branch coverage and consult `coverage_summary.txt` for the
-true Lines column.
+default), the gated number is now the **Lines** column of the `llvm-cov report`
+TOTAL row, matching the "line coverage" label.
+
+*History:* before commit `c134bd2700`, `coverage_report.sh` read the **last**
+column of that row, which is **Branches** when the branch-summary is present — so
+it gated on branch coverage while labelling it "line coverage". If you are on a
+build at or before `44697f9e72`, read the gated llvm number as branch coverage
+and consult `coverage_summary.txt` for the true Lines column.
 ```
 
 ## Step 2 — Build
@@ -150,10 +153,12 @@ coverage is measured on the host CPU. Coverage is only collected when
 - The gate verdict line reads `HOST/CPU line coverage: <pct>% ... RESULT:
   PASS|FAIL`. This is the aggregate host/CPU coverage over `components/omega/src/`
   only (external libs, FetchContent deps, shared E3SM utils, and test sources are
-  excluded). **Caveat:** on the llvm path `<pct>` is currently the llvm-cov
-  **Branches** column despite the "line coverage" label (the parser takes the last
-  TOTAL column); the true **Lines** number is in `coverage_summary.txt`. On the
-  Aurora SERIAL/icpx baseline these were Branches 56.35% vs Lines 76.89%.
+  excluded). As of commit `c134bd2700` the llvm path gates on the **Lines** column,
+  matching the label. **Historical caveat:** on builds at or before `44697f9e72`,
+  `<pct>` on the llvm path was the llvm-cov **Branches** column despite the "line
+  coverage" label (the parser took the last TOTAL column); the true **Lines**
+  number is in `coverage_summary.txt`. On the Aurora SERIAL/icpx baseline these
+  were Branches 56.35% vs Lines 76.89%.
 - Per-file detail is in `coverage_summary.txt` (and the llvm-cov per-file table),
   grouped by area: `base/`, `infra/`, `ocn/` (+`ocn/auxiliaryVars/`),
   `timeStepping/`. Use the Line% column to find low-coverage files.

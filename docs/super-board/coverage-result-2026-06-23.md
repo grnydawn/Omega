@@ -2,11 +2,12 @@
 
 **CPU/host coverage on Aurora (`OMEGA_ARCH=SERIAL`, icpx) — 41/41 ctest passed.**
 llvm-cov totals over `components/omega/src/`: **Lines 76.89%**, Functions 91.85%,
-Regions 54.92%, Branches 56.35%. The `COVERAGE_REPORT` gate currently keys on
-**56.35%**, but that figure is the llvm-cov **Branches** column surfaced under a
-"line coverage" label — a parsing mislabel in `coverage_report.sh` on the llvm
-path (see [Caveat 2](#caveats--gap-to-90-target)). Gate result: **PASS@50, would
-FAIL@90**.
+Regions 54.92%, Branches 56.35%. At this baseline (`44697f9e72`) the
+`COVERAGE_REPORT` gate keyed on **56.35%**, but that figure is the llvm-cov
+**Branches** column surfaced under a "line coverage" label — a parsing mislabel in
+`coverage_report.sh` on the llvm path, **fixed in `c134bd2700`** so the gate now
+keys on Lines (76.89%); see [Caveat 2](#caveats--gap-to-90-target). Gate result at
+this baseline: **PASS@50, would FAIL@90**.
 
 ## Setup that produced this result
 
@@ -125,11 +126,13 @@ deferred to follow-up issue #2.
    TOTAL row with `grep -oE '[0-9.]+%' | tail -1`, which selects the **last**
    column. In llvm-cov's `report` layout the last column is **Branches**, so the
    gate keys on **Branches = 56.35%** while printing it as "HOST/CPU line
-   coverage". Actual **line coverage is 76.89%**. This is a real bug worth fixing
-   in PR #4: either parse the **Lines** column explicitly, or relabel the metric
-   as branch coverage. The gcc→gcov path is unaffected (gcovr reports a true line
-   percentage). Earlier PR/issue comments cite 56.21% for the same run; the
-   committed evidence settled on 56.35%.
+   coverage". Actual **line coverage is 76.89%**. **Fixed in `c134bd2700`** (PR #4):
+   the llvm path now selects the 3rd percentage of the TOTAL row (the **Lines**
+   column), so the gate keys on 76.89% and the "line coverage" label is accurate.
+   The numbers in this report predate that fix and reflect baseline `44697f9e72`.
+   The gcc→gcov path was always unaffected (gcovr reports a true line percentage).
+   Earlier PR/issue comments cite 56.21% for the same run; the committed evidence
+   settled on 56.35%.
 3. **Benign llvm-cov warning:** "8579 functions have mismatched data" — an
    artifact of merging `.profraw` across many executables that instantiate the
    same templated headers. TOTAL numbers remain valid.
