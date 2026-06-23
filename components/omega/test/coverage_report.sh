@@ -240,9 +240,12 @@ run_llvm_path() {
     -format=lcov > coverage.info 2>/dev/null || \
     echo "WARN: llvm-cov lcov export failed (report still produced)."
 
-  # The TOTAL line in `llvm-cov report` ends with the line-coverage percentage.
+  # In `llvm-cov report` the TOTAL row emits cover percentages in fixed column
+  # order: Regions, Functions, Lines, [Branches]. Line coverage is therefore the
+  # 3rd percentage token (using tail -1 grabbed Branches when the branch-summary
+  # column is present, mislabelling branch coverage as line coverage).
   local pct
-  pct="$(grep -iE '^TOTAL' coverage_summary.txt | grep -oE '[0-9]+\.?[0-9]*%' | tail -1)"
+  pct="$(grep -iE '^TOTAL' coverage_summary.txt | grep -oE '[0-9]+\.?[0-9]*%' | sed -n '3p')"
   if [ -z "${pct}" ]; then
     echo "ERROR: could not parse TOTAL line coverage from llvm-cov output."
     return 1
