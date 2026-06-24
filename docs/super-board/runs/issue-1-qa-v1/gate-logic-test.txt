@@ -1,0 +1,6 @@
+FAIL (56.21% < 90)
+  exit=1
+PASS (56.21% >= 50)
+  exit=0
+FAIL (0.00% < 50)
+  exit=1  (zero coverage must FAIL)

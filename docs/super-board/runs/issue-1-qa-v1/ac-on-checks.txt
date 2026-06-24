@@ -1,0 +1,31 @@
+===== ON+Debug AC checks (build dir: /lus/flare/projects/E3SM_Dec/youngsun/scratch/qa-issue1/build-ON) =====
+--- [AC] coverage compile flags injected (llvm path: -fprofile-instr-generate -fcoverage-mapping) ---
+CMAKE_CXX_FLAGS:STRING=
+WARN: expected llvm flags not in CMAKE_CXX_FLAGS cache var (check log toolchain line)
+--- [AC] toolchain selected = llvm (icpx is Clang-derived, decision 2) ---
+-- OMEGA_COVERAGE = ON (toolchain=llvm, flags=-fprofile-instr-generate -fcoverage-mapping)
+--- [AC] OMEGA_COVERAGE ON + threshold cache var ---
+OMEGA_COVERAGE:BOOL=ON
+OMEGA_COVERAGE_THRESHOLD:STRING=50
+--- [AC] omega_coverage.sh helper generated (decision 4) ---
+PASS: omega_coverage.sh exists
+--- [AC] COVERAGE_REPORT test registered ---
+PASS: COVERAGE_REPORT registered
+--- [AC] COVERAGE_REPORT scheduled LAST via FIXTURES_CLEANUP + tests REQUIRE fixture ---
+  FIXTURES_CLEANUP on COVERAGE_REPORT:
+add_test([=[COVERAGE_REPORT]=] "/opt/aurora/26.26.0/spack/unified/1.1.1/install/linux-x86_64/cmake-3.31.11-pss2phi/bin/cmake" "-E" "env" "OMEGA_COVERAGE_TOOLCHAIN=llvm" "OMEGA_COVERAGE_THRESHOLD=50" "OMEGA_SOURCE_DIR=/home/youngsun/repos/github/Omega/.worktrees/issue-1-qa/components/omega" "OMEGA_BUILD_DIR=/lus/flare/projects/E3SM_Dec/youngsun/scratch/qa-issue1/build-ON" "OMEGA_CXX_COMPILER=/opt/aurora/26.26.0/spack/unified/1.1.1/install/linux-x86_64/mpich-5.0.0.aurora_test.3c70a61-hlkigtk/bin/mpicxx" "bash" "/home/youngsun/repos/github/Omega/.worktrees/issue-1-qa/components/omega/test/coverage_report.sh" "/lus/flare/projects/E3SM_Dec/youngsun/scratch/qa-issue1/build-ON")
+set_tests_properties([=[COVERAGE_REPORT]=] PROPERTIES  FIXTURES_CLEANUP "coverage" LABELS "SERIAL;Omega-Coverage" _BACKTRACE_TRIPLES "/home/youngsun/repos/github/Omega/.worktrees/issue-1-qa/components/omega/test/CMakeLists.txt;547;add_test;/home/youngsun/repos/github/Omega/.worktrees/issue-1-qa/components/omega/test/CMakeLists.txt;0;")
+  Sample unit test with FIXTURES_REQUIRED coverage:
+set_tests_properties([=[DATA_TYPES_TEST]=] PROPERTIES  ENVIRONMENT "LLVM_PROFILE_FILE=/lus/flare/projects/E3SM_Dec/youngsun/scratch/qa-issue1/build-ON/test/DATA_TYPES_TEST.%p.profraw" FIXTURES_REQUIRED "coverage" LABELS "SERIAL;Omega-0" _BACKTRACE_TRIPLES "/home/youngsun/repos/github/Omega/.worktrees/issue-1-qa/components/omega/test/CMakeLists.txt;59;add_test;/home/youngsun/repos/github/Omega/.worktrees/issue-1-qa/components/omega/test/CMakeLists.txt;97;add_omega_test;/home/youngsun/repos/github/Omega/.worktrees/issue-1-qa/components/omega/test/CMakeLists.txt;0;")
+set_tests_properties([=[MACHINE_ENV_TEST]=] PROPERTIES  ENVIRONMENT "LLVM_PROFILE_FILE=/lus/flare/projects/E3SM_Dec/youngsun/scratch/qa-issue1/build-ON/test/MACHINE_ENV_TEST.%p.profraw" FIXTURES_REQUIRED "coverage" LABELS "SERIAL;Omega-0" _BACKTRACE_TRIPLES "/home/youngsun/repos/github/Omega/.worktrees/issue-1-qa/components/omega/test/CMakeLists.txt;59;add_test;/home/youngsun/repos/github/Omega/.worktrees/issue-1-qa/components/omega/test/CMakeLists.txt;108;add_omega_test;/home/youngsun/repos/github/Omega/.worktrees/issue-1-qa/components/omega/test/CMakeLists.txt;0;")
+  count tests requiring fixture 'coverage':
+39
+--- [AC] toolchain + LLVM_PROFILE_FILE env set per test (llvm path) ---
+39
+--- ctest dry-run: confirm COVERAGE_REPORT orders LAST ---
+  Test #37: EOS_TEST
+  Test #38: VERTCOORD_TEST
+  Test #39: VERTMIX_TEST
+  Test #40: VERTADV_TEST
+  Test #41: COVERAGE_REPORT
+Total Tests: 41

@@ -339,3 +339,106 @@ Omega:
 For more details on updating either the map or the YAML files for individual
 tests, see the Polaris
 [Ocean Framework documentation](https://docs.e3sm.org/polaris/main/developers_guide/ocean/framework.html).
+
+
+(omega-dev-coverage)=
+
+## Code Coverage
+
+Omega can measure code coverage during a CTest run and report an aggregate
+number as the **final** test in the suite. Coverage is fully gated by the
+`OMEGA_COVERAGE` CMake option, which is **OFF by default** — an ordinary build
+injects no coverage flags and registers no coverage test.
+
+### Enabling coverage
+
+Configure with coverage on, in a **Debug** build (required — an optimized build
+skews line attribution, so `OMEGA_COVERAGE=ON` with a non-Debug
+`OMEGA_BUILD_TYPE` is a hard configure error):
+
+```sh
+cmake \
+  -DOMEGA_BUILD_TYPE=Debug \
+  -DOMEGA_COVERAGE=ON \
+  -DOMEGA_BUILD_TEST=ON \
+  ... (other standard options) ...
+  -S <repo>/components/omega -B .
+./omega_build.sh
+./omega_coverage.sh        # runs ctest (incl. COVERAGE_REPORT) + optional Codecov upload
+```
+
+`./omega_coverage.sh` is generated into the build directory (only when coverage
+is on). It runs the full ctest suite — whose last test, `COVERAGE_REPORT`,
+aggregates coverage across **all** test executables in a single sweep — and then
+uploads to Codecov if `CODECOV_TOKEN` is set. You may also run `./omega_ctest.sh`
+directly; `COVERAGE_REPORT` still runs last.
+
+### How it works
+
+- **Toolchain split (selected by compiler):**
+  - GCC host / CPU baseline (Serial, OpenMP built with gcc) →
+    `--coverage` (gcov) instrumentation, aggregated with `gcovr` into
+    lcov-format `coverage.info`.
+  - Clang-derived targets (SYCL `icpx`, clang CPU, HIP `amdclang++`,
+    CUDA host-via-clang) → `-fprofile-instr-generate -fcoverage-mapping`,
+    aggregated with `llvm-profdata merge` + `llvm-cov`.
+- **Ordering:** every unit test declares `FIXTURES_REQUIRED coverage`; the
+  `COVERAGE_REPORT` test declares `FIXTURES_CLEANUP coverage`, so CTest always
+  schedules it after all instrumented tests, independent of `-j` parallelism.
+- **Aggregation, not per-test:** `COVERAGE_REPORT` runs a single
+  `gcovr` (or `llvm-profdata merge`) sweep over the whole build tree, so the
+  reported number is the union across all tests.
+- **Gate (decision 3):** host/CPU line coverage is gated at
+  `OMEGA_COVERAGE_THRESHOLD` (default **90%**, tunable via
+  `-DOMEGA_COVERAGE_THRESHOLD=<pct>`). `COVERAGE_REPORT` — and therefore the
+  ctest run — **fails** when host coverage is below it. Each **device** backend
+  reports its **own** best-effort number with **no hard gate** for v1.
+- **Scope (decision 6):** the total **excludes** `*/external/*` (vendored
+  GSW-C, spdlog, yaml-cpp, cpptrace) and `*/test/*`, measuring Omega `src/` only.
+- **Reporting (decision 4):** results go to **CDash** (via `ctest_coverage()` +
+  the existing `ctest_submit` plumbing, with `CTEST_COVERAGE_COMMAND gcov` set in
+  `CTestConfig.cmake`) **and Codecov** (`codecov.yml` + the helper-script upload).
+  Coverage is run **manually**; no `.github/workflows/*` coverage CI job is added.
+
+### Device-side coverage (per backend)
+
+Host/CPU coverage is production-grade for every backend. Device-side GPU coverage
+maturity differs sharply per backend; the matrix below records the
+best-available method, its maturity, and its key limitation. v1 on this card
+covers host/CPU + **SYCL** device coverage; **CUDA and HIP device coverage are
+split to follow-up #2** (they need NVIDIA/AMD hardware).
+
+| Backend | Host-side coverage | Device-side coverage (method · maturity · limitation) |
+|---|---|---|
+| **Serial / OpenMP (CPU)** | Fully supported — gcov/lcov (gcc) or LLVM source-based (clang). Kokkos lambdas compile to host here, so kernel source bodies are covered too. | N/A — no separate device. The reliable primary metric. |
+| **CUDA** *(→ #2)* | Supported via `nvcc_wrapper` host channel. | **Nsight Compute `inst_executed` exec-count proxy** (build `-lineinfo`, run under `ncu`, lines with exec>0 = covered). Maturity: production profiler used as a DIY proxy (line-execution, no branch/region). Limit: heavy replay overhead, no native lcov output; `nvcc` has no device gcov path. NVBit true region coverage is a research follow-up. |
+| **HIP** *(→ #2)* | Supported — `amdclang++` is Clang-based → LLVM host coverage. | **`rocprofv3`/`rocprof-compute` PC-sampling** source attribution (build `-g`). Maturity: production-but-statistical. Limit: no turnkey device `llvm-cov` (`-fcoverage-mapping` is host-only); statistical, can miss rarely-run lines. LLVM device-PGO is an unmerged RFC (follow-up). |
+| **SYCL** | Supported — `icpx`/DPC++ is Clang/LLVM-based → `llvm-cov` host coverage. | **intel/llvm native SYCL device source-based coverage** (SPIR-V / Level Zero; `-fprofile-instr-generate -fcoverage-mapping -fno-sycl-use-footer`), merged with host into one `.profdata`. Maturity: experimental (merged intel/llvm late 2025, PR #20710). Strongest device path — gives device line/region + exec counts. Limit: Level Zero only, work-item-aggregated counts, requires an `icpx` containing PR #20710. **Fallback:** `-fsycl-targets=native_cpu` coverage as a portable reachability cross-check when the toolchain lacks #20710. |
+
+**Honest framing:** CTest coverage reliably reports **host/CPU** coverage for all
+backends. For **device** coverage, only **SYCL** has a real (experimental) device
+line/region path today; CUDA and HIP use exec-count / region-hit proxies. Host
+coverage is gated; device numbers are best-effort with no hard gate for v1.
+
+### Tools
+
+The gcc/gcov path uses `gcovr` (and `lcov`/`genhtml` for HTML), added to
+`dev-conda.txt`. The LLVM path uses `llvm-cov` + `llvm-profdata`, which ship with
+the Clang/oneAPI toolchain. On ALCF Aurora, `llvm-cov`/`llvm-profdata` are NOT on
+the default `PATH` — they live in the compiler's sibling `bin/compiler/` directory
+(e.g. `.../oneapi/compiler/latest/bin/compiler/`). `COVERAGE_REPORT` locates them
+automatically from `OMEGA_CXX_COMPILER` (and falls back to `icpx`/`clang++` on
+`PATH`), so no manual `PATH` edit is needed; `gcovr` is installed under `~/.local`.
+
+**Scope of the total (decision 6).** The aggregate measures `components/omega/src/`
+only. The `llvm-cov` path scopes via `-ignore-filename-regex` and the `gcovr` path
+via `--filter`/`--exclude`; both drop the FetchContent third-party trees
+(`externals/`, the build `_deps/` tree), the shared E3SM utils under `share/`, the
+vendored libs under `components/omega/external/`, and the `test/` sources.
+
+**Measured baseline.** A first end-to-end run on Aurora (icpx, `OMEGA_ARCH=SERIAL`,
+40 unit tests, LLVM toolchain) reports ~56% line coverage over Omega `src/`. Since
+the default gate is 90% (the mam4xx target, decision 3), a default coverage build
+fails `COVERAGE_REPORT` until the threshold is tuned to the project's accepted
+baseline via `-DOMEGA_COVERAGE_THRESHOLD=<pct>`; the failing report prints the
+exact tuning command.

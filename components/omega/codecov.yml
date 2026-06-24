@@ -1,0 +1,35 @@
+# Codecov configuration for Omega coverage (issue #1, decision 4).
+#
+# Mirrors the mam4xx codecov.yml (target: 90%) and the vendored/test exclusions
+# of decision 6. Uploaded manually via the generated omega_coverage.sh helper
+# (no GitHub Actions coverage CI job is added). The host/CPU 90% target here
+# matches the COVERAGE_REPORT ctest gate (OMEGA_COVERAGE_THRESHOLD default).
+
+codecov:
+  require_ci_to_pass: false
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+  status:
+    project:
+      default:
+        target: 90%
+        threshold: 1%
+    patch:
+      default:
+        target: 90%
+        threshold: 1%
+
+# Measure Omega's own src/ only - exclude vendored third-party code and tests.
+ignore:
+  - "components/omega/external/**/*"
+  - "components/omega/test/**/*"
+  - "**/external/**/*"
+  - "**/test/**/*"
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false

@@ -1,0 +1,15 @@
+===== OFF-by-default AC checks (build dir: /lus/flare/projects/E3SM_Dec/youngsun/scratch/qa-issue1/build-OFF) =====
+--- [AC] no coverage compile flags injected into CMAKE_CXX_FLAGS ---
+PASS: no coverage flags in CMAKE_CXX_FLAGS cache vars
+CMAKE_CXX_FLAGS:STRING=
+CMAKE_CXX_FLAGS_DEBUG:STRING=-g -Rno-debug-disables-optimization
+--- [AC] OMEGA_COVERAGE option is OFF in cache ---
+OMEGA_COVERAGE:BOOL=OFF
+--- [AC] COVERAGE_REPORT test NOT registered when OFF ---
+PASS: no COVERAGE_REPORT test registered
+--- [AC] no omega_coverage.sh helper generated when OFF ---
+PASS: no omega_coverage.sh in OFF build
+--- count of registered tests (should be the same 40 unit tests, no coverage test) ---
+40
+--- test names ---
+[=[AUXSTATE_TEST]=] [=[AUXVARS_PLANE_TEST]=] [=[AUXVARS_SPHERE_TEST]=] [=[BROADCAST_TEST]=] [=[CONFIG_TEST]=] [=[DATA_TYPES_TEST]=] [=[DECOMP_NTASK1_TEST]=] [=[DECOMP_NTASK8_TEST]=] [=[DIMENSION_TEST]=] [=[DRIVER_TEST]=] [=[EOS_TEST]=] [=[ERROR_TEST]=] [=[FIELD_TEST]=] [=[GSWC_CALL_TEST]=] [=[HALO_TEST]=] [=[HORZMESH_TEST]=] [=[HORZOPERATORS_PLANE_TEST]=] [=[HORZOPERATORS_SPHERE_TEST]=] [=[IOSTREAM_TEST]=] [=[IO_TEST]=] [=[KOKKOS_FLATPAR_TEST]=] [=[KOKKOS_HIPAR_TEST]=] [=[LOGGING_TEST]=] [=[MACHINE_ENV_TEST]=] [=[PGRAD_TEST]=] [=[REDUCTIONS_TEST]=] [=[STATE_TEST]=] [=[TENDENCIES_TEST]=] [=[TEND_PLANE_SINGLE_PRECISION_TEST]=] [=[TEND_PLANE_TEST]=] [=[TEND_SPHERE_TEST]=] [=[TIMEINTERVAL_PARSE_EXTENDED_FORMATS_TEST]=] [=[TIMEINTERVAL_PARSE_TEST]=] [=[TIMEMGR_TEST]=] [=[TIMESTEPPER_TEST]=] [=[TRACERS_TEST]=] [=[TRIDIAGSOLVERS_TEST]=] [=[VERTADV_TEST]=] [=[VERTCOORD_TEST]=] [=[VERTMIX_TEST]=] 
