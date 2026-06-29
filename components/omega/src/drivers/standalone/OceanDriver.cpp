@@ -14,6 +14,11 @@
 
 #include <iostream>
 
+// The standalone driver provides Omega's entry point and is only compiled in
+// standalone builds. In E3SM-coupled builds the coupler supplies main() and
+// drives Omega through the ocnInit/ocnRun/ocnFinalize interface instead.
+#if OMEGA_BUILD_MODE_STANDALONE
+
 int main(int argc, char **argv) {
 
    int ErrAll;
@@ -70,5 +75,7 @@ int main(int argc, char **argv) {
       ErrAll = 255;
    return ErrAll;
 }
+
+#endif // OMEGA_BUILD_MODE_STANDALONE
 
 //===----------------------------------------------------------------------===//

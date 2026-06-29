@@ -71,6 +71,26 @@ OMEGA_LOG_TASKS: set the tasks that generate log file. "0" is a default value.
 OMEGA_VECTOR_LENGTH: Vector length used for blocking inner loops for vectorization. "1" is a default value.
 ```
 
+Build-mode compile-time macros
+
+The selected `OMEGA_BUILD_MODE` is exposed to C/C++ source as preprocessor
+macros so code can be conditionally compiled for standalone or E3SM-coupled
+builds:
+
+```
+OMEGA_BUILD_MODE: numeric build-mode id (1 = STANDALONE, 2 = E3SM)
+OMEGA_BUILD_MODE_STANDALONE: 1 in standalone builds, 0 otherwise
+OMEGA_BUILD_MODE_E3SM_COUPLED: 1 in E3SM-coupled builds, 0 otherwise
+```
+
+Prefer the boolean-style macros in source code, e.g.
+
+```c++
+#if OMEGA_BUILD_MODE_STANDALONE
+   // standalone-only code (e.g. the driver's main())
+#endif
+```
+
 E3SM-specific variables
 
 ```

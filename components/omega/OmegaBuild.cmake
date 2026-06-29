@@ -540,7 +540,31 @@ macro(update_variables)
   # Set the build type
   set(CMAKE_BUILD_TYPE ${OMEGA_BUILD_TYPE})
 
-  add_definitions(-DOMEGA_BUILD_MODE=${OMEGA_BUILD_MODE})
+  # Expose the Omega build mode to C/C++ as compile-time macros.
+  #
+  # Use the boolean-style macros below in source code:
+  #   #if OMEGA_BUILD_MODE_STANDALONE
+  #   #if OMEGA_BUILD_MODE_E3SM_COUPLED
+  #
+  # OMEGA_BUILD_MODE is also kept as a numeric macro for code that needs a
+  # single build-mode value.
+  if("${OMEGA_BUILD_MODE}" STREQUAL "STANDALONE")
+    add_definitions(
+      -DOMEGA_BUILD_MODE=1
+      -DOMEGA_BUILD_MODE_STANDALONE=1
+      -DOMEGA_BUILD_MODE_E3SM_COUPLED=0
+    )
+
+  elseif("${OMEGA_BUILD_MODE}" STREQUAL "E3SM")
+    add_definitions(
+      -DOMEGA_BUILD_MODE=2
+      -DOMEGA_BUILD_MODE_STANDALONE=0
+      -DOMEGA_BUILD_MODE_E3SM_COUPLED=1
+    )
+
+  else()
+    message(FATAL_ERROR "OMEGA_BUILD_MODE is neither E3SM nor STANDALONE.")
+  endif()
 
   if(NOT DEFINED OMEGA_LOG_LEVEL)
     set(OMEGA_LOG_LEVEL "INFO")
