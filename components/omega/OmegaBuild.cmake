@@ -30,6 +30,8 @@ macro(common)
   option(OMEGA_LOG_FLUSH "Turn on unbuffered logging (default OFF)." OFF)
   option(OMEGA_TEST_CDASH "Turn on CDash support (default ON)." ON)
   option(OMEGA_EXTERNAL_PROF "Integration of Omega timers with external profiling tools (default OFF)." OFF)
+  option(OMEGA_MEMCHECK "Wrap unit tests with a per-rank memory-leak checker (standalone only, default OFF)." OFF)
+  option(OMEGA_COVERAGE "Instrument the standalone build for host code coverage (standalone only, default OFF)." OFF)
 
   if("${OMEGA_BUILD_TYPE}" STREQUAL "Debug" OR "${OMEGA_BUILD_TYPE}" STREQUAL "DEBUG")
     set(OMEGA_DEBUG ON)
@@ -535,6 +537,15 @@ endmacro()
 ##################################
 # Set Cmake and Kokkos variables #
 ##################################
+# Analysis tooling. Real bodies land in later tasks; the empty launcher keeps
+# add_omega_test() byte-identical while OMEGA_MEMCHECK is OFF or unwired.
+function(setup_memcheck)
+  set(OMEGA_MEMCHECK_LAUNCHER "" CACHE INTERNAL "per-rank memory-check launcher" FORCE)
+endfunction()
+
+function(setup_coverage)
+endfunction()
+
 macro(update_variables)
 
   # Set the build type

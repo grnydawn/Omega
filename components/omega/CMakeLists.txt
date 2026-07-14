@@ -90,6 +90,15 @@ check_setup()
 ###########################################################
 
 add_subdirectory(external)
+
+# Opt-in analysis tooling (no-ops when OMEGA_COVERAGE/OMEGA_MEMCHECK are OFF).
+# Placed AFTER external/ so third-party targets are not instrumented, and BEFORE
+# src/ (coverage flags must reach all Omega targets), include(CTest)
+# (COVERAGE_COMMAND must reach DartConfiguration.tcl) and test/
+# (OMEGA_MEMCHECK_LAUNCHER must exist when add_omega_test runs).
+setup_coverage()
+setup_memcheck()
+
 add_subdirectory(src)
 
 if(OMEGA_BUILD_TEST)
