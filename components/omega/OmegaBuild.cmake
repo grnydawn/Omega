@@ -539,6 +539,64 @@ endmacro()
 ##################################
 # Analysis tooling. Real bodies land in later tasks; the empty launcher keeps
 # add_omega_test() byte-identical while OMEGA_MEMCHECK is OFF or unwired.
+# ---------------------------------------------------------------------------
+# omega_capability_map(compiler_id arch  out_memtool out_memopts out_gcovtool out_covflags)
+#
+# Central, side-effect-free lookup for analysis tooling. Keyed on
+# CMAKE_CXX_COMPILER_ID (valid only AFTER project()) x OMEGA_ARCH.
+#   * Add a machine/arch  -> add one row in the "memcheck tool <- arch" block.
+#   * Add a compiler      -> extend the "compiler family -> gcov" classifier.
+#   out_memtool : leak-checker executable name, or "" if none wired for this arch
+#   out_memopts : ;-list of leak-checker options (must carry the --error-exitcode contract)
+#   out_gcovtool: gcov front-end, "gcov" or "llvm-cov gcov"
+#   out_covflags: coverage instrumentation flag(s), "--coverage"
+# ---------------------------------------------------------------------------
+function(omega_capability_map compiler_id arch
+         out_memtool out_memopts out_gcovtool out_covflags)
+
+  # compiler family -> gcov front-end
+  if(compiler_id MATCHES "^GNU")
+    set(_gcov "gcov")                              # g++
+  elseif(compiler_id MATCHES "Clang|IntelLLVM")    # clang++, icpx, amdclang++
+    set(_gcov "llvm-cov gcov")
+  else()
+    set(_gcov "gcov")                              # host fallback (nvcc_wrapper/Cray/empty)
+  endif()
+
+  set(_covflags "--coverage")   # accepted by GNU, Clang and icpx alike
+  set(_memtool "")
+  set(_memopts "")
+
+  # memcheck tool <- arch
+  if(arch MATCHES "^(SERIAL|OPENMP|THREADS)$")
+    set(_memtool "valgrind")
+    set(_memopts
+      "--tool=memcheck"
+      "--leak-check=full"
+      "--show-leak-kinds=definite,indirect"
+      "--errors-for-leak-kinds=definite,indirect"
+      "--error-exitcode=1"
+      "--child-silent-after-fork=yes")
+    if(NOT arch STREQUAL "SERIAL")
+      # threaded runtimes busy-wait; --fair-sched avoids valgrind stalls
+      list(APPEND _memopts "--fair-sched=yes")
+    endif()
+  elseif(arch STREQUAL "CUDA")
+    # wired-but-manual (no GPU in Chrysalis CI)
+    set(_memtool "compute-sanitizer")
+    set(_memopts "--tool=memcheck" "--leak-check=full" "--error-exitcode=1")
+  else()
+    # HIP / SYCL: no drop-in launcher-based leak tool with an --error-exitcode
+    # contract; wired-but-manual (rocgdb / Intel Inspector).
+    set(_memtool "")
+  endif()
+
+  set(${out_memtool}  "${_memtool}"  PARENT_SCOPE)
+  set(${out_memopts}  "${_memopts}"  PARENT_SCOPE)
+  set(${out_gcovtool} "${_gcov}"     PARENT_SCOPE)
+  set(${out_covflags} "${_covflags}" PARENT_SCOPE)
+endfunction()
+
 function(setup_memcheck)
   set(OMEGA_MEMCHECK_LAUNCHER "" CACHE INTERNAL "per-rank memory-check launcher" FORCE)
 endfunction()
