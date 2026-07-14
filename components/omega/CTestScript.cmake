@@ -12,6 +12,16 @@ ctest_test(
   CAPTURE_CMAKE_ERROR TestResult
 )
 
+# Coverage (OMEGA_COVERAGE=ON): COVERAGE_COMMAND was written to
+# DartConfiguration.tcl by include(CTest) and is read back into
+# CTEST_COVERAGE_COMMAND by ctest_start(); no-op otherwise.
+if(CTEST_COVERAGE_COMMAND)
+  ctest_coverage(
+    RETURN_VALUE CoverageRetval
+    CAPTURE_CMAKE_ERROR CoverageResult
+  )
+endif()
+
 # Memcheck (OMEGA_MEMCHECK=ON): the leak tool is embedded per-rank in each test
 # command (see add_omega_test) and leaks already fail ctest_test() above via
 # valgrind --error-exitcode=1. CTEST_MEMORYCHECK_COMMAND is intentionally left

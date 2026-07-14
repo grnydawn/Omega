@@ -33,3 +33,6 @@ rst-to-myst
 # CF-compliance
 cfchecker
 udunits2
+
+# code coverage
+gcovr

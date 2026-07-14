@@ -668,7 +668,86 @@ function(setup_memcheck)
   execute_process(COMMAND chmod +x ${_McScript})
 endfunction()
 
+# ---------------------------------------------------------------------------
+# setup_coverage() — STANDALONE-only. Instrument Omega src+test (NOT external/,
+# already added) for host code coverage. -O0 -g is applied via directory
+# COMPILE_OPTIONS, which are emitted AFTER CMAKE_CXX_FLAGS_<CONFIG> on the
+# compile line, so -O0 reliably overrides a Release -O3 while preserving the
+# named build type's other flags. A single generated 'gcov' wrapper (execs
+# 'gcov' or 'llvm-cov gcov') backs both COVERAGE_COMMAND (CTest's parser keys on
+# the basename 'gcov') and gcovr. Call AFTER project() + add_subdirectory(external)
+# and BEFORE add_subdirectory(src)/include(CTest).
+# ---------------------------------------------------------------------------
 function(setup_coverage)
+  if(NOT OMEGA_COVERAGE)
+    return()
+  endif()
+  if(NOT "${OMEGA_BUILD_MODE}" STREQUAL "STANDALONE")
+    message(WARNING "OMEGA_COVERAGE is supported only in standalone builds; ignoring.")
+    return()
+  endif()
+
+  omega_capability_map("${CMAKE_CXX_COMPILER_ID}" "${OMEGA_ARCH}"
+                       _ignore_mt _ignore_mo _gcovtool _covflags)
+
+  message(STATUS "OMEGA_COVERAGE = ON (host-only instrumentation; gcov='${_gcovtool}')")
+
+  # 1. Instrument compile + link for Omega (src + test) only. external/ was
+  #    already added, so its targets do not inherit these options.
+  separate_arguments(_cov_list NATIVE_COMMAND "${_covflags}")
+  add_compile_options(${_cov_list} -O0 -g)
+  add_link_options(${_cov_list})
+
+  if(OMEGA_TARGET_DEVICE)
+    message(WARNING "OMEGA_COVERAGE instruments HOST code only; device "
+                    "(CUDA/HIP/SYCL) kernels are not measured.")
+  endif()
+
+  # 2. Uniform 'gcov' wrapper so CTest's basename parser and gcovr both work for
+  #    GNU (gcov) and LLVM (llvm-cov gcov). Absolute path captured now.
+  set(_GcovWrap ${OMEGA_BUILD_DIR}/gcov)
+  file(WRITE  ${_GcovWrap} "#!/usr/bin/env bash\n")
+  file(APPEND ${_GcovWrap} "exec ${_gcovtool} \"$@\"\n")
+  execute_process(COMMAND chmod +x ${_GcovWrap})
+
+  # 3. CDash / ctest_coverage() wiring (consumed by include(CTest) into
+  #    DartConfiguration.tcl, read back by ctest_start() as CTEST_COVERAGE_COMMAND).
+  set(COVERAGE_COMMAND "${_GcovWrap}" CACHE FILEPATH "gcov command for ctest_coverage" FORCE)
+
+  # 4. gcovr HTML/text report (optional dependency; manual 'coverage' target).
+  find_program(OMEGA_GCOVR_EXE NAMES gcovr)
+  if(OMEGA_GCOVR_EXE)
+    set(_CovDir ${OMEGA_BUILD_DIR}/coverage)
+    add_custom_target(coverage
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${_CovDir}
+      COMMAND ${OMEGA_GCOVR_EXE}
+              --root ${OMEGA_SOURCE_DIR}
+              --filter ${OMEGA_SOURCE_DIR}/src/
+              --gcov-executable ${_GcovWrap}
+              --exclude-unreachable-branches --exclude-throw-branches
+              --print-summary
+              --txt ${_CovDir}/omega_coverage.txt
+              --html-details ${_CovDir}/omega_coverage.html
+              ${OMEGA_BUILD_DIR}
+      WORKING_DIRECTORY ${OMEGA_BUILD_DIR}
+      COMMENT "gcovr: Omega coverage report -> ${_CovDir}"
+      VERBATIM)
+
+    # Helper (mirrors omega_ctest.sh): run tests, then build the report.
+    set(_CovScript ${OMEGA_BUILD_DIR}/omega_coverage.sh)
+    file(WRITE  ${_CovScript} "#!/usr/bin/env bash\n\n")
+    file(APPEND ${_CovScript} "source ./omega_env.sh\n\n")
+    file(APPEND ${_CovScript} "# NOTE: multi-rank tests write .gcda concurrently; libgcov file-locks and\n")
+    file(APPEND ${_CovScript} "# merges per source on a shared node. For cross-node robustness set a\n")
+    file(APPEND ${_CovScript} "# per-rank GCOV_PREFIX (see doc/devGuide/Testing.md).\n\n")
+    file(APPEND ${_CovScript} "ctest --output-on-failure \"$@\"\n\n")
+    file(APPEND ${_CovScript} "cmake --build . --target coverage\n\n")
+    execute_process(COMMAND chmod +x ${_CovScript})
+  else()
+    message(WARNING "OMEGA_COVERAGE: 'gcovr' not found (add via dev-conda.txt); "
+                    "skipping HTML report / 'coverage' target. Raw .gcda/.gcno and "
+                    "'ctest -T coverage' still work.")
+  endif()
 endfunction()
 
 macro(update_variables)
