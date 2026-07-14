@@ -339,3 +339,55 @@ Omega:
 For more details on updating either the map or the YAML files for individual
 tests, see the Polaris
 [Ocean Framework documentation](https://docs.e3sm.org/polaris/main/developers_guide/ocean/framework.html).
+
+## Memory-leak and coverage analysis (standalone)
+
+Two opt-in CMake options add analysis to the standalone CTest suite. Both
+default OFF, are standalone-only, and are independent.
+
+### Memory-leak checking — `-DOMEGA_MEMCHECK=ON`
+
+Each test rank runs under an auto-selected leak checker (valgrind on CPU;
+`compute-sanitizer` on CUDA). A leak makes the test fail (`--error-exitcode=1`),
+so leaks appear as failed tests in a normal run. Configure, build, then:
+
+``` bash
+./omega_memcheck.sh                 # whole suite (compute node)
+./omega_memcheck.sh -L memcheck     # only memcheck-labelled tests
+./omega_memcheck.sh -R HALO_TEST    # one test
+```
+
+valgrind is 10–30× slower, so tests get a 3600 s timeout under memcheck. Benign
+third-party init leaks are masked by `test/omega.supp`; regenerate/extend it by
+adding `--gen-suppressions=all` to the launcher. A `MEMCHECK_PROBE_TEST` (a
+deliberate leak, `WILL_FAIL`) is registered only under memcheck to prove the
+checker actually detects leaks.
+
+CDash note: because tests launch through MPI, the checker is embedded per rank
+rather than via CTest's `MEMORYCHECK_COMMAND` (which would wrap `srun`). Leaks
+therefore appear on CDash as failed tests, not as a Dynamic Analysis widget.
+
+### Coverage — `-DOMEGA_COVERAGE=ON`
+
+Instruments Omega host code (`--coverage -O0 -g`; third-party deps excluded),
+selects the gcov front-end per compiler (`gcov` for GNU; `llvm-cov gcov` for
+`oneapi-ifx`/Clang), and builds a gcovr HTML+text report. Requires `gcovr`
+(in `dev-conda.txt`). Recommended with `-DOMEGA_BUILD_TYPE=Debug`.
+
+``` bash
+./omega_coverage.sh                 # run suite, then write coverage/
+# -> coverage/omega_coverage.html, coverage/omega_coverage.txt
+```
+
+Coverage is host-only: device (CUDA/HIP/SYCL) kernels are not measured.
+
+Multi-rank note: an N-rank test runs N processes that write the same `.gcda`
+files. libgcov file-locks and merges per source, which is correct for ranks on
+one node. For cross-node robustness, export a per-rank prefix before the run:
+
+``` bash
+export GCOV_PREFIX=$PWD/coverage/gcda/rank_${SLURM_PROCID:-0}
+export GCOV_PREFIX_STRIP=0
+```
+
+then point gcovr at `coverage/gcda` in addition to the build tree.

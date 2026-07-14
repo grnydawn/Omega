@@ -177,3 +177,27 @@ Note: Until the Omega build is integrated into the E3SM build, specific
 modifications are required to trigger the Omega build within the E3SM
 build process. Please see [Omega Build User Guide](../userGuide/OmegaBuild.md)
 for details.
+
+### Analysis builds (Chrysalis examples)
+
+Memory-leak checking with GNU:
+
+```sh
+cmake -DOMEGA_BUILD_TYPE=Debug -DOMEGA_CIME_COMPILER=gnu \
+      -DOMEGA_CIME_MACHINE=chrysalis -DOMEGA_PARMETIS_ROOT=${PARMETIS_ROOT} \
+      -DOMEGA_BUILD_TEST=ON -DOMEGA_MEMCHECK=ON -Wno-dev \
+      -S <omega_branch>/components/omega -B .
+```
+
+Coverage with oneAPI (`oneapi-ifx`, uses `llvm-cov gcov` automatically):
+
+```sh
+cmake -DOMEGA_BUILD_TYPE=Debug -DOMEGA_CIME_COMPILER=oneapi-ifx \
+      -DOMEGA_CIME_MACHINE=chrysalis -DOMEGA_PARMETIS_ROOT=${PARMETIS_ROOT} \
+      -DOMEGA_BUILD_TEST=ON -DOMEGA_COVERAGE=ON -Wno-dev \
+      -S <omega_branch>/components/omega -B .
+```
+
+`OMEGA_MEMCHECK` and `OMEGA_COVERAGE` are independent and both default OFF; a
+missing tool (valgrind / gcovr / llvm-cov) yields a configure WARNING and the
+analysis is skipped, never a hard failure.

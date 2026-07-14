@@ -77,6 +77,15 @@ in the build directory.
 * omega\_build.sh : run `make` command after sourcing `omega_env.sh`
 * omega\_run.sh   : run `./src/omega.exe` after sourcing `omega_env.sh`
 * omega\_ctest.sh : run `ctest` after sourcing `omega_env.sh`
+* omega\_memcheck.sh : run the CTest suite under the per-rank memory-leak
+  checker (present only when configured with `-DOMEGA_MEMCHECK=ON`)
+* omega\_coverage.sh : run the CTest suite and generate the gcovr coverage
+  report under `coverage/` (present only when configured with
+  `-DOMEGA_COVERAGE=ON` and `gcovr` is available)
+
+Coverage is host-only and needs `gcovr` (see `dev-conda.txt`). Under memory
+checking, leaks surface as failed tests (not a CDash Dynamic Analysis widget)
+because tests launch through MPI.
 
 Run omega\_build.sh in the build directory to build Omega.
 
