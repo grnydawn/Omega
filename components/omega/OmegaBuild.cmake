@@ -679,6 +679,11 @@ endfunction()
 # and BEFORE add_subdirectory(src)/include(CTest).
 # ---------------------------------------------------------------------------
 function(setup_coverage)
+  # Clear any stale coverage state from a prior ON configure so an in-place
+  # ON->OFF reconfigure fully disables coverage (mirrors setup_memcheck()).
+  unset(COVERAGE_COMMAND CACHE)
+  file(REMOVE ${OMEGA_BUILD_DIR}/gcov)
+
   if(NOT OMEGA_COVERAGE)
     return()
   endif()
