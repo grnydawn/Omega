@@ -638,16 +638,37 @@ function(setup_memcheck)
     return()
   endif()
 
-  # Resolve fresh each configure (arch may have changed since a prior run).
-  unset(OMEGA_MEMCHECK_EXE CACHE)
-  find_program(OMEGA_MEMCHECK_EXE NAMES ${_mt})
-  if(NOT OMEGA_MEMCHECK_EXE)
+  # Resolve the tool. OMEGA_MEMCHECK_EXE is a user-only override (an absolute
+  # path, e.g. a module/spack valgrind whose path is valid on the compute
+  # nodes); it is honored verbatim and never written by find_program. Otherwise
+  # auto-detect from PATH into a private cache var that is re-resolved fresh on
+  # every configure, so loading the tool's module and re-running `cmake .` picks
+  # up the new path.
+  if(OMEGA_MEMCHECK_EXE)
+    set(_mc_exe "${OMEGA_MEMCHECK_EXE}")
+  else()
+    unset(_OMEGA_MEMCHECK_FOUND CACHE)
+    find_program(_OMEGA_MEMCHECK_FOUND NAMES ${_mt})
+    set(_mc_exe "${_OMEGA_MEMCHECK_FOUND}")
+  endif()
+  if(NOT _mc_exe)
     message(WARNING "OMEGA_MEMCHECK: '${_mt}' not found in PATH; disabling memory checking. "
                     "Configure continues; build and tests are unaffected.")
     return()
   endif()
 
-  set(_launch "${OMEGA_MEMCHECK_EXE};${_mo}")
+  # On clusters the login-node PATH tool often lives in a system dir that does
+  # not exist on compute nodes, so a baked absolute path like /usr/bin/valgrind
+  # fails at run time with "No such file or directory". Warn and point at the fix.
+  if(_mc_exe MATCHES "^(/usr)?/s?bin/")
+    message(WARNING
+      "OMEGA_MEMCHECK: resolved '${_mc_exe}', a system path that may not exist on "
+      "compute nodes. If tests fail with 'No such file or directory', load the "
+      "tool's module before configuring (so a shared-filesystem path is baked) or "
+      "pass -DOMEGA_MEMCHECK_EXE=<abs path>.")
+  endif()
+
+  set(_launch "${_mc_exe};${_mo}")
   set(_supp "${OMEGA_SOURCE_DIR}/test/omega.supp")
   if("${_mt}" STREQUAL "valgrind" AND EXISTS "${_supp}")
     list(APPEND _launch "--suppressions=${_supp}")
@@ -656,13 +677,13 @@ function(setup_memcheck)
   set(OMEGA_MEMCHECK_LAUNCHER "${_launch}" CACHE INTERNAL "per-rank memory-check launcher" FORCE)
   list(JOIN _mo " " _mo_str)
   message(STATUS "OMEGA_MEMCHECK enabled (${OMEGA_ARCH}/${CMAKE_CXX_COMPILER_ID}): "
-                 "${OMEGA_MEMCHECK_EXE} ${_mo_str}")
+                 "${_mc_exe} ${_mo_str}")
 
   # Generate + chmod the helper script (mirrors omega_ctest.sh).
   set(_McScript ${OMEGA_BUILD_DIR}/omega_memcheck.sh)
   file(WRITE  ${_McScript} "#!/usr/bin/env bash\n\n")
   file(APPEND ${_McScript} "source ./omega_env.sh\n\n")
-  file(APPEND ${_McScript} "# Each test rank runs under ${OMEGA_MEMCHECK_EXE} (configured at build time).\n")
+  file(APPEND ${_McScript} "# Each test rank runs under ${_mc_exe} (configured at build time).\n")
   file(APPEND ${_McScript} "# A leaking test fails via --error-exitcode=1.\n\n")
   file(APPEND ${_McScript} "ctest --output-on-failure \"$@\"\n\n")
   execute_process(COMMAND chmod +x ${_McScript})

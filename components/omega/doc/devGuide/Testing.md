@@ -351,6 +351,28 @@ Each test rank runs under an auto-selected leak checker (valgrind on CPU;
 `compute-sanitizer` on CUDA). A leak makes the test fail (`--error-exitcode=1`),
 so leaks appear as failed tests in a normal run. Configure, build, then:
 
+> **Point at a compute-node-valid tool path.** The leak-tool path is resolved at
+> configure time and baked into every test command. On clusters the login-node
+> system tool (e.g. `/usr/bin/valgrind`) does not exist on compute nodes, so
+> tests fail with `execve(): .../valgrind: No such file or directory`. The
+> robust fix is to pass the module/shared-filesystem path explicitly:
+>
+> ``` bash
+> module load valgrind          # module valgrind lives on the shared FS
+> cmake -DOMEGA_MEMCHECK_EXE=$(which valgrind) .   # honored verbatim; re-bakes the path
+> ```
+>
+> `OMEGA_MEMCHECK_EXE` is honored as-is and never overwritten by auto-detection.
+> The baked absolute path (e.g. `/gpfs/.../valgrind-3.17.0/bin/valgrind`) runs on
+> compute nodes even without the module loaded at run time, since it is on the
+> shared filesystem and valgrind self-locates its libraries. Re-running `cmake .`
+> in the build dir is enough — no rebuild needed. A configure-time WARNING is
+> emitted when a system path (`/usr/bin`, `/bin`, …) is resolved by
+> auto-detection, since that path may not exist on compute nodes. (Loading the
+> module before configuring *may* also suffice, but Omega's CIME environment
+> setup can reset `PATH`, so the explicit `-DOMEGA_MEMCHECK_EXE` override is the
+> reliable method.)
+
 ``` bash
 ./omega_memcheck.sh                 # whole suite (compute node)
 ./omega_memcheck.sh -L memcheck     # only memcheck-labelled tests
