@@ -16,8 +16,9 @@
 - **MPI leak placement:** the launcher is spliced immediately before `./${exe_name}` in every `add_test` branch (after the `--` separator in the non-SYCL MPI branch), never wrapping `srun`/`mpirun`. `CTEST_MEMORYCHECK_COMMAND` is deliberately left unset (CTest's native MemCheck would wrap the launcher); leaks surface as failed tests.
 - **Coverage scope:** host code only (document it); `gcovr --filter <src>/src/` restricts the report; a uniform generated `gcov` wrapper (execs `gcov` or `llvm-cov gcov`) backs both `COVERAGE_COMMAND` and `gcovr --gcov-executable`.
 - **Validation now:** Chrysalis, `gnu` + `oneapi-ifx`, `SERIAL` + `OPENMP`. GPU rows are wired-but-manual. `gcovr` is not on Chrysalis by default (add to `dev-conda.txt`); `valgrind` and `gcov` are present; `llvm-cov` ships with the oneAPI module.
-- **Process:** work on a new branch `grnydawn/omega/ctest-analysis`; add the fork `https://github.com/grnydawn/Omega` as remote **`grnydawn`**; **never push to `origin`** (`andrewdnolan/E3SM`). Do not push at all during implementation — pushing is a later, user-confirmed step.
+- **Process:** work on a new branch `grnydawn/omega/ctest-analysis` **branched from `omega/surface-coupling`** (stacks on the in-progress surface-coupling work); add the fork `https://github.com/grnydawn/Omega` as remote **`grnydawn`**; **never push to `origin`** (`andrewdnolan/E3SM`). Do not push at all during implementation — pushing is a later, user-confirmed step.
 - **Commit trailer:** end every commit message with `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`.
+- **Execution mode (this run):** build/run verification is **deferred to a compute node**. During implementation, make the code/doc edits and commit only; do **NOT** run `cmake` configure, `./omega_build.sh`, `./omega_ctest.sh`, `./omega_memcheck.sh`, `./omega_coverage.sh`, or `srun` — this is a login node with `PARMETIS_ROOT` unset, so they will fail or hang. The build/memcheck/coverage runs (Task 3 Step 9, Task 4 Steps 5–6, all of Task 6) are a runbook the user executes later; implementers skip those steps and the task reviewers verify from the diff.
 
 ---
 
@@ -68,7 +69,7 @@ cmake -DOMEGA_BUILD_TYPE=<Debug|Release> \
 
 ```bash
 cd /lcrc/group/e3sm/ac.kimy/repos/github/Omega.Andrew
-git checkout master
+git checkout omega/surface-coupling
 git checkout -b grnydawn/omega/ctest-analysis
 git remote add grnydawn https://github.com/grnydawn/Omega.git 2>/dev/null || git remote set-url grnydawn https://github.com/grnydawn/Omega.git
 git remote -v
