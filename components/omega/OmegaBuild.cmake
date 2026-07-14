@@ -715,8 +715,11 @@ function(setup_coverage)
   file(APPEND ${_GcovWrap} "exec ${_gcovtool} \"$@\"\n")
   execute_process(COMMAND chmod +x ${_GcovWrap})
 
-  # 3. CDash / ctest_coverage() wiring (consumed by include(CTest) into
-  #    DartConfiguration.tcl, read back by ctest_start() as CTEST_COVERAGE_COMMAND).
+  # 3. CDash / ctest_coverage() wiring: include(CTest) writes COVERAGE_COMMAND
+  #    into DartConfiguration.tcl (used by a native `ctest -D ExperimentalCoverage`
+  #    run). ctest_start() does NOT load it into a -S script's
+  #    CTEST_COVERAGE_COMMAND, so CTestScript.cmake sets that explicitly from the
+  #    wrapper above.
   set(COVERAGE_COMMAND "${_GcovWrap}" CACHE FILEPATH "gcov command for ctest_coverage" FORCE)
 
   # 4. gcovr HTML/text report (optional dependency; manual 'coverage' target).
