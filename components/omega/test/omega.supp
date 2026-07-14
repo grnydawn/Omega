@@ -1,0 +1,100 @@
+# Omega valgrind memcheck suppressions (starting point).
+#
+# The launcher runs with:
+#   --leak-check=full --show-leak-kinds=definite,indirect
+#   --errors-for-leak-kinds=definite,indirect --error-exitcode=1
+# so "still reachable" / "possibly lost" one-time pools (Kokkos, OpenMP, MPI)
+# are shown but NOT counted as errors. The blocks below suppress the few
+# definite/indirect leaks from third-party init that we do not own.
+#
+# Regenerate/extend: add --gen-suppressions=all to the launcher, run a test,
+# and copy the emitted templates here. '...' matches any frames; obj:/fun:
+# match libraries/functions. Object names below may need tuning to the actual
+# MPI/OpenMP libraries on the target machine (verified during Task 6).
+
+# ---- MPI runtime (MPICH / PMI / libfabric) ----
+{
+   mpi-init
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:PMPI_Init*
+}
+{
+   mpi-init2
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:MPI_Init
+}
+{
+   mpi-libfabric
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   obj:*/libfabric.so*
+}
+{
+   mpi-pmi
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   obj:*/libpmi*.so*
+}
+
+# ---- OpenMPI variant (if built with openmpi) ----
+{
+   ompi-pal
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   obj:*/libopen-pal.so*
+}
+{
+   ompi-rte
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   obj:*/libopen-rte.so*
+}
+
+# ---- Kokkos host backend one-time state ----
+{
+   kokkos-initialize
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:*Kokkos*initialize*
+}
+
+# ---- OpenMP runtime thread pool ----
+{
+   libgomp-pool
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   obj:*/libgomp.so*
+}
+{
+   intel-omp-pool
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   obj:*/libiomp5.so*
+}
+{
+   llvm-omp-pool
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   obj:*/libomp.so*
+}
+
+# ---- dynamic loader (dlopen one-time allocations) ----
+{
+   dl-open
+   Memcheck:Leak
+   match-leak-kinds: definite,indirect
+   ...
+   fun:_dl_open
+}

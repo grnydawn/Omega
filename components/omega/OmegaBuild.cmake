@@ -296,6 +296,14 @@ macro(init_standalone_build)
       file(APPEND ${_EnvScript} "export OMP_PLACES=threads\n\n")
     endif()
 
+    if(OMEGA_MEMCHECK)
+      # Busy-wait OpenMP runtimes can look like a hang under valgrind; make them
+      # yield so the leak checker completes.
+      file(APPEND ${_EnvScript} "export KMP_BLOCKTIME=0\n")
+      file(APPEND ${_EnvScript} "export OMP_WAIT_POLICY=passive\n")
+      file(APPEND ${_EnvScript} "export GOMP_SPINCOUNT=0\n\n")
+    endif()
+
   endif()
 
   # create a build script
@@ -597,8 +605,67 @@ function(omega_capability_map compiler_id arch
   set(${out_covflags} "${_covflags}" PARENT_SCOPE)
 endfunction()
 
+# ---------------------------------------------------------------------------
+# setup_memcheck() — STANDALONE-only. Resolve a per-rank leak launcher for the
+# active (OMEGA_ARCH x CMAKE_CXX_COMPILER_ID) and publish OMEGA_MEMCHECK_LAUNCHER
+# (a ;-list) which add_omega_test() splices before ./exe in each test COMMAND,
+# so the tool wraps each MPI RANK (not the launcher). valgrind --error-exitcode=1
+# turns a leak into a test failure under a plain `ctest`.
+#
+# We deliberately do NOT set MEMORYCHECK_COMMAND: CTest's native MemCheck
+# prepends it to the WHOLE command, which under MPI would valgrind srun/mpirun,
+# not each rank. Missing tool -> WARNING + empty launcher, configure succeeds.
+# Call AFTER project() and BEFORE add_subdirectory(test).
+# ---------------------------------------------------------------------------
 function(setup_memcheck)
+  # Always define the launcher; empty expands to ZERO args in add_test().
   set(OMEGA_MEMCHECK_LAUNCHER "" CACHE INTERNAL "per-rank memory-check launcher" FORCE)
+
+  if(NOT OMEGA_MEMCHECK)
+    return()
+  endif()
+  if(NOT "${OMEGA_BUILD_MODE}" STREQUAL "STANDALONE")
+    message(WARNING "OMEGA_MEMCHECK is supported only in standalone builds; ignoring.")
+    return()
+  endif()
+
+  omega_capability_map("${CMAKE_CXX_COMPILER_ID}" "${OMEGA_ARCH}"
+                       _mt _mo _ignore_gcov _ignore_cov)
+
+  if("${_mt}" STREQUAL "")
+    message(WARNING "OMEGA_MEMCHECK: no leak tool is wired for OMEGA_ARCH=${OMEGA_ARCH}; "
+                    "disabling. Use a vendor tool (rocgdb, Intel Inspector) manually.")
+    return()
+  endif()
+
+  # Resolve fresh each configure (arch may have changed since a prior run).
+  unset(OMEGA_MEMCHECK_EXE CACHE)
+  find_program(OMEGA_MEMCHECK_EXE NAMES ${_mt})
+  if(NOT OMEGA_MEMCHECK_EXE)
+    message(WARNING "OMEGA_MEMCHECK: '${_mt}' not found in PATH; disabling memory checking. "
+                    "Configure continues; build and tests are unaffected.")
+    return()
+  endif()
+
+  set(_launch "${OMEGA_MEMCHECK_EXE};${_mo}")
+  set(_supp "${OMEGA_SOURCE_DIR}/test/omega.supp")
+  if("${_mt}" STREQUAL "valgrind" AND EXISTS "${_supp}")
+    list(APPEND _launch "--suppressions=${_supp}")
+  endif()
+
+  set(OMEGA_MEMCHECK_LAUNCHER "${_launch}" CACHE INTERNAL "per-rank memory-check launcher" FORCE)
+  list(JOIN _mo " " _mo_str)
+  message(STATUS "OMEGA_MEMCHECK enabled (${OMEGA_ARCH}/${CMAKE_CXX_COMPILER_ID}): "
+                 "${OMEGA_MEMCHECK_EXE} ${_mo_str}")
+
+  # Generate + chmod the helper script (mirrors omega_ctest.sh).
+  set(_McScript ${OMEGA_BUILD_DIR}/omega_memcheck.sh)
+  file(WRITE  ${_McScript} "#!/usr/bin/env bash\n\n")
+  file(APPEND ${_McScript} "source ./omega_env.sh\n\n")
+  file(APPEND ${_McScript} "# Each test rank runs under ${OMEGA_MEMCHECK_EXE} (configured at build time).\n")
+  file(APPEND ${_McScript} "# A leaking test fails via --error-exitcode=1.\n\n")
+  file(APPEND ${_McScript} "ctest --output-on-failure \"$@\"\n\n")
+  execute_process(COMMAND chmod +x ${_McScript})
 endfunction()
 
 function(setup_coverage)

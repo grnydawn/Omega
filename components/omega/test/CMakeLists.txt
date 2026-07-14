@@ -47,29 +47,39 @@ function(add_omega_test test_name exe_name source_files mpi_args)
 
   set_target_properties(${exe_name} PROPERTIES LINKER_LANGUAGE CXX)
 
-  # Add the test command
+  # Add the test command. ${OMEGA_MEMCHECK_LAUNCHER} is empty (zero args) unless
+  # OMEGA_MEMCHECK is active, in which case it wraps each rank in per-rank
+  # position (after the -- separator for non-SYCL MPI), never the launcher.
   if (mpi_args)
 
     if("${OMEGA_ARCH}" STREQUAL "SYCL")
       add_test(
         NAME ${test_name}
-        COMMAND ${OMEGA_MPI_EXEC} ${mpi_args} ${OMEGA_MPI_ARGS} ./${exe_name}
+        COMMAND ${OMEGA_MPI_EXEC} ${mpi_args} ${OMEGA_MPI_ARGS} ${OMEGA_MEMCHECK_LAUNCHER} ./${exe_name}
       )
     else()
       add_test(
         NAME ${test_name}
-        COMMAND ${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS} ${mpi_args} -- ./${exe_name}
+        COMMAND ${OMEGA_MPI_EXEC} ${OMEGA_MPI_ARGS} ${mpi_args} -- ${OMEGA_MEMCHECK_LAUNCHER} ./${exe_name}
       )
     endif()
 
   else()
     add_test(
       NAME ${test_name}
-      COMMAND ../omega_env.sh ./${exe_name}
+      COMMAND ../omega_env.sh ${OMEGA_MEMCHECK_LAUNCHER} ./${exe_name}
     )
   endif()
 
-  set_tests_properties(${test_name} PROPERTIES LABELS "${OMEGA_ARCH};Omega-0")
+  # Under memcheck: tag for selective runs (ctest -L memcheck) and give the
+  # (10-30x slower) valgrind run plenty of time.
+  if(OMEGA_MEMCHECK_LAUNCHER)
+    set_tests_properties(${test_name} PROPERTIES
+      LABELS "${OMEGA_ARCH};Omega-0;memcheck"
+      TIMEOUT 3600)
+  else()
+    set_tests_properties(${test_name} PROPERTIES LABELS "${OMEGA_ARCH};Omega-0")
+  endif()
 
 endfunction()
 
@@ -566,3 +576,20 @@ add_omega_test(
     ocn/SfcCouplingTest.cpp
     "-n;8"
 )
+
+############################
+# Memcheck harness self-test
+############################
+# Registered ONLY when the leak checker is active. It leaks on purpose and is
+# marked WILL_FAIL: the checker must flag the leak (nonzero exit) for CTest to
+# see the expected failure. If leak detection were broken, this test would
+# unexpectedly pass and CTest would report it as a failure.
+if(OMEGA_MEMCHECK_LAUNCHER)
+  add_omega_test(
+      MEMCHECK_PROBE_TEST
+      testMemLeakProbe.exe
+      base/MemLeakProbe.cpp
+      "-n;1"
+  )
+  set_tests_properties(MEMCHECK_PROBE_TEST PROPERTIES WILL_FAIL true)
+endif()
