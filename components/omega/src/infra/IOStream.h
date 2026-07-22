@@ -216,7 +216,8 @@ class IOStream {
 
    /// Write a field's data array, performing any manipulations to reduce
    /// precision or move data between host and device
-   void
+//YSK   void
+   int
    writeFieldData(std::shared_ptr<Field> FieldPtr, ///< [in] field to write
                   int FileID,  ///< [in] id assigned to open file
                   int FieldID, ///< [in] id assigned to the field

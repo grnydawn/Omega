@@ -852,11 +852,9 @@ void writeArray(void *Array,     // [in] array to be written
    // Make sure write is complete before returning
    // We may be able to remove this for efficiency later but it was
    // needed during testing
-//YSK-B
-//   Err = PIOc_sync(FileID);
-//   if (Err != PIO_NOERR)
-//      LOG_WARN("IO::writeArray: Error in PIO sychronizing file after write");
-//YSK-E
+   Err = PIOc_sync(FileID);
+   if (Err != PIO_NOERR)
+      LOG_WARN("IO::writeArray: Error in PIO sychronizing file after write");
 
    return;
 

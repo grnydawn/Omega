@@ -963,8 +963,7 @@ void IOStream::writeFieldMeta(
 //------------------------------------------------------------------------------
 // Write a field's data array, performing any manipulations to reduce
 // precision or move data between host and device
-//YSK void IOStream::writeFieldData(
-int IOStream::writeFieldData(
+void IOStream::writeFieldData(
     std::shared_ptr<Field> FieldPtr,      // [in] field to write
     int FileID,                           // [in] id assigned to open file
     int FieldID,                          // [in] id assigned to the field
@@ -1617,15 +1616,13 @@ int IOStream::writeFieldData(
                      FldFrame);
 
       // Clean up the decomp
-//YSK      IO::destroyDecomp(MyDecompID);
-      return MyDecompID;
+      IO::destroyDecomp(MyDecompID);
 
    } else {
       IO::writeNDVar(DataPtr, FileID, FieldID, FldFrame, &DimLengths);
    }
 
-//YSK   return;
-   return -1;
+   return;
 
 } // end writeFieldData
 
@@ -2681,8 +2678,6 @@ void IOStream::writeStream(
    IO::endDefinePhase(OutFileID);
    DefineMode = false;
 
-   std::vector<int> DecompIDsToFree;
-
    // Now write data arrays for all fields in contents
    for (auto IFld = Contents.begin(); IFld != Contents.end(); ++IFld) {
 
@@ -2692,20 +2687,11 @@ void IOStream::writeStream(
       int FieldID                      = FieldIDs[FieldName];
 
       // Extract and write the data array
-//YSK      this->writeFieldData(ThisField, OutFileID, FieldID, AllDimIDs);
-      int DecompID =
-          this->writeFieldData(ThisField, OutFileID, FieldID, AllDimIDs);
-      if (DecompID >= 0)
-         DecompIDsToFree.push_back(DecompID);      
+      this->writeFieldData(ThisField, OutFileID, FieldID, AllDimIDs);
    }
 
    // Close output file
    IO::closeFile(OutFileID);
-
-   // Now that the file has been synced and closed, it is safe to destroy
-   // the decompositions used by the writes above
-   for (auto &DecompID : DecompIDsToFree)
-      IO::destroyDecomp(DecompID);
 
    // If using pointer files for this stream, write the filename to the pointer
    // after the file is successfully written
