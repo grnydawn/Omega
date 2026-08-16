@@ -300,7 +300,7 @@ macro(init_standalone_build)
   set(_BuildScript ${OMEGA_BUILD_DIR}/omega_build.sh)
   file(WRITE ${_BuildScript}  "#!/usr/bin/env bash\n\n")
   file(APPEND ${_BuildScript} "source ./omega_env.sh\n\n")
-  file(APPEND ${_BuildScript} "make -j ${GMAKE_J}\n\n")
+  file(APPEND ${_BuildScript} "make -j ${GMAKE_J} --output-sync=target\n\n")
 
   # create a run script
   set(_RunScript ${OMEGA_BUILD_DIR}/omega_run.sh)
