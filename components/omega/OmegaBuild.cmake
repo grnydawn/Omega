@@ -527,11 +527,33 @@ macro(setup_e3sm_build)
 
   set(OMEGA_CXX_COMPILER ${CMAKE_CXX_COMPILER})
 
-  #TODO: set OMEGA_ARCH according to E3SM variables
-  set(OMEGA_ARCH "")
+  # Detect OMEGA_ARCH from the E3SM/CIME build variables when not provided.
+  # USE_CUDA/USE_HIP/USE_SYCL are set by the GPU machine cmake_macros
+  # (e.g. cime_config/machines/cmake_macros/frontier_craycray-mphipcc.cmake)
+  # and compile_threaded is passed to CMake by CIME's configure step.
+  if(NOT DEFINED OMEGA_ARCH OR "${OMEGA_ARCH}" STREQUAL "")
+    if(USE_CUDA)
+      set(OMEGA_ARCH "CUDA")
+
+    elseif(USE_HIP)
+      set(OMEGA_ARCH "HIP")
+
+    elseif(USE_SYCL)
+      set(OMEGA_ARCH "SYCL")
+
+    elseif(compile_threaded)
+      set(OMEGA_ARCH "OPENMP")
+
+    else()
+      set(OMEGA_ARCH "SERIAL")
+
+    endif()
+  endif()
+
   set(OMEGA_BUILD_MODE "E3SM")
 
   message(STATUS "OMEGA_CXX_COMPILER = ${OMEGA_CXX_COMPILER}")
+  message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
 
 endmacro()
 
@@ -637,32 +659,94 @@ macro(update_variables)
   option(OMEGA_CUDA_MALLOC_ASYNC "Enable CUDA async support (default OFF)." OFF)
 
   set(OMEGA_TARGET_DEVICE FALSE)
-
-  if("${OMEGA_ARCH}" STREQUAL "CUDA")
-    option(Kokkos_ENABLE_CUDA "" ON)
-    option(Kokkos_ENABLE_CUDA_LAMBDA "" ON)
+  if("${OMEGA_ARCH}" STREQUAL "CUDA" OR
+     "${OMEGA_ARCH}" STREQUAL "HIP"  OR
+     "${OMEGA_ARCH}" STREQUAL "SYCL")
     set(OMEGA_TARGET_DEVICE TRUE)
-    option(Kokkos_ENABLE_IMPL_CUDA_MALLOC_ASYNC "" OFF)
-    set(Kokkos_ENABLE_IMPL_CUDA_MALLOC_ASYNC ${OMEGA_CUDA_MALLOC_ASYNC} CACHE BOOL "" FORCE)
+  endif()
 
-  elseif("${OMEGA_ARCH}" STREQUAL "HIP")
-    option(Kokkos_ENABLE_HIP "" ON)
-    set(OMEGA_TARGET_DEVICE TRUE)
+  # In a coupled build that also includes EAMxx, EAMxx has already created the
+  # Kokkos::kokkos target with the correct per-machine architecture, backend
+  # and (for CUDA) compiler launcher. Omega then reuses that target as-is and
+  # must not re-set any Kokkos_* options. Omega only configures Kokkos when it
+  # is the one building it: a standalone build, or an ocean-only coupled build
+  # (no EAMxx). This mirrors external/CMakeLists.txt, which likewise only adds
+  # Kokkos "if (NOT TARGET Kokkos::kokkos)".
+  if(NOT TARGET Kokkos::kokkos)
 
-  elseif("${OMEGA_ARCH}" STREQUAL "SYCL")
-    option(Kokkos_ENABLE_SYCL "" ON)
-    set(OMEGA_TARGET_DEVICE TRUE)
+    # In E3SM mode, reuse the per-machine Kokkos settings that the CIME machine
+    # configuration already provides through KOKKOS_OPTIONS (set by
+    # cime_config/machines/cmake_macros/<machine>.cmake and consumed unchanged
+    # by EAMxx/EKAT). This forwards the GPU architecture generically for every
+    # vendor - e.g. Kokkos_ARCH_AMPERE80 (Perlmutter), Kokkos_ARCH_VEGA90A
+    # (Frontier), Kokkos_ARCH_AMD_GFX942 (tuo), Kokkos_ARCH_INTEL_PVC (Aurora) -
+    # instead of hard-coding a single GPU. Only Kokkos_ARCH_*/Kokkos_ENABLE_*
+    # keys are applied so other tokens in the string (CMAKE_*, AMDGPU_TARGETS,
+    # ...) do not leak into the shared CMake cache. In standalone mode
+    # KOKKOS_OPTIONS has already been consumed (and unset) by
+    # init_standalone_build, so this loop is skipped there.
+    set(_OMEGA_KOKKOS_ARCH_SET FALSE)
+    if("${OMEGA_BUILD_MODE}" STREQUAL "E3SM" AND KOKKOS_OPTIONS)
+      string(REPLACE " " ";" _OmegaKokkosOpts "${KOKKOS_OPTIONS}")
+      foreach(_OmegaKopt ${_OmegaKokkosOpts})
+        string(REGEX MATCH
+               "(Kokkos_(ARCH|ENABLE)_[A-Za-z0-9_]+)=([A-Za-z0-9_]+)"
+               _OmegaKmatch "${_OmegaKopt}")
+        if(CMAKE_MATCH_1)
+          set(_OmegaKvar  "${CMAKE_MATCH_1}")
+          set(_OmegaKkind "${CMAKE_MATCH_2}")
+          set(_OmegaKval  "${CMAKE_MATCH_3}")
+          option(${_OmegaKvar} "" ${_OmegaKval})
+          if("${_OmegaKkind}" STREQUAL "ARCH")
+            if(_OmegaKval) # value form: On/ON/TRUE -> true, OFF -> false
+              set(_OMEGA_KOKKOS_ARCH_SET TRUE)
+            endif()
+          endif()
+        endif()
+      endforeach()
+    endif()
 
+    # Enable the Kokkos backend that matches OMEGA_ARCH. option() is a no-op
+    # when the backend was already enabled by the KOKKOS_OPTIONS above.
+    if("${OMEGA_ARCH}" STREQUAL "CUDA")
+      option(Kokkos_ENABLE_CUDA "" ON)
+      option(Kokkos_ENABLE_CUDA_LAMBDA "" ON)
+      option(Kokkos_ENABLE_IMPL_CUDA_MALLOC_ASYNC "" OFF)
+      set(Kokkos_ENABLE_IMPL_CUDA_MALLOC_ASYNC ${OMEGA_CUDA_MALLOC_ASYNC}
+          CACHE BOOL "" FORCE)
 
-  elseif("${OMEGA_ARCH}" STREQUAL "OPENMP")
-    option(Kokkos_ENABLE_OPENMP "" ON)
+    elseif("${OMEGA_ARCH}" STREQUAL "HIP")
+      option(Kokkos_ENABLE_HIP "" ON)
 
-  elseif("${OMEGA_ARCH}" STREQUAL "THREADS")
-    option(Kokkos_ENABLE_THREADS "" ON)
+    elseif("${OMEGA_ARCH}" STREQUAL "SYCL")
+      option(Kokkos_ENABLE_SYCL "" ON)
 
-  else()
-    set(OMEGA_ARCH "SERIAL")
-    option(Kokkos_ENABLE_SERIAL "" ON)
+    elseif("${OMEGA_ARCH}" STREQUAL "OPENMP")
+      option(Kokkos_ENABLE_OPENMP "" ON)
+
+    elseif("${OMEGA_ARCH}" STREQUAL "THREADS")
+      option(Kokkos_ENABLE_THREADS "" ON)
+
+    else()
+      set(OMEGA_ARCH "SERIAL")
+      option(Kokkos_ENABLE_SERIAL "" ON)
+
+    endif()
+
+    # Fail loudly if Omega must build its own Kokkos for a GPU but no Kokkos
+    # architecture was selected (e.g. a machine whose cmake_macros do not carry
+    # the arch in KOKKOS_OPTIONS). Building a device Kokkos with no arch would
+    # otherwise silently produce a broken or host-only library.
+    if("${OMEGA_BUILD_MODE}" STREQUAL "E3SM" AND OMEGA_TARGET_DEVICE AND
+       NOT _OMEGA_KOKKOS_ARCH_SET)
+      message(FATAL_ERROR
+        "OMEGA_ARCH=${OMEGA_ARCH} requests a GPU build but no Kokkos_ARCH_* "
+        "was provided. Omega is building its own Kokkos here because the "
+        "Kokkos::kokkos target does not already exist (no EAMxx in this case). "
+        "On machine '${MACH}' the GPU architecture is expected in KOKKOS_OPTIONS "
+        "(cime_config/machines/cmake_macros/); add the appropriate Kokkos_ARCH_* "
+        "there, or include EAMxx so Omega reuses its Kokkos.")
+    endif()
 
   endif()
 
