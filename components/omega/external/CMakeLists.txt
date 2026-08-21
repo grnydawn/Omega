@@ -37,12 +37,39 @@ if (NOT TARGET yaml-cpp::yaml-cpp)
 	)
 endif()
 
-# Add the Kokkos library
+# Add the Kokkos library.
+#
+# Reuse-if-present: when Omega is built alongside EAMxx (or a shared EKAT),
+# the Kokkos::kokkos target already exists with the correct per-machine
+# architecture and compiler configuration, so Omega simply reuses it and this
+# block is skipped entirely.
+#
+# Otherwise Omega must build Kokkos itself, and how it does so depends on the
+# build mode:
+#
+#  * E3SM (coupled) build - e.g. an ocean-only case with no EAMxx. Omega is
+#    embedded, so E3SM's top-level project() has already locked the compiler
+#    and Omega cannot swap it (e.g. to nvcc_wrapper). Build Kokkos through
+#    EKAT's machinery (EkatBuildKokkos), the same path EAMxx uses, so the GPU
+#    compiler wrapper/launcher and architecture flags stay consistent with the
+#    rest of E3SM.
+#
+#  * Standalone build. Omega owns the project() call and has already selected
+#    the GPU compiler before it (see init_standalone_build in OmegaBuild.cmake),
+#    so it can build the bundled Kokkos submodule directly without EKAT.
 if (NOT TARGET Kokkos::kokkos)
-	add_subdirectory(
-      ${E3SM_EXTERNALS_ROOT}/ekat/extern/kokkos
-      ${CMAKE_CURRENT_BINARY_DIR}/ekat/extern/kokkos
-	)
+	if ("${OMEGA_BUILD_MODE}" STREQUAL "E3SM")
+		list(APPEND CMAKE_MODULE_PATH
+			${E3SM_EXTERNALS_ROOT}/ekat/cmake
+			${E3SM_EXTERNALS_ROOT}/ekat/cmake/tpls
+		)
+		include(EkatBuildKokkos)
+	else()
+		add_subdirectory(
+			${E3SM_EXTERNALS_ROOT}/ekat/extern/kokkos
+			${CMAKE_CURRENT_BINARY_DIR}/ekat/extern/kokkos
+		)
+	endif()
 endif()
 
 # Add the Scorpio library
