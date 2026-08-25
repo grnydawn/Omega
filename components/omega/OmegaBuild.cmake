@@ -18,7 +18,10 @@ set(E3SM_CIME_ROOT                "${E3SM_ROOT}/cime")
 set(E3SM_CIMECONFIG_ROOT          "${E3SM_ROOT}/cime_config")
 set(E3SM_EXTERNALS_ROOT           "${E3SM_ROOT}/externals")
 
-set(CASEROOT                      "${OMEGA_BUILD_DIR}/e3smcase")
+# NOTE: CASEROOT is deliberately NOT set here. In an E3SM build CIME passes the
+# real case root in with -DCASEROOT=, and setting it at file scope would shadow
+# it for every consumer below. A standalone build has no E3SM case, so
+# init_standalone_build() creates a throwaway one and sets CASEROOT to it there.
 
 ###########################
 # Macros                  #
@@ -163,6 +166,12 @@ endmacro()
 # Collect machine and compiler info from CIME
 # and detect OMEGA_ARCH and compilers
 macro(init_standalone_build)
+
+  # A standalone build has no E3SM case to read machine settings from, so it
+  # creates a throwaway one (see read_cime_config) and points CASEROOT at it.
+  # This is the only build mode that needs it; in E3SM mode CASEROOT is the real
+  # case root supplied by CIME.
+  set(CASEROOT "${OMEGA_BUILD_DIR}/e3smcase")
 
   # get cime configuration
   read_cime_config()
@@ -536,12 +545,9 @@ endmacro()
 # Read it back in an isolated function scope, exactly as set_compilers_e3sm
 # does, so the compiler-flag side effects of Macros.cmake stay contained and
 # only the two variables below escape.
-function(omega_read_e3sm_macros CaseRoot)
+function(omega_read_e3sm_macros)
 
-  # Macros.cmake resolves its macro directory from CASEROOT, so shadow it with
-  # the real case root for the duration of this function.
-  set(CASEROOT "${CaseRoot}")
-  include("${CaseRoot}/Macros.cmake")
+  include("${CASEROOT}/Macros.cmake")
 
   set(KOKKOS_OPTIONS "${KOKKOS_OPTIONS}" PARENT_SCOPE)
 
@@ -565,15 +571,10 @@ macro(setup_e3sm_build)
 
   # Recover the per-machine settings that E3SM does not propagate into this
   # scope (KOKKOS_OPTIONS, USE_SYCL). This must run BEFORE the arch detection
-  # below, which reads USE_SYCL.
-  #
-  # NOTE: this file sets CASEROOT near the top to the throwaway CIME case that a
-  # STANDALONE build creates for harvesting machine settings, which shadows the
-  # real case root CIME passed in with -DCASEROOT=. The cache entry still holds
-  # the real one, so read it from there.
-  set(_OmegaE3smCaseRoot "$CACHE{CASEROOT}")
-  if(_OmegaE3smCaseRoot AND EXISTS "${_OmegaE3smCaseRoot}/Macros.cmake")
-    omega_read_e3sm_macros("${_OmegaE3smCaseRoot}")
+  # below, which reads USE_SYCL. CASEROOT here is the real case root CIME passed
+  # in with -DCASEROOT=.
+  if(CASEROOT AND EXISTS "${CASEROOT}/Macros.cmake")
+    omega_read_e3sm_macros()
   endif()
 
   # Detect OMEGA_ARCH from the E3SM/CIME build variables when not provided.
