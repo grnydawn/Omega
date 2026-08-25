@@ -520,12 +520,61 @@ macro(setup_standalone_build)
 
 endmacro()
 
+# Recover per-machine settings from the case's Macros.cmake that E3SM does not
+# make visible to Omega.
+#
+# KOKKOS_OPTIONS carries the per-machine Kokkos architecture set by the CIME
+# machine cmake_macros (e.g. Kokkos_ARCH_AMPERE80 on pm-gpu, Kokkos_ARCH_VEGA90A
+# on Frontier), but it does not reach Omega's scope: E3SM includes Macros.cmake
+# inside function(set_compilers_e3sm) at components/CMakeLists.txt:31 and
+# deliberately exports only USE_CUDA/USE_HIP to the parent scope, and
+# build_omega() - unlike build_model() and build_eamxx() - never includes
+# common_setup.cmake, which is the other place Macros.cmake is loaded. Without
+# this, an E3SM GPU build reaches update_variables() with an empty
+# KOKKOS_OPTIONS and no Kokkos architecture.
+#
+# Read it back in an isolated function scope, exactly as set_compilers_e3sm
+# does, so the compiler-flag side effects of Macros.cmake stay contained and
+# only the two variables below escape.
+function(omega_read_e3sm_macros CaseRoot)
+
+  # Macros.cmake resolves its macro directory from CASEROOT, so shadow it with
+  # the real case root for the duration of this function.
+  set(CASEROOT "${CaseRoot}")
+  include("${CaseRoot}/Macros.cmake")
+
+  set(KOKKOS_OPTIONS "${KOKKOS_OPTIONS}" PARENT_SCOPE)
+
+  # USE_SYCL must come from here too. components/CMakeLists.txt:48-54 re-exports
+  # only USE_CUDA and USE_HIP out of set_compilers_e3sm's function scope - there
+  # is no USE_SYCL branch - so without this a SYCL machine (Aurora, where
+  # cime_config/machines/cmake_macros/oneapi-ifxgpu.cmake:32 sets USE_SYCL)
+  # would fall through to OMEGA_ARCH=SERIAL, leave OMEGA_TARGET_DEVICE FALSE,
+  # slip past the fatal guard below, and silently produce a host-only build on a
+  # GPU machine - precisely the failure mode this detection exists to prevent.
+  set(USE_SYCL "${USE_SYCL}" PARENT_SCOPE)
+
+endfunction()
+
 # set build-control-variables for e3sm build
 macro(setup_e3sm_build)
 
   set(OMEGA_BUILD_TYPE ${E3SM_DEFAULT_BUILD_TYPE})
 
   set(OMEGA_CXX_COMPILER ${CMAKE_CXX_COMPILER})
+
+  # Recover the per-machine settings that E3SM does not propagate into this
+  # scope (KOKKOS_OPTIONS, USE_SYCL). This must run BEFORE the arch detection
+  # below, which reads USE_SYCL.
+  #
+  # NOTE: this file sets CASEROOT near the top to the throwaway CIME case that a
+  # STANDALONE build creates for harvesting machine settings, which shadows the
+  # real case root CIME passed in with -DCASEROOT=. The cache entry still holds
+  # the real one, so read it from there.
+  set(_OmegaE3smCaseRoot "$CACHE{CASEROOT}")
+  if(_OmegaE3smCaseRoot AND EXISTS "${_OmegaE3smCaseRoot}/Macros.cmake")
+    omega_read_e3sm_macros("${_OmegaE3smCaseRoot}")
+  endif()
 
   # Detect OMEGA_ARCH from the E3SM/CIME build variables when not provided.
   # USE_CUDA/USE_HIP/USE_SYCL are set by the GPU machine cmake_macros
@@ -554,6 +603,7 @@ macro(setup_e3sm_build)
 
   message(STATUS "OMEGA_CXX_COMPILER = ${OMEGA_CXX_COMPILER}")
   message(STATUS "OMEGA_ARCH = ${OMEGA_ARCH}")
+  message(STATUS "OMEGA_KOKKOS_OPTIONS = ${KOKKOS_OPTIONS}")
 
 endmacro()
 
@@ -704,6 +754,16 @@ macro(update_variables)
           endif()
         endif()
       endforeach()
+
+      # Kokkos treats a variable literally named KOKKOS_OPTIONS as a DEPRECATED
+      # option list and hard-errors on it (kokkos_functions.cmake
+      # kokkos_deprecated_list, reached from kokkos_setup_build_environment).
+      # Now that the individual Kokkos_ARCH_*/Kokkos_ENABLE_* values have been
+      # extracted, drop the string so it cannot reach the Kokkos subdirectory.
+      # This mirrors components/cmake/build_eamxx.cmake, which unsets it for the
+      # same reason, and init_standalone_build, which unsets it on the
+      # standalone path.
+      unset(KOKKOS_OPTIONS)
     endif()
 
     # Enable the Kokkos backend that matches OMEGA_ARCH. option() is a no-op
@@ -748,6 +808,14 @@ macro(update_variables)
         "there, or include EAMxx so Omega reuses its Kokkos.")
     endif()
 
+  endif()
+
+  # Belt and braces: drop KOKKOS_OPTIONS in E3SM mode even on the branch where
+  # Omega reused an existing Kokkos::kokkos (EAMxx present) and so never entered
+  # the parse above. Kokkos hard-errors on this deprecated variable name, and
+  # build_eamxx()'s own unset is function-local and does not reach this scope.
+  if("${OMEGA_BUILD_MODE}" STREQUAL "E3SM")
+    unset(KOKKOS_OPTIONS)
   endif()
 
   add_definitions(-DOMEGA_ENABLE_${OMEGA_ARCH})
