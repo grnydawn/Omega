@@ -22,19 +22,47 @@ set_target_properties(gswteos-10 PROPERTIES
 )
 
 # Add the spdlog library
-if (NOT TARGET spdlog::spdlog)
+#
+# Guard on BOTH names. An add_subdirectory build of spdlog defines the real
+# target "spdlog" and the "spdlog::spdlog" ALIAS, but a find_package(spdlog)
+# - which is how it arrives when E3SM calls find_package(Ekat) - defines only
+# the namespaced IMPORTED target. Testing a single name therefore either
+# re-creates a target that already exists (a hard CMake error) or rebuilds a
+# library the rest of E3SM has already built.
+if (NOT TARGET spdlog AND NOT TARGET spdlog::spdlog)
 	add_subdirectory(
 	  ${OMEGA_SOURCE_DIR}/external/spdlog
 	  ${CMAKE_CURRENT_BINARY_DIR}/external/spdlog
 	)
 endif()
 
+# Omega links the bare name (src/CMakeLists.txt), so guarantee it exists.
+# This must be an INTERFACE library rather than an ALIAS: an ALIAS to a
+# non-GLOBAL IMPORTED target is only visible in this directory and below, and
+# src/ is a sibling directory, so the link would silently degrade to a raw
+# "-lspdlog" flag and fail at link time.
+if (NOT TARGET spdlog)
+	add_library(spdlog INTERFACE)
+	target_link_libraries(spdlog INTERFACE spdlog::spdlog)
+endif()
+
 # Add the yaml-cpp library
-if (NOT TARGET yaml-cpp::yaml-cpp)
+#
+# Same reasoning as spdlog above: an add_subdirectory build defines "yaml-cpp"
+# plus the "yaml-cpp::yaml-cpp" ALIAS, while find_package(yaml-cpp) defines
+# only the namespaced IMPORTED target.
+if (NOT TARGET yaml-cpp AND NOT TARGET yaml-cpp::yaml-cpp)
 	add_subdirectory(
 	  ${OMEGA_SOURCE_DIR}/external/yaml-cpp
 	  ${CMAKE_CURRENT_BINARY_DIR}/external/yaml-cpp
 	)
+endif()
+
+# Omega links the bare name (src/CMakeLists.txt); see the spdlog note above for
+# why this is an INTERFACE library and not an ALIAS.
+if (NOT TARGET yaml-cpp)
+	add_library(yaml-cpp INTERFACE)
+	target_link_libraries(yaml-cpp INTERFACE yaml-cpp::yaml-cpp)
 endif()
 
 # Add the Kokkos library.
@@ -57,7 +85,11 @@ endif()
 #  * Standalone build. Omega owns the project() call and has already selected
 #    the GPU compiler before it (see init_standalone_build in OmegaBuild.cmake),
 #    so it can build the bundled Kokkos submodule directly without EKAT.
-if (NOT TARGET Kokkos::kokkos)
+#
+# Both names are tested: Kokkos' own CMakeLists defines the real target "kokkos"
+# and aliases it to Kokkos::kokkos (and Kokkos::all_libs), whereas
+# find_package(Kokkos) defines only Kokkos::kokkos.
+if (NOT TARGET Kokkos::kokkos AND NOT TARGET kokkos)
 	if ("${OMEGA_BUILD_MODE}" STREQUAL "E3SM")
 		list(APPEND CMAKE_MODULE_PATH
 			${E3SM_EXTERNALS_ROOT}/ekat/cmake
@@ -72,7 +104,29 @@ if (NOT TARGET Kokkos::kokkos)
 	endif()
 endif()
 
+# Omega links the namespaced name (src/CMakeLists.txt). Bridging in this
+# direction can use an ALIAS, because the bare "kokkos" it points at is a real
+# (non-IMPORTED) target and such aliases are visible in every directory.
+if (NOT TARGET Kokkos::kokkos)
+	add_library(Kokkos::kokkos ALIAS kokkos)
+endif()
+
 # Add the Scorpio library
+#
+# Deliberately left as a single-name guard: unlike the libraries above, "pioc"
+# has no namespaced alias to also test, so one name already covers every path
+# that supplies it. With EAMxx in the case it is supplied as an INTERFACE
+# target by components/eamxx/cmake/tpls/Scorpio.cmake:18 and this block is
+# correctly skipped.
+#
+# What this guard does NOT cover is the no-EAMxx case: E3SM's
+# find_package(PIO) (components/cmake/modules/FindPIO.cmake:103) creates an
+# INTERFACE target named "spio" wrapping the prebuilt
+# libpioc.a/libpiof.a/libgptl.a from INSTALL_SHAREDPATH, and never a "pioc",
+# so Omega rebuilds Scorpio from source there. Adding "spio" to this guard
+# would NOT be a hardening tweak - it would switch Omega from building Scorpio
+# to linking E3SM's prebuilt one while leaving the bare "pioc" that Omega links
+# undefined. That needs a bridge target and its own testing, not a wider guard.
 if (NOT TARGET pioc)
 
 	# forward env. variables to Scorpio build
@@ -107,6 +161,18 @@ if (NOT TARGET pioc)
 endif()
 
 # Add E3SM GPTL library
+#
+# Also a single-name guard: "gptl" has no namespaced alias anywhere. Three
+# places define a target with exactly this name, so the one name already covers
+# them all - share/timing/CMakeLists.txt:71, externals/scorpio/src/gptl/
+# CMakeLists.txt:28 (Scorpio's internal GPTL, built by default because
+# PIO_ENABLE_TIMING is ON and Omega never points Scorpio at an external one),
+# and components/eamxx/cmake/tpls/Scorpio.cmake:32 (an INTERFACE target
+# wrapping spio).
+#
+# Note the Scorpio block above runs first and normally creates "gptl" itself,
+# which leaves this block dead in most configurations; it is live only when
+# Scorpio finds an external GPTL or timing is disabled.
 if (NOT TARGET gptl)
 	add_subdirectory(
 	  ${E3SM_ROOT}/share/timing
@@ -115,6 +181,9 @@ if (NOT TARGET gptl)
 endif()
 
 # Add the Pacer library
+#
+# Single-name guard: no E3SM-side "pacer" target exists anywhere, so Omega
+# always builds it.
 if (NOT TARGET pacer)
     add_library(pacer ${E3SM_ROOT}/share/pacer/Pacer.cpp)
 
@@ -166,7 +235,11 @@ if(GKlib_FOUND)
 endif()
 
 # Add the cpptrace library
-if (NOT TARGET cpptrace::cpptrace)
+#
+# Note the real target is named "cpptrace-lib", not "cpptrace"
+# (external/cpptrace/CMakeLists.txt sets target_name to avoid colliding with
+# its own PROJECT_NAME); cpptrace::cpptrace is an ALIAS of it.
+if (NOT TARGET cpptrace::cpptrace AND NOT TARGET cpptrace-lib)
 	# Unset PACKAGE_VERSION before adding cpptrace to prevent ADIOS2's
 	# PACKAGE_VERSION (e.g. 2.10.2) from leaking into libdwarf's configure_file
 	unset(PACKAGE_VERSION)
@@ -175,4 +248,9 @@ if (NOT TARGET cpptrace::cpptrace)
 	  ${OMEGA_SOURCE_DIR}/external/cpptrace
 	  ${CMAKE_CURRENT_BINARY_DIR}/external/cpptrace
 	)
+endif()
+
+# Omega links the namespaced name (src/CMakeLists.txt).
+if (NOT TARGET cpptrace::cpptrace)
+	add_library(cpptrace::cpptrace ALIAS cpptrace-lib)
 endif()
