@@ -52,6 +52,24 @@ RearrFromString(const std::string &Rearr // [in] choice of IO rearranger
 } // End RearrFromString
 
 //------------------------------------------------------------------------------
+// Converts the PIO rearranger enum back to the name used in the config file.
+// Only used for log messages. RearrMap is searched rather than adding a second
+// table so the two cannot drift apart. "default" is skipped because it aliases
+// "box" and the recognisable name is wanted here. Falls back to the numeric
+// value for anything not in the map.
+static std::string RearrToString(const Rearranger Rearr // [in] rearranger enum
+) {
+
+   for (const auto &Entry : RearrMap) {
+      if (Entry.second == Rearr && Entry.first != "default")
+         return Entry.first;
+   }
+
+   return std::to_string(static_cast<int>(Rearr));
+
+} // End RearrToString
+
+//------------------------------------------------------------------------------
 // Converts string choice for File Format to an enum
 FileFmt
 FileFmtFromString(const std::string &Format // [in] choice of IO file format
@@ -211,6 +229,17 @@ void init(const MPI_Comm &InComm,      // [in] MPI communicator to use
                            IOParams.IORearranger, &SysID);
    if (PIOErr != 0)
       ABORT_ERROR("IO::init: Error initializing SCORPIO");
+
+   // Report the settings SCORPIO was actually initialized with. IOBaseTask and
+   // IORearranger are the interesting ones: in a coupled run they come from the
+   // driver (shr_pio_getioroot/shr_pio_getrearranger) rather than from Omega's
+   // config, and without this message there is no way to observe which values
+   // were used, since they are passed straight into PIOc_Init_Intracomm.
+   LOG_INFO(
+       "IO::init: IOTasks={} IOStride={} IOBaseTask={} IORearranger={} ({})",
+       NumIOTasks, IOStride, IOParams.IOBaseTask,
+       RearrToString(IOParams.IORearranger),
+       static_cast<int>(IOParams.IORearranger));
 
    return;
 
