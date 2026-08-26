@@ -6,18 +6,35 @@ The Omega build system utilizes CMake, a widely-used build tool,
 to facilitate the build process.
 
 The build process is defined in the CMakeLists.txt file located
-in the top-level directory of Omega. It consists of four consecutive
-steps: Setup, Update, Build, and Output.
+in the top-level directory of Omega. It consists of six consecutive
+phases: Setup, Toolchain, Update, Validate, Build, and Output.
 
-![CMake-based Omega build process](../_static/cmakebuild.png)
+```{note}
+This was originally documented as four steps (Setup, Update, Build, Output).
+Two phases were added because the original four could not describe what the
+code actually had to do. `project()` must be called only after the compilers
+are final, and that ordering constraint is also the only axis on which the two
+build modes differ, so committing the toolchain is now its own phase. And the
+"integrity of the build setup" that Step 2 promised to verify was never
+actually checked, so validation is now a phase of its own with a defined place
+in the order, rather than a single line at the end of Update.
+```
 
-The build step consists of adding three subdirectories that drive builds
+The phases are enforced, not merely described. `OmegaBuild.cmake` keeps the
+current phase in a global property, every phase macro opens with
+`omega_require_phase()`, and `omega_phase_produces()` asserts that a phase
+really produced the variables later phases depend on. Calling a macro from the
+wrong place, or letting a required variable go unset, is a configure-time error
+that names the macro and the phase, instead of a build that succeeds and is
+wrong.
+
+The build phase consists of adding three subdirectories that drive builds
 for external libraries, the Omega model, and optional tests.
 
 Python is required to use this build system.
 The version of CMake should be 3.21 or later for supporting HIP.
 
-## Step 1: Setup
+## Phase 1: Setup
 
 During this step, the build-controlling variables are configured.
 The Omega build system supports two modes: standalone and E3SM
@@ -47,7 +64,7 @@ OMEGA_BUILD_DIR: Omega top-level build directory
 OMEGA_SOURCE_DIR: Directory where the top-level Omega CMakeLists.txt is located
 OMEGA_DEFAULT_BUILD_TYPE: Default build type ("Release")
 OMEGA_INSTALL_PREFIX: User-defined output directory for the library and executable
-OMEGA_ARCH: User-defined programming framework (e.g., "CUDA", "HIP", "OPENMP", "SYCL", "")
+OMEGA_ARCH: Target architecture. One of "CUDA", "HIP", "SYCL", "OPENMP", "THREADS", "SERIAL", or "" to detect it. The value is upper-cased and validated, so an unknown name is an error rather than a silent fallback to SERIAL.
 OMEGA_CXX_COMPILER: C++ compiler
 OMEGA_C_COMPILER: C compiler
 OMEGA_Fortran_COMPILER: Fortran compiler
@@ -64,8 +81,8 @@ OMEGA_GKLIB_ROOT: GKlib installtion directory
 OMEGA_HIP_COMPILER: HIP compiler (e.g., hipcc)
 OMEGA_HIP_FLAGS: HIP compiler flags
 OMEGA_MEMORY_LAYOUT: Kokkos memory layout ("LEFT" or "RIGHT"). "RIGHT" is a default value.
-OMEGA_TILE_LENGTH: a length of one "side" of a Kokkos tile. 64 is a default value.
-OMEGA_LOG_LEVEL: a default logging level. "OMEGA_LOG_INFO" is a default value.
+OMEGA_TILE_LENGTH: a length of one "side" of a Kokkos tile. Unset by default, in which case OMEGA_TILE_LENGTH is not defined for the compiler.
+OMEGA_LOG_LEVEL: a default logging level, one of "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL", "OFF". "INFO" is the default value.
 OMEGA_LOG_FLUSH: turn on the unbuffered logging. "OFF" is a default value.
 OMEGA_VECTOR_LENGTH: Vector length used for blocking inner loops for vectorization. "1" is a default value.
 ```
@@ -95,23 +112,89 @@ CMAKE_INSTALL_PREFIX
 CMAKE_VERSION
 ```
 
-## Step 2: Update
+## Phase 2: Toolchain
 
-In this step, CMake is configured, and external library variables,
+This phase commits the compilers and flags that Setup discovered, and then
+calls `project()`. It exists because CMake requires the toolchain to be final
+before `project()` runs, which is why compiler selection cannot simply live in
+Update alongside the other derived variables.
+
+It is a no-op in E3SM mode: the parent build
+(`components/CMakeLists.txt`) has already selected the compilers and called
+`project()`, and Omega adopts what it chose.
+
+## Phase 3: Update
+
+In this phase, CMake is configured, and external library variables,
 such as Kokkos, MPI, NetCDF, and PNetCDF, are set based on the settings
-defined in the Setup step. The integrity of the build setup is verified
-at the end of this step.
+defined in the Setup phase.
 
-## Step 3: Build
+## Phase 4: Validate
 
-During this step, the build process is configured. It includes building
+`omega_check_setup()` asserts that everything the first three phases
+produced is self-consistent, before anything is built. It checks, among other things, that
+`OMEGA_ARCH` is a known architecture and agrees with `OMEGA_TARGET_DEVICE` and
+with the Kokkos backend that is actually enabled; that `OMEGA_BUILD_TYPE` is
+recognized and that `OMEGA_DEBUG` agrees with it; that ParMETIS and METIS were
+found; and that the enumerated and numeric options hold values Omega can use.
+
+All failures are collected and reported together, so a misconfigured build
+lists every problem in one pass instead of one per re-run.
+
+Because this runs before `add_subdirectory(external)`, it can only assert about
+variables. Assertions about *targets* belong in
+`omega_check_dependencies()`, which runs in the Build phase as soon as the
+externals have been added, and verifies
+that every library `src/CMakeLists.txt` links by bare name is a real CMake
+target rather than a raw `-l` flag.
+
+## Phase 5: Build
+
+During this phase, the build process is configured. It includes building
 external libraries, followed by building the Omega main model from source
 files. Optionally, tests can also be built.
 
-## Step 4: Output
+## Phase 6: Output
 
-The final step, which is optional, involves copying a subset of the build
+The final phase, which is optional, involves copying a subset of the build
 artifacts to designated locations or generating dynamic outputs as needed.
+This is where the standalone developer scripts (`omega_env.sh`,
+`omega_build.sh`, `omega_run.sh`, `omega_ctest.sh`, `omega_profile.sh`) and the
+configuration file copies are generated. They are emitted last so that every
+value they embed - the architecture, the build type, whether the build targets
+a device - is final by the time it is written.
+
+## Omega in a coupled case
+
+E3SM calls `build_omega()` unconditionally from `components/CMakeLists.txt`,
+unlike `build_mpas_models()`, which only runs for the MPAS cores the case
+actually contains. Omega's top-level `CMakeLists.txt` therefore returns
+immediately when `COMP_OCN` is set to anything other than `omega`.
+
+Without that guard, a case with a different ocean - MPAS-Ocean, a data ocean,
+or a stub ocean - configures the whole of Omega, including its own spdlog,
+yaml-cpp, Kokkos and SCORPIO, and then fails outright:
+
+```
+add_library cannot create target "ocn" because another target with the same
+name already exists.  The existing target is a static library created in
+source directory ".../components/omega/src".
+```
+
+`src/CMakeLists.txt` creates an `ocn` library whenever `OMEGA_BUILD_MODE` is
+`E3SM`, and so does the real ocean component -
+`mpas-framework/src/build_core.cmake` for MPAS-Ocean,
+`components/cmake/build_model.cmake` for a data or stub ocean.
+
+```{note}
+The guard in Omega's `CMakeLists.txt` is the fix that can live inside Omega.
+A cleaner fix is still wanted **upstream**: give `build_omega()` in
+`components/cmake/build_omega.cmake` the same participation guard that
+`build_mpas_models()` has, so that E3SM does not descend into Omega at all for
+cases that do not use it. That would also stop these cases from configuring
+Omega's external libraries needlessly. It is deliberately not made here because
+it changes E3SM code outside the Omega component.
+```
 
 ## Standalone Build Commands
 

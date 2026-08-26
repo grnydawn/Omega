@@ -43,9 +43,9 @@ target_link_options(
 )
 
 target_link_directories(
-	OmegaLibFlags
-	INTERFACE
-	${OMEGA_BUILD_DIR}/external/GSW-C
+    OmegaLibFlags
+    INTERFACE
+    ${OMEGA_BUILD_DIR}/external/GSW-C
 )
 
 target_link_libraries(
@@ -73,7 +73,12 @@ if(GKlib_FOUND)
 endif()
 
 # Add source files for the library
-file(GLOB_RECURSE _LIBSRC_FILES analysis/*.cpp infra/*.cpp base/*.cpp ocn/*.cpp timeStepping/*.cpp)
+file(GLOB_RECURSE _LIBSRC_FILES
+     analysis/*.cpp
+     infra/*.cpp
+     base/*.cpp
+     ocn/*.cpp
+     timeStepping/*.cpp)
 
 add_library(${OMEGA_LIB_NAME} ${_LIBSRC_FILES})
 

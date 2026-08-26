@@ -412,7 +412,7 @@ cell-level flux-accumulation kernel, and avoids the need to zero
 ## 5 Verification and Testing
 
 A test `test/ocn/FillValueTest.cpp` is added and registered as `FILL_VALUE_TEST`
-with 8 MPI tasks (building `testFillValue.exe`) using `add_omega_test()` in the
+with 8 MPI tasks (building `testFillValue.exe`) using `omega_add_test()` in the
 test `CMakeLists.txt`. The test performs a full ocean initialization (matching
 the `StateTest` pattern: `MachEnv`, logging, Config, `TimeStepper`, IO, `Field`,
 `IOStream`, `Decomp`, `Halo`, `HorzMesh`, `VertCoord`, `Tracers`,
