@@ -66,7 +66,10 @@ OMEGA_HIP_FLAGS: HIP compiler flags
 OMEGA_MEMORY_LAYOUT: Kokkos memory layout ("LEFT" or "RIGHT"). "RIGHT" is a default value.
 OMEGA_TILE_LENGTH: a length of one "side" of a Kokkos tile. 64 is a default value.
 OMEGA_LOG_LEVEL: a default logging level. "OMEGA_LOG_INFO" is a default value.
-OMEGA_LOG_FLUSH: turn on the unbuffered logging. "OFF" is a default value.
+OMEGA_LOG_FLUSH: turn on the unbuffered logging. "OFF" is a default value. This is
+a build-time switch; to raise the flush threshold at run time without rebuilding, set
+the OMEGA_LOG_FLUSH or OMEGA_LOG_FLUSH_LEVEL environment variables instead (see the
+logging design document).
 OMEGA_VECTOR_LENGTH: Vector length used for blocking inner loops for vectorization. "1" is a default value.
 ```
 

@@ -166,6 +166,35 @@
 /// The log file is truncated when it is opened, so it always holds exactly
 /// the messages from the current run.
 
+/// Log flushing
+/// spdlog buffers its file output, so messages below the flush threshold can
+/// still be sitting in that buffer when a run is killed from outside it - a
+/// job cancellation, a batch time limit, an out-of-memory kill, a hang or a
+/// signal - and are then lost. The threshold defaults to warn, exactly as it
+/// always has, which is why an info-level progress line can be missing from
+/// omega.log after such a kill. Two environment variables move it at run
+/// time, so a job about to be resubmitted can be made to keep its log
+/// without a rebuild:
+///   OMEGA_LOG_FLUSH_LEVEL=<trace|debug|info|warn|warning|err|error|
+///                          critical|off>
+///        Sets the threshold explicitly and wins whenever it is set. The
+///        names are spdlog's own, matched case-insensitively with
+///        surrounding blanks ignored. "off" means never flush, which is
+///        spdlog's own default and is weaker than Omega's; it is accepted
+///        only as a deliberately typed value.
+///   OMEGA_LOG_FLUSH=<1|true|yes|on>   equivalent to a threshold of info
+///   OMEGA_LOG_FLUSH=<0|false|no|off>  the built-in default, warn
+/// With neither set the threshold is warn and behavior is unchanged. An
+/// unrecognized value is reported once, on the master rank, and then ignored;
+/// it never aborts the run.
+///
+/// These variables are independent of the OMEGA_LOG_FLUSH *build* option,
+/// which defines the macro of the same name and makes every LOG_ macro above
+/// flush every registered logger unconditionally (see _LOG_FLUSH). The two
+/// mechanisms compose and neither disables the other: in a build that defines
+/// OMEGA_LOG_FLUSH the runtime threshold is redundant, not ignored.
+/// OMEGA_DEBUG implies the build option.
+
 namespace OMEGA {
 
 // To prevent some circular dependencies between MachEnv and Logging
@@ -204,6 +233,19 @@ _selectLogTasks(const std::string &Selector, ///< [in] raw selector string
                 I4 NumTasks,   ///< [in] number of tasks in the sub-communicator
                 I4 MasterTask, ///< [in] master rank of the sub-communicator
                 bool &Valid    ///< [out] false if the selector was malformed
+);
+
+/// Resolve the runtime log flush selectors into the spdlog level at and above
+/// which every message written is flushed to the log file. LevelSel is the raw
+/// value of OMEGA_LOG_FLUSH_LEVEL and wins whenever it is non-empty; FlushSel
+/// is the raw value of OMEGA_LOG_FLUSH and is a boolean. Pass "" for a
+/// variable that is unset; with both empty the result is the long-standing
+/// default of spdlog::level::warn. On a malformed selector, sets Valid=false
+/// and returns spdlog::level::warn.
+spdlog::level::level_enum _selectFlushLevel(
+    const std::string &LevelSel, ///< [in] raw OMEGA_LOG_FLUSH_LEVEL
+    const std::string &FlushSel, ///< [in] raw OMEGA_LOG_FLUSH
+    bool &Valid                  ///< [out] false if the selector was malformed
 );
 
 } // namespace OMEGA

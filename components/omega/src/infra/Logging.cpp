@@ -147,6 +147,72 @@ std::vector<int> _selectLogTasks(const std::string &Selector,
 }
 
 //------------------------------------------------------------------------------
+// The flush level Omega has always used, and the value every fallback returns
+// to, kept in one place so that "the default" is one thing.
+static constexpr spdlog::level::level_enum DefaultLogFlushLevel =
+    spdlog::level::warn;
+
+//------------------------------------------------------------------------------
+// Trim and lowercase a copy of an environment value, so that selectors match
+// case-insensitively and tolerate stray blanks. Same treatment the logging
+// task selector gets above.
+static std::string normalizeSelector(const std::string &Str) {
+   std::string Lower = trimStr(Str);
+   std::transform(Lower.begin(), Lower.end(), Lower.begin(),
+                  [](unsigned char C) { return std::tolower(C); });
+   return Lower;
+}
+
+//------------------------------------------------------------------------------
+// Resolve the runtime flush selectors into an spdlog flush level
+spdlog::level::level_enum _selectFlushLevel(const std::string &LevelSel,
+                                            const std::string &FlushSel,
+                                            bool &Valid) {
+
+   Valid = true;
+
+   // An explicit threshold wins whenever it is set.
+   const std::string Level = normalizeSelector(LevelSel);
+   if (!Level.empty()) {
+
+      // spdlog owns the level vocabulary, so spdlog does the matching:
+      // trace, debug, info, warning, error, critical, off, plus the warn and
+      // err aliases. It reports failure by returning off, which is also a
+      // real level, so the single string it cannot distinguish is checked
+      // here. That check is not optional: flush_on(off) can never flush
+      // anything (a message must satisfy both level >= threshold and
+      // level != off), so an unguarded from_str would turn a typo into the
+      // silent loss of even the critical messages that reach the file today.
+      const spdlog::level::level_enum Result = spdlog::level::from_str(Level);
+      if (Result == spdlog::level::off && Level != "off") {
+         Valid = false;
+         return DefaultLogFlushLevel;
+      }
+      return Result;
+   }
+
+   // The on/off spelling of the same knob. "On" means flush the info messages
+   // that carry a run's progress - the per-timestep line this exists for -
+   // and everything above them. "Off" means the built-in default rather than
+   // spdlog::level::off, which would keep even critical messages buffered;
+   // that is reachable only through OMEGA_LOG_FLUSH_LEVEL, where it has to be
+   // spelled out deliberately.
+   const std::string Flush = normalizeSelector(FlushSel);
+   if (!Flush.empty()) {
+      if (Flush == "1" || Flush == "true" || Flush == "yes" || Flush == "on")
+         return spdlog::level::info;
+      if (Flush == "0" || Flush == "false" || Flush == "no" || Flush == "off")
+         return DefaultLogFlushLevel;
+
+      Valid = false;
+      return DefaultLogFlushLevel;
+   }
+
+   // Neither variable set: exactly the behavior that preceded this change.
+   return DefaultLogFlushLevel;
+}
+
+//------------------------------------------------------------------------------
 // Source the logging task selector from the OMEGA_LOG_TASKS environment
 // variable, falling back to the master rank when unset/empty.
 static std::string getLogTaskSelector() {
@@ -229,6 +295,39 @@ static std::vector<int> resolveLogTasks(const OMEGA::MachEnv *DefEnv,
 }
 
 //------------------------------------------------------------------------------
+// Source the log flush level from the environment, emitting a master-rank
+// diagnostic for an unrecognized value. A bad value is never fatal: the run
+// continues with the long-standing default of flushing warnings and above,
+// the same way an invalid OMEGA_LOG_TASKS selector falls back above. This is
+// called before stdout/stderr are redirected into the log file, so the
+// diagnostic reaches the terminal or the batch job's output.
+static spdlog::level::level_enum
+resolveLogFlushLevel(const OMEGA::MachEnv *DefEnv) {
+
+   const char *LevelEnv = std::getenv("OMEGA_LOG_FLUSH_LEVEL");
+   const char *FlushEnv = std::getenv("OMEGA_LOG_FLUSH");
+
+   const std::string LevelSel = (LevelEnv != nullptr) ? LevelEnv : "";
+   const std::string FlushSel = (FlushEnv != nullptr) ? FlushEnv : "";
+
+   bool Valid = false;
+   spdlog::level::level_enum FlushLevel =
+       _selectFlushLevel(LevelSel, FlushSel, Valid);
+
+   if (!Valid && DefEnv->isMasterTask()) {
+      // Name the variable that was actually consulted; the explicit level
+      // wins whenever it is set, which is the rule _selectFlushLevel applies.
+      const bool UsedLevelVar = !trimStr(LevelSel).empty();
+      std::cerr << "[Omega Logging] Invalid "
+                << (UsedLevelVar ? "OMEGA_LOG_FLUSH_LEVEL" : "OMEGA_LOG_FLUSH")
+                << " value \"" << (UsedLevelVar ? LevelSel : FlushSel)
+                << "\"; flushing warnings and above." << std::endl;
+   }
+
+   return FlushLevel;
+}
+
+//------------------------------------------------------------------------------
 // Initialize logging for case of a pre-defined custom logger
 // Return code: 1->enabled, 0->disabled, negative values->errors
 int initLogging(
@@ -243,6 +342,10 @@ int initLogging(
    int NumLogging;
    std::vector<int> Tasks = resolveLogTasks(DefEnv, NumLogging);
 
+   // Resolved outside the branch below so that a malformed value is
+   // diagnosed on the master rank whether or not that rank is a logging rank.
+   const spdlog::level::level_enum FlushLevel = resolveLogFlushLevel(DefEnv);
+
    bool ThisTaskLogs =
        (std::find(Tasks.begin(), Tasks.end(), TaskId) != Tasks.end());
 
@@ -255,8 +358,17 @@ int initLogging(
       // set default log level
       spdlog::set_level(
           static_cast<spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
-      // flush output buffers for levels above warn
-      spdlog::flush_on(spdlog::level::warn);
+      // Flush output buffers at and above the runtime flush level, which is
+      // warn unless OMEGA_LOG_FLUSH_LEVEL or OMEGA_LOG_FLUSH moved it.
+      //
+      // This call must stay AFTER set_default_logger. spdlog applies a flush
+      // level to the loggers already in its registry, and set_default_logger
+      // is what puts a caller-constructed logger there - it does not run the
+      // registry's initialize_logger, so such a logger never inherits the
+      // stored flush level. Hoisting this above set_default_logger would
+      // leave the custom logger at spdlog's own default of never flushing,
+      // silently, with nothing to catch it.
+      spdlog::flush_on(FlushLevel);
 
       RetVal = 1; // log enabled
 
@@ -284,6 +396,10 @@ int initLogging(
 
    int NumLogging;
    std::vector<int> Tasks = resolveLogTasks(DefEnv, NumLogging);
+
+   // Resolved outside the branch below so that a malformed value is
+   // diagnosed on the master rank whether or not that rank is a logging rank.
+   const spdlog::level::level_enum FlushLevel = resolveLogFlushLevel(DefEnv);
 
    bool ThisTaskLogs =
        (std::find(Tasks.begin(), Tasks.end(), TaskId) != Tasks.end());
@@ -318,8 +434,12 @@ int initLogging(
          // Set the default log level based on cpp input
          spdlog::set_level(
              static_cast<spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
-         // Flush the message buffer for all messages above warning level
-         spdlog::flush_on(spdlog::level::warn);
+         // Flush the message buffer at and above the runtime flush level,
+         // which is warn unless OMEGA_LOG_FLUSH_LEVEL or OMEGA_LOG_FLUSH
+         // moved it. Kept after set_default_logger for the reason given in
+         // the other overload. The log-open banner written at the end of this
+         // function is emitted after this call, so it is covered too.
+         spdlog::flush_on(FlushLevel);
 
          RetVal = 1; // log enabled
 
@@ -341,6 +461,17 @@ int initLogging(
       // Set the stdout and stderr buffers to the file streambuffer
       std::cout.rdbuf(LogFileStream.rdbuf());
       std::cerr.rdbuf(LogFileStream.rdbuf());
+
+      // spdlog's flush level governs spdlog's own sinks. This stream is a
+      // second, independent buffer on the SAME log file, which no spdlog
+      // flush can reach and which nothing else flushes either, and it is
+      // where a cpptrace stack trace lands. When the run has asked for
+      // aggressive flushing, make stdout unbuffered too, so a backtrace is
+      // not the one thing missing from underneath the LOG_CRITICAL that
+      // explains it. std::cerr is unit-buffered from startup and needs no
+      // equivalent. Nothing changes at the default threshold.
+      if (FlushLevel <= spdlog::level::info)
+         std::cout << std::unitbuf;
 
       // Open the log with a banner giving the file and the time it was
       // opened, so the log can always be tied to the run that wrote it

@@ -125,6 +125,26 @@ master-rank-only logging; ranks outside the sub-communicator simply produce no
 log. When setting the `*` selector via the environment variable, quote it (for
 example `OMEGA_LOG_TASKS='*'`) to prevent shell glob expansion.
 
+The level at and above which log messages are flushed to the file is also
+resolved at runtime. `OMEGA_LOG_FLUSH_LEVEL` names the threshold explicitly,
+using the same level names as `OMEGA_LOG_LEVEL` plus spdlog's `warning` and
+`err` aliases, matched case-insensitively and with surrounding blanks ignored.
+`OMEGA_LOG_FLUSH` is the on/off spelling of the same knob: a true value (`1`,
+`true`, `yes`, `on`) selects a threshold of `info`, so that a run's per-timestep
+progress messages survive a job killed from outside it; a false value (`0`,
+`false`, `no`, `off`) selects the default. `OMEGA_LOG_FLUSH_LEVEL` wins when
+both are set. When neither is set the threshold is `warn`, the long-standing
+behavior. A malformed value is reported on the master rank and falls back to
+`warn`; it never aborts the run. Note that `OMEGA_LOG_FLUSH=off` means the
+default of `warn`, not `spdlog::level::off` - the latter never flushes anything
+at all and is reachable only by spelling it into `OMEGA_LOG_FLUSH_LEVEL`.
+
+These runtime variables are independent of the `OMEGA_LOG_FLUSH` *build*
+option, which is documented with the build variables and makes every log macro
+flush every registered logger unconditionally. The two compose and neither
+disables the other; `OMEGA_DEBUG` implies the build option, so in a debug build
+the runtime threshold is redundant rather than ignored.
+
 #### 4.1.2 Class/structs/data types
 
 No public data type is necessary for the logging system.

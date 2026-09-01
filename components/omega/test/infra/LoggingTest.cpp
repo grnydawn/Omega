@@ -10,6 +10,7 @@
 //
 //===-----------------------------------------------------------------------===/
 
+#include <cstdlib>
 #include <iostream>
 
 #include "Logging.h"
@@ -238,6 +239,82 @@ int testKokkosDataTypes(bool LogEnabled) {
    return RetVal;
 }
 
+//------------------------------------------------------------------------------
+// Check the runtime flush selector parser and the resulting flush level.
+//
+// The parse cases are pure - no MPI, no spdlog state, no file - so they run
+// and assert on every rank, unlike the checks above, which are gated on
+// LogEnabled and therefore only assert on the logging rank.
+int testFlushLevel(bool LogEnabled) {
+
+   int RetVal = 0;
+   bool Valid = false;
+
+   struct FlushCase {
+      const char *LevelSel;
+      const char *FlushSel;
+      spdlog::level::level_enum Expected;
+      bool ExpectValid;
+      const char *Name;
+   };
+
+   const FlushCase Cases[] = {
+       // neither set: the long-standing default, unchanged
+       {"", "", spdlog::level::warn, true, "default"},
+       // explicit threshold, every accepted spelling
+       {"trace", "", spdlog::level::trace, true, "trace"},
+       {"debug", "", spdlog::level::debug, true, "debug"},
+       {"info", "", spdlog::level::info, true, "info"},
+       {"warn", "", spdlog::level::warn, true, "warn"},
+       {"warning", "", spdlog::level::warn, true, "warning"},
+       {"err", "", spdlog::level::err, true, "err"},
+       {"error", "", spdlog::level::err, true, "error"},
+       {"critical", "", spdlog::level::critical, true, "critical"},
+       // "off" is a real level and must be reachable only when typed
+       {"off", "", spdlog::level::off, true, "off"},
+       // case and surrounding blanks are ignored
+       {"  INFO  ", "", spdlog::level::info, true, "case and blanks"},
+       // the boolean spelling of the same knob
+       {"", "1", spdlog::level::info, true, "bool 1"},
+       {"", "TRUE", spdlog::level::info, true, "bool true"},
+       {"", "yes", spdlog::level::info, true, "bool yes"},
+       {"", "on", spdlog::level::info, true, "bool on"},
+       {"", "0", spdlog::level::warn, true, "bool 0"},
+       {"", "off", spdlog::level::warn, true, "bool off is default"},
+       // precedence: the explicit level wins when both are set
+       {"critical", "1", spdlog::level::critical, true, "level beats bool"},
+       // the regression that matters: a typo must NOT resolve to level::off,
+       // which would never flush anything at all
+       {"inof", "", spdlog::level::warn, false, "invalid level"},
+       {"", "maybe", spdlog::level::warn, false, "invalid bool"},
+   };
+
+   for (const FlushCase &Case : Cases) {
+      spdlog::level::level_enum Got =
+          OMEGA::_selectFlushLevel(Case.LevelSel, Case.FlushSel, Valid);
+      if (Got != Case.Expected || Valid != Case.ExpectValid) {
+         std::cout << "FlushLevel " << Case.Name << ": FAIL" << std::endl;
+         ++RetVal;
+      }
+   }
+
+   // End to end: the resolved level reached the logger initLogging installed.
+   // Only meaningful when neither variable is set in the environment this test
+   // happens to run in, so that the expected value is the built-in default.
+   const bool EnvIsClean = (std::getenv("OMEGA_LOG_FLUSH") == nullptr) &&
+                           (std::getenv("OMEGA_LOG_FLUSH_LEVEL") == nullptr);
+   if (LogEnabled && EnvIsClean &&
+       spdlog::default_logger()->flush_level() != spdlog::level::warn) {
+      std::cout << "FlushLevel applied: FAIL" << std::endl;
+      ++RetVal;
+   }
+
+   if (RetVal == 0)
+      std::cout << "FlushLevel: PASS" << std::endl;
+
+   return RetVal;
+}
+
 int main(int argc, char **argv) {
 
    int RetVal = 0;
@@ -270,6 +347,7 @@ int main(int argc, char **argv) {
 
       RetVal += testDefaultLogLevel(LogEnabled);
       RetVal += testKokkosDataTypes(LogEnabled);
+      RetVal += testFlushLevel(LogEnabled);
 
    } catch (const std::exception &Ex) {
       std::cout << Ex.what() << ": FAIL" << std::endl;
