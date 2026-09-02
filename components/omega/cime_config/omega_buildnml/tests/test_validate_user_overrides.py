@@ -100,7 +100,9 @@ def test_driver_owned_io_options_are_rejected(option, defaults):
     The base IO task and rearranger are owned by the driver (CIME/shr_pio),
     so a user may not override them in ``user_nl_omega``.
     """
-    user_overrides = {"IO": {option: 4 if option == "IOBaseTask" else "subset"}}
+    user_overrides = {
+        "IO": {option: 4 if option == "IOBaseTask" else "subset"}
+    }
 
     with pytest.raises(ValueError, match="cannot be overridden"):
         validate_user_overrides(user_overrides, defaults)

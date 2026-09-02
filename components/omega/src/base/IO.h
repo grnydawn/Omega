@@ -185,8 +185,8 @@ void init(const MPI_Comm &InComm ///< [in] MPI communicator to use
 /// read from the Omega config; only the base task and rearranger are taken
 /// from the supplied parameters. Used in coupled runs where the coupler owns
 /// these settings.
-void init(const MPI_Comm &InComm,       ///< [in] MPI communicator to use
-          const IOInitParams &IOParams  ///< [in] driver-owned IO parameters
+void init(const MPI_Comm &InComm,      ///< [in] MPI communicator to use
+          const IOInitParams &IOParams ///< [in] driver-owned IO parameters
 );
 
 /// This routine opens a file for reading. The filename with full path must be

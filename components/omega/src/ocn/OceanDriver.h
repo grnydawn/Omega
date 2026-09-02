@@ -37,10 +37,10 @@ int ocnInit(MPI_Comm Comm);
 /// Coupled init phase 1: everything up through mesh/decomp/state, before the
 /// coupler-owned MCT buffers exist for attachData
 int ocnInit1(
-    MPI_Comm Comm,                           ///< [in] ocean MPI communicator
-    const int OcnId,                         ///< [in] mct comp id for ocean
-    const std::string &ConfigFile,           ///< [in] path to yaml config file
-    const std::string &LogFile,              ///< [in] path to log file
+    MPI_Comm Comm,                            ///< [in] ocean MPI communicator
+    const int OcnId,                          ///< [in] mct comp id for ocean
+    const std::string &ConfigFile,            ///< [in] path to yaml config file
+    const std::string &LogFile,               ///< [in] path to log file
     const StartType StartType,                ///< [in] simulation start type
     const TimeInitParams &TimeParams,         ///< [in] time parameters
     const CouplingInitParams &CouplingParams, ///< [in] coupling parameters

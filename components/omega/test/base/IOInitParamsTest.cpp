@@ -14,10 +14,10 @@
 //
 //===-----------------------------------------------------------------------===/
 
-#include "IO.h"
 #include "Config.h"
 #include "DataTypes.h"
 #include "Error.h"
+#include "IO.h"
 #include "Logging.h"
 #include "MachEnv.h"
 #include "Pacer.h"
@@ -89,10 +89,12 @@ int main(int argc, char *argv[]) {
       IO::Rearranger DriverRearr =
           (ConfigRearr == IO::RearrSubset) ? IO::RearrBox : IO::RearrSubset;
 
-      LOG_INFO("IOInitParamsTest: config supplies IOBaseTask={} IORearranger={}",
-               ConfigBaseTask, static_cast<int>(ConfigRearr));
-      LOG_INFO("IOInitParamsTest: driver supplies IOBaseTask={} IORearranger={}",
-               DriverBaseTask, static_cast<int>(DriverRearr));
+      LOG_INFO(
+          "IOInitParamsTest: config supplies IOBaseTask={} IORearranger={}",
+          ConfigBaseTask, static_cast<int>(ConfigRearr));
+      LOG_INFO(
+          "IOInitParamsTest: driver supplies IOBaseTask={} IORearranger={}",
+          DriverBaseTask, static_cast<int>(DriverRearr));
 
       // Initialize IO with the driver-owned parameters
       IO::IOInitParams DriverParams{DriverBaseTask, DriverRearr};
