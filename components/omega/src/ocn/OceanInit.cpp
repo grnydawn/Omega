@@ -37,8 +37,6 @@
 
 #include "mpi.h"
 
-#include <optional>
-
 namespace OMEGA {
 
 // Convienvence converter of an int to a StartType enum, with error checking
@@ -264,12 +262,8 @@ int ocnInit2(const Real *CplToOcnData, Real *OcnToCplData) {
 
 // Call init routines for remaining Omega modules
 // Internal helper — all module init after TimeStepper::init1 is called.
-// Called by both initOmegaModules overloads. When IOParams is provided (the
-// coupled path) the IO base task and rearranger come from the driver;
-// otherwise they are read from the Omega config.
-static int initOmegaModulesImpl(
-    MPI_Comm Comm,
-    const std::optional<IO::IOInitParams> &IOParams = std::nullopt) {
+// Called by both initOmegaModules overloads.
+static int initOmegaModulesImpl() {
 
    // error and return codes
    int Err = 0;
@@ -281,11 +275,6 @@ static int initOmegaModulesImpl(
    // of each file, only creates streams from Config
    IOStream::init(ModelClock);
 
-   if (IOParams.has_value()) {
-      IO::init(Comm, IOParams.value());
-   } else {
-      IO::init(Comm);
-   }
    Field::init(ModelClock);
    Decomp::init();
 
@@ -331,7 +320,8 @@ int initOmegaModules(MPI_Comm Comm) {
    // calendar, model clock and start/stop times and alarms with all options
    // read from the config file
    TimeStepper::init1();
-   return initOmegaModulesImpl(Comm);
+   IO::init(Comm);
+   return initOmegaModulesImpl();
 }
 
 int initOmegaModules(MPI_Comm Comm, const TimeInitParams &TParams,
@@ -341,7 +331,8 @@ int initOmegaModules(MPI_Comm Comm, const TimeInitParams &TParams,
    // Initialize time stepper (phase 1) using coupler provided time parameters
    // Calendar should have already been initalized
    TimeStepper::init1(TParams);
-   Err = initOmegaModulesImpl(Comm, IOParams);
+   IO::init(Comm, IOParams);
+   Err = initOmegaModulesImpl();
    SfcCoupling::init(CParams);
 
    return Err;
