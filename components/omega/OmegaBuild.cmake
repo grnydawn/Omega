@@ -512,6 +512,11 @@ function(omega_read_e3sm_macros)
   # USE_SYCL must come from here too.
   set(USE_SYCL "${USE_SYCL}" PARENT_SCOPE)
 
+  if(USE_SYCL)
+    set(SYCL_FLAGS "${SYCL_FLAGS}" PARENT_SCOPE)
+    set(OMEGA_SYCL_EXE_LINKER_FLAGS "${OMEGA_SYCL_EXE_LINKER_FLAGS}" PARENT_SCOPE)
+  endif()
+
 endfunction()
 
 # set build-control-variables for e3sm build
