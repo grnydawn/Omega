@@ -3,6 +3,33 @@
 # create library flag target for LibOmega
 add_library(OmegaLibFlags INTERFACE)
 
+# Per-machine compiler and linker flags, collected by omega_collect_machine_flags()
+# in OmegaBuild.cmake. They describe Omega's own code, so they go on this target
+# rather than into CMAKE_CXX_FLAGS, which would also reach the third-party projects
+# vendored under external/ and every configure-time try_compile in this subtree.
+#
+# separate_arguments is required, not cosmetic: target_compile_options takes a list,
+# and NATIVE_COMMAND also respects the embedded quoting in machine flags such as
+# -Xsycl-target-backend "-device pvc", keeping "-device pvc" as one argument.
+#
+# The COMPILE_LANGUAGE:CXX guard is required too. In E3SM mode the ocn target
+# below compiles three .F90 sources alongside one .cpp and links this target, so
+# an unguarded target_compile_options would hand the Fortran compiler
+# -fsycl -fsycl-targets=spir64_gen. EKAT guards the same way in SetCudaFlags and
+# SetOmpFlags, and Kokkos in kokkos_tribits.cmake; this is their idiom, not a
+# local invention.
+if(OMEGA_MACHINE_CXX_FLAGS)
+  separate_arguments(_OmegaMachineCxxFlags NATIVE_COMMAND "${OMEGA_MACHINE_CXX_FLAGS}")
+  target_compile_options(OmegaLibFlags INTERFACE
+                         "$<$<COMPILE_LANGUAGE:CXX>:${_OmegaMachineCxxFlags}>")
+endif()
+
+# No LINK_LANGUAGE guard here: every consumer sets LINKER_LANGUAGE CXX.
+if(OMEGA_MACHINE_LINK_FLAGS)
+  separate_arguments(_OmegaMachineLinkFlags NATIVE_COMMAND "${OMEGA_MACHINE_LINK_FLAGS}")
+  target_link_options(OmegaLibFlags INTERFACE ${_OmegaMachineLinkFlags})
+endif()
+
 target_include_directories(
     OmegaLibFlags
     INTERFACE
