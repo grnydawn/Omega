@@ -119,6 +119,18 @@ if (NOT TARGET gptl)
 	  ${E3SM_ROOT}/share/timing
 	  ${CMAKE_CURRENT_BINARY_DIR}/gptl
 	)
+elseif (compile_threaded)
+	# The Scorpio add_subdirectory above already created a target named "gptl"
+	# (externals/scorpio/src/gptl, pulled in whenever Scorpio's find_package(GPTL)
+	# comes up empty), so the guard skipped E3SM's share/timing GPTL -- the only
+	# one that sets -DTHREADED_OMP.
+	#
+	# Build Scorpio's copy threaded so it matches how E3SM uses it. Note the
+	# Omega subtree does not inherit Macros.cmake's flags (CMAKE_C_FLAGS and
+	# CMAKE_Fortran_FLAGS are empty here), so -fopenmp has to come along too.
+	find_package(OpenMP REQUIRED COMPONENTS C Fortran)
+	target_compile_definitions(gptl PRIVATE THREADED_OMP)
+	target_link_libraries(gptl PRIVATE OpenMP::OpenMP_C OpenMP::OpenMP_Fortran)
 endif()
 
 # Add the Pacer library
