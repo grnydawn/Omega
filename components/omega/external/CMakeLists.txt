@@ -75,8 +75,34 @@ if (NOT TARGET Kokkos::kokkos)
 	add_library(Kokkos::kokkos ALIAS kokkos)
 endif()
 
+# Link the case's own Scorpio and GPTL in a coupled build.
+# E3SM has already built both into the case's shared libraries, and
+# components/cmake/modules/FindPIO.cmake wraps them in one interface target,
+# "spio", with no target named "pioc" or "gptl". Without the two wrappers
+# below, the guards that follow find nothing to reuse: Omega builds a second
+# Scorpio, and with it Scorpio's bundled GPTL, so e3sm.exe links two copies of
+# each and takes GPTL from the private one, which lacks -DHAVE_SLASHPROC.
+# EAMxx wraps "spio" the same way (components/eamxx/cmake/tpls/Scorpio.cmake);
+# when it has, these skip.
+if (TARGET spio AND NOT TARGET pioc)
+	add_library(pioc INTERFACE)
+	target_link_libraries(pioc INTERFACE spio)
+	# pio.h is in the source tree; the generated pio_config.h it includes is
+	# only in the shared include directory.
+	target_include_directories(pioc INTERFACE
+	  ${E3SM_EXTERNALS_ROOT}/scorpio/src/clib
+	  ${INSTALL_SHAREDPATH}/include
+	)
+endif()
+
+if (TARGET spio AND NOT TARGET gptl)
+	add_library(gptl INTERFACE)
+	target_link_libraries(gptl INTERFACE spio)
+	target_include_directories(gptl INTERFACE ${INSTALL_SHAREDPATH}/include)
+endif()
+
 # Add the Scorpio library
-# Deliberately left as a single-name guard: unlike the libraries above, "pioc"
+# Deliberately left as a single-name guard: unlike spdlog and yaml-cpp, "pioc"
 # has no namespaced alias to also test, so one name already covers every path
 # that supplies it.
 if (NOT TARGET pioc)
@@ -119,11 +145,17 @@ if (NOT TARGET gptl)
 	  ${E3SM_ROOT}/share/timing
 	  ${CMAKE_CURRENT_BINARY_DIR}/gptl
 	)
-elseif (compile_threaded)
+elseif (compile_threaded AND NOT TARGET spio)
 	# The Scorpio add_subdirectory above already created a target named "gptl"
 	# (externals/scorpio/src/gptl, pulled in whenever Scorpio's find_package(GPTL)
 	# comes up empty), so the guard skipped E3SM's share/timing GPTL -- the only
 	# one that sets -DTHREADED_OMP.
+	#
+	# Applies only when Omega built Scorpio itself, which in practice means a
+	# standalone build. In a coupled build "gptl" is an interface wrapper
+	# around "spio" -- the one above, or EAMxx's -- with nothing of its own
+	# to patch, and the case's GPTL behind it is already threaded:
+	# share/timing adds -DTHREADED_OMP whenever compile_threaded is set.
 	#
 	# Build Scorpio's copy threaded so it matches how E3SM uses it. Note the
 	# Omega subtree does not inherit Macros.cmake's flags (CMAKE_C_FLAGS and
