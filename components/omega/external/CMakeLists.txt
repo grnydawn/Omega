@@ -99,6 +99,14 @@ if (TARGET spio AND NOT TARGET gptl)
 	add_library(gptl INTERFACE)
 	target_link_libraries(gptl INTERFACE spio)
 	target_include_directories(gptl INTERFACE ${INSTALL_SHAREDPATH}/include)
+	# gptl.h declares its MPI_Comm signatures only under HAVE_MPI, which
+	# share/timing builds the case's GPTL with unless MPILIB is mpi-serial.
+	# Scorpio's bundled GPTL exported it PUBLIC, and pacer relies on it:
+	# without it, passing an MPI_Comm fails to compile wherever MPI_Comm is
+	# not an int, as with OpenMPI.
+	if (NOT MPILIB STREQUAL "mpi-serial")
+		target_compile_definitions(gptl INTERFACE HAVE_MPI)
+	endif()
 endif()
 
 # Add the Scorpio library
