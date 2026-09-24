@@ -168,9 +168,20 @@ elseif (compile_threaded AND NOT TARGET spio)
 	# Build Scorpio's copy threaded so it matches how E3SM uses it. Note the
 	# Omega subtree does not inherit Macros.cmake's flags (CMAKE_C_FLAGS and
 	# CMAKE_Fortran_FLAGS are empty here), so -fopenmp has to come along too.
-	find_package(OpenMP REQUIRED COMPONENTS C Fortran)
+	#
+	# Ask for OpenMP's Fortran component only where Fortran is enabled in this
+	# directory. A standalone build enables C and CXX only; Scorpio enables
+	# Fortran in its own subdirectory, which this one does not see, so asking
+	# for it here fails configure. Standalone Omega calls GPTL from C++ only.
+	set(_gptl_omp_langs C)
+	if (CMAKE_Fortran_COMPILER_LOADED)
+		list(APPEND _gptl_omp_langs Fortran)
+	endif()
+	find_package(OpenMP REQUIRED COMPONENTS ${_gptl_omp_langs})
 	target_compile_definitions(gptl PRIVATE THREADED_OMP)
-	target_link_libraries(gptl PRIVATE OpenMP::OpenMP_C OpenMP::OpenMP_Fortran)
+	foreach(_lang IN LISTS _gptl_omp_langs)
+		target_link_libraries(gptl PRIVATE OpenMP::OpenMP_${_lang})
+	endforeach()
 endif()
 
 # Add the Pacer library
