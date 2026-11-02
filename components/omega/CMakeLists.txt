@@ -101,6 +101,9 @@ if(OMEGA_BUILD_TEST)
 
 endif()
 
+# print the build type and the flags in effect, now that every target is defined
+omega_report_flags()
+
 ###########################################################
 # STEP 4: Output                                          #
 #                                                         #

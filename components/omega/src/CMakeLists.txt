@@ -35,6 +35,18 @@ if(OMEGA_SINGLE_PRECISION)
   )
 endif()
 
+# Debug builds leave Omega's C++ unoptimized, and icpx then compiles SYCL
+# device code at -O0. Unoptimized kernels need so much private memory that
+# the GPU runtime's per-kernel private allocations fill a whole PVC tile and
+# runs eventually crash with a GPU page fault (Omega issue #666). So in SYCL
+# Debug builds, Omega's C++ code is compiled at -O1. A target's options follow
+# the build type's flags on the compile line, so this -O1 comes after any -O
+# level those set. Fortran sources and the external libraries keep the usual
+# debug flags.
+# BUILD_FLAGS_TEST (test/build/CheckBuildFlags.cmake) checks where it lands.
+if("${OMEGA_ARCH}" STREQUAL "SYCL")
+  target_compile_options(OmegaLibFlags INTERFACE "$<$<AND:$<COMPILE_LANGUAGE:CXX>,${OMEGA_DEBUG_CONFIG}>:-O1>")
+endif()
 
 target_link_options(
     OmegaLibFlags

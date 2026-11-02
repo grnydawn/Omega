@@ -757,3 +757,18 @@ add_omega_test(
     ocn/SubmesoEddiesTest.cpp
     "-n;2"
 )
+
+##########################
+# Build flags test
+##########################
+
+# Checks where src/CMakeLists.txt's -O1 lands: on OmegaLib's C++ in SYCL Debug
+# builds, as the last -O, and never on an external library's C++ (yaml-cpp's).
+# It reads each target's compile flags from the flags.make the Makefile
+# generator writes, so it is added only under a Makefile generator.
+if(CMAKE_GENERATOR MATCHES "Makefiles")
+  add_test(
+    NAME BUILD_FLAGS_TEST
+    COMMAND ${CMAKE_COMMAND} -DFLAGS_OMEGA=$<TARGET_PROPERTY:OmegaLib,BINARY_DIR>/CMakeFiles/OmegaLib.dir/flags.make -DFLAGS_EXTERNAL=$<TARGET_PROPERTY:yaml-cpp,BINARY_DIR>/CMakeFiles/yaml-cpp.dir/flags.make -DOMEGA_ARCH=${OMEGA_ARCH} -DBUILD_CONFIG=$<CONFIG> -P ${CMAKE_CURRENT_SOURCE_DIR}/build/CheckBuildFlags.cmake
+  )
+endif()

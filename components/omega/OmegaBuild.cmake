@@ -628,6 +628,12 @@ macro(update_variables)
   # Set the build type
   set(CMAKE_BUILD_TYPE ${OMEGA_BUILD_TYPE})
 
+  # The one Debug decision for Omega's build flags: a generator expression on
+  # the build type just set, true in a Debug build. It ignores case, so a
+  # standalone build's Debug and the DEBUG an E3SM build passes down both
+  # match. common() sets OMEGA_DEBUG separately; this does not affect it.
+  set(OMEGA_DEBUG_CONFIG "$<CONFIG:Debug>")
+
   add_definitions(-DOMEGA_BUILD_MODE=${OMEGA_BUILD_MODE})
 
   if(NOT DEFINED OMEGA_LOG_LEVEL)
@@ -862,6 +868,37 @@ macro(check_setup)
 #  if (NOT DEFINED YAKL_ARCH)
 #    message(FATAL_ERROR "YAKL_ARCH is not defined.")
 #  endif()
+
+endmacro()
+
+
+################################
+# Report the flags in effect   #
+################################
+# Prints the build type, and the compile flags of this directory that Omega's
+# C++, the external libraries' C++ and Omega's Fortran start from.
+# OmegaLibFlags' options follow them on Omega's compile lines. The Fortran
+# line is printed only when this directory has Fortran loaded, which is the
+# E3SM build, whose top level enables it. A standalone build enables Fortran
+# only in Scorpio's own subdirectory, so it gets no Fortran line. A
+# subdirectory may add flags of its own, so the compile lines themselves are
+# in each target's flags.make. Call it after every target is defined.
+macro(omega_report_flags)
+
+  string(TOUPPER "${CMAKE_BUILD_TYPE}" _OmegaFlagsCfg)
+  get_property(_OmegaFlagsOpts TARGET OmegaLibFlags PROPERTY INTERFACE_COMPILE_OPTIONS)
+  list(JOIN _OmegaFlagsOpts " " _OmegaFlagsOpts)
+
+  message(STATUS "Omega flags: CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} OMEGA_BUILD_TYPE=${OMEGA_BUILD_TYPE} OMEGA_DEBUG=${OMEGA_DEBUG} OMEGA_ARCH=${OMEGA_ARCH}")
+  message(STATUS "Omega flags: C++ (Omega): ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${_OmegaFlagsCfg}} | OmegaLibFlags: ${_OmegaFlagsOpts}")
+  message(STATUS "Omega flags: C++ (external libraries): ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${_OmegaFlagsCfg}}")
+
+  if(CMAKE_Fortran_COMPILER_LOADED)
+    message(STATUS "Omega flags: Fortran (Omega): ${CMAKE_Fortran_FLAGS} ${CMAKE_Fortran_FLAGS_${_OmegaFlagsCfg}}")
+  endif()
+
+  unset(_OmegaFlagsCfg)
+  unset(_OmegaFlagsOpts)
 
 endmacro()
 
